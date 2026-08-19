@@ -1,0 +1,3408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ChartsWatcher Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b1220;
+    --bg-2: #1a2a45;
+    --card: #1e2d4a;
+    --card-2: #24365c;
+    --border: rgba(255,255,255,0.05);
+    --border-soft: rgba(255,255,255,0.035);
+    --header-text: #ffffff;
+    --text: #e7ecf5;
+    --muted: #aab6c3;
+    --accent: #4c9eff;
+    --accent-dim: rgba(76,158,255,0.15);
+    --accent-orange: #ffb347;
+    --accent-orange-dim: rgba(255,179,71,0.15);
+    --up: #6edb8f;
+    --up-glow: rgba(110,219,143,0.35);
+    --down: #ff4468;
+    --down-glow: rgba(255,68,104,0.35);
+    --teal: #22d3ee;
+    --teal2: #06b6d4;
+    --purple: #7c3aed;
+    --purple2: #4c9eff;
+    --focus: #4c9eff;
+    --warn: #fbbf24;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%) fixed;
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  .app{ max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  .section-heading{ margin: 26px 0 10px; }
+  .section-heading h3{ margin:0; font-size:15px; font-weight:700; color: var(--header-text); }
+  .main-section-heading{ margin: 34px 0 14px; padding-bottom:10px; border-bottom: 2px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .main-section-heading:first-of-type{ margin-top: 8px; }
+  .main-section-heading h3{ font-size:17px; letter-spacing:0.01em; text-transform:uppercase; color: var(--accent); }
+  .header-live-status{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:12px; text-transform:none; letter-spacing:normal; }
+  .notif-toggle-btn{ display:flex; align-items:center; gap:7px; background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--muted); font-family:inherit; font-size:11.5px; font-weight:700; text-transform:none; letter-spacing:normal; padding:6px 12px; border-radius:20px; cursor:pointer; transition: all .15s ease; }
+  .notif-toggle-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
+  .notif-toggle-btn.enabled{ background: rgba(110,219,143,0.12); color: var(--up); border-color: rgba(110,219,143,0.35); }
+  .notif-toggle-btn.denied{ background: rgba(255,68,104,0.1); color: var(--down); border-color: rgba(255,68,104,0.3); cursor:not-allowed; }
+
+  /* ---------- Home page ---------- */
+  /* Shared icon badges — used in each collapsible section's header */
+  .icon-badge, .panel-head-icon{ width:24px; height:24px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .icon-blue{ background: var(--accent-dim); color: var(--accent); }
+  .icon-orange{ background: var(--accent-orange-dim); color: var(--accent-orange); }
+  .icon-green{ background: var(--up-glow); color: var(--up); }
+  .icon-red{ background: var(--down-glow); color: var(--down); }
+
+  /* ---------- Empty-state pages (Alerts / Halt) ---------- */
+  .empty-page{ text-align:center; padding: 54px 20px; color: var(--muted); }
+  .empty-page-icon{ font-size:38px; margin-bottom:12px; }
+  .empty-page h3{ color: var(--header-text); margin:0 0 10px; font-size:16px; }
+  .empty-page p{ font-size:12.5px; line-height:1.6; margin:0 0 8px; max-width:420px; margin-left:auto; margin-right:auto; }
+  .empty-page-hint{ color:#8b95a5; }
+
+  /* Alerts feed cards (populate automatically if the connection ever sends alert-type messages) */
+  .alert-card{ background: var(--card-2); border:1px solid var(--border-soft); border-radius:10px; padding:11px 13px; margin-bottom:9px; }
+  .alert-card-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px; }
+  .alert-card-head-left{ display:flex; align-items:center; gap:6px; }
+  .alert-card-icon{ color: var(--accent-orange); display:flex; align-items:center; flex-shrink:0; }
+  .alert-card .alert-time{ font-size:10.5px; color: var(--muted); font-weight:600; }
+  .alert-sym-badge{ background: var(--accent-dim); border:1px solid rgba(59,130,246,0.35); border-radius:6px; padding:2px 9px; font-size:12px; }
+  .alert-kv-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:6px; }
+  .alert-kv{ background: var(--card); border:1px solid var(--border-soft); border-radius:7px; padding:6px 9px; min-width:0; }
+  .alert-kv-label{ font-size:9.5px; color: var(--muted); margin-bottom:2px; }
+  .alert-kv-value{ font-size:12px; font-weight:600; color: var(--header-text); word-break:break-word; }
+  .alerts-empty-note{ padding:26px 16px; text-align:center; color: var(--muted); font-size:12.5px; }
+
+  /* Halts table status badge */
+  .halt-badge{ display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .halt-badge.paused{ background: rgba(255,68,104,0.14); color:#ff8fa1; border:1px solid rgba(255,68,104,0.35); }
+  .halt-badge.resumed{ background: rgba(57,255,140,0.14); color:#7cffb2; border:1px solid rgba(57,255,140,0.35); }
+  .halt-badge.neutral{ background: rgba(255,255,255,0.05); color: var(--text); border:1px solid var(--border); }
+
+  /* ---------- Header ---------- */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 10px; flex-wrap: wrap; }
+
+  .market-status-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; background: var(--card); border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px 8px 12px; margin-bottom:16px; font-size:12.5px; color: var(--muted); box-shadow: var(--shadow); flex-wrap:wrap;
+  }
+  .market-status-left{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .market-status-bar .refresh{ flex-shrink:0; }
+  .market-status-dot{ width:8px; height:8px; border-radius:50%; background: var(--muted); flex-shrink:0; }
+  .market-status-bar.session-pre .market-status-dot,
+  .market-status-bar.session-after .market-status-dot{ background: var(--accent-orange); box-shadow: 0 0 6px rgba(255,179,71,0.5); }
+  .market-status-bar.session-open .market-status-dot{ background: var(--up); box-shadow: 0 0 6px var(--up-glow); animation: pulse 1.4s ease-in-out infinite; }
+  .market-status-bar.session-closed .market-status-dot{ background: var(--muted); }
+  .market-status-label{ font-weight:700; color: var(--header-text); letter-spacing:0.01em; }
+  .market-status-sep{ color: var(--border); }
+  .market-status-countdown{ color: var(--text); }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .mark{ width:34px;height:34px;border-radius:9px; background: linear-gradient(135deg, var(--accent), var(--accent-orange)); display:flex; align-items:center; justify-content:center; box-shadow: 0 0 16px rgba(76,158,255,0.35); flex-shrink:0; }
+  .brand .mark svg{ width:18px;height:18px; }
+  .brand h1{ font-size: 19px; font-weight:700; margin:0; color: var(--header-text); letter-spacing:-0.01em; }
+  .brand .tag{ color:var(--muted); font-size:11.5px; letter-spacing: 0.03em; text-transform:uppercase; }
+
+  button.refresh{ display:flex; align-items:center; gap:7px; background: var(--card); border: 1px solid var(--border); color: var(--header-text); padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 13.5px; cursor:pointer; transition: border-color .15s ease, background .15s ease, transform .1s ease; white-space: nowrap; }
+  button.refresh:hover{ border-color: var(--accent); background: var(--card-2); }
+  button.refresh:active{ transform: translateY(1px); }
+  button.refresh:focus-visible{ outline: 2px solid var(--focus); outline-offset:2px; }
+  button.refresh svg{ transition: transform .5s ease; color: var(--accent); }
+  button.refresh.spinning svg{ animation: spin 0.8s linear infinite; }
+  @keyframes spin{ to { transform: rotate(360deg); } }
+
+  .status-row{ display:flex; justify-content:space-between; align-items:center; color: var(--muted); font-size: 12px; margin: 2px 2px 18px; flex-wrap:wrap; gap:8px; }
+  .conn{ display:flex; align-items:center; gap:6px; font-weight:600; }
+  .conn .led{ width:7px;height:7px;border-radius:50%; background: var(--muted); }
+  .conn.live .led{ background: var(--up); box-shadow:0 0 8px var(--up-glow); animation: pulse 1.4s ease-in-out infinite; }
+  .conn.live #connText{ color: var(--up); }
+  .conn.connecting .led{ background: var(--warn); animation: pulse 0.8s ease-in-out infinite; }
+  .conn.error .led{ background: var(--down); }
+  .conn.error #connText{ color: var(--down); }
+  @keyframes pulse{ 0%,100%{opacity:.4;} 50%{opacity:1;} }
+
+  /* Brief green flash for 5min trade count cells updating above 1,000 */
+  @keyframes cellPulseGreen{
+    0%{ background: rgba(110,219,143,0.45); box-shadow: 0 0 8px rgba(110,219,143,0.5); }
+    100%{ background: transparent; box-shadow: none; }
+  }
+  .cell-pulse-green{ animation: cellPulseGreen 1.1s ease-out; border-radius:4px; }
+
+  /* ---------- Panels ---------- */
+  .panel{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; box-shadow: var(--shadow); }
+
+  /* Expanded panels take over the full viewport instead of expanding
+     inline — clean full-width/full-height view for wide tables. */
+  body.panel-fullscreen-active{ overflow: hidden; }
+  .panel:not(.collapsed){
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel:not(.collapsed) .panel-head{
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .panel:not(.collapsed) .table-scroll{
+    flex: 1 1 auto;
+    overflow: auto;
+    max-height: none;
+  }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--card-2); cursor:pointer; user-select:none; }
+  .panel-head-left{ display:flex; align-items:center; gap:9px; }
+  .panel-head h2{ font-size: 13.5px; margin:0; font-weight:700; color: var(--header-text); letter-spacing:-0.005em; }
+  .panel-head .count{ color:var(--muted); font-size:11px; font-weight:500; }
+  .fold-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; color: var(--muted); transition: transform .25s ease, background .15s ease; flex-shrink:0; }
+  .fold-btn:hover{ background: #20242c; color: var(--header-text); }
+  .fold-btn svg{ transition: transform .25s ease; }
+  .panel.collapsed .fold-btn svg{ transform: rotate(-90deg); }
+  .panel.collapsed .table-scroll{ display:none; }
+  .panel.collapsed .general-body{ display:none; }
+  .cal-mock-banner{ background: rgba(251,146,60,0.12); border:1px solid rgba(251,146,60,0.35); color:#fb923c; font-size:11.5px; font-weight:600; padding:9px 16px; margin: 0 16px 10px; border-radius:8px; text-align:right; direction:rtl; }
+
+  .table-scroll{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table{ width:100%; border-collapse: collapse; font-size: 12px; min-width: 560px; }
+  thead th{ text-align:left; padding: 6px 9px; color: var(--muted); font-weight: 700; font-size: 10.5px; letter-spacing: 0.02em; border-bottom: 1px solid var(--border); background: var(--card-2); position: sticky; top: 0; white-space: nowrap; cursor: default; }
+  thead th .th-abbr{ margin-left:3px; color:#8b95a5; }
+  thead th:first-child, tbody td:first-child{ position: sticky; left: 0; background: var(--card); z-index: 1; }
+  thead th:first-child{ background: var(--card-2); z-index:2; }
+  tbody td{ padding: 5px 9px; border-bottom: 1px solid var(--border-soft); white-space: nowrap; line-height:1.5; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover td{ background: var(--card-2); }
+  tbody tr:hover td:first-child{ background: var(--card-2); }
+
+  .sym{ font-weight:700; color: var(--header-text); letter-spacing:0.01em; }
+  .num-up{ color: var(--up); font-weight:600; text-shadow: 0 0 8px var(--up-glow); }
+  .num-down{ color: var(--down); font-weight:600; text-shadow: 0 0 8px var(--down-glow); }
+  .num-neutral{ color: var(--text); }
+  .na{ color: #3a3f47; }
+  .country-cell{ display:inline-flex; align-items:center; gap:6px; }
+  .flag-icon-img{ display:block; border-radius:2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); flex-shrink:0; }
+
+  /* News icon / badge column */
+  .news-badge{ display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:20px; font-size:11px; font-weight:600; }
+  .volume-badge{ display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600; background: rgba(255,255,255,0.05); border:1px solid var(--border); }
+  .volume-badge.white{ color:#ffffff; }
+  .volume-badge.green{ color:#22c55e; }
+  .volume-badge.orange{ color:#fb923c; }
+  .volume-badge.darkorange{ color:#c2410c; }
+  .volume-badge.red{ color:#ff4468; }
+  .rvol-badge{ display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600; background: rgba(255,255,255,0.05); border:1px solid var(--border); }
+  .rvol-white{ color:#ffffff; }
+  .rvol-lightgreen{ color:#86efac; border-color: rgba(134,239,172,0.3); }
+  .rvol-darkgreen{ color:#166534; border-color: rgba(22,101,52,0.4); background: rgba(22,101,52,0.12); }
+  .rvol-orange{ color:#fb923c; border-color: rgba(251,146,60,0.35); background: rgba(251,146,60,0.12); }
+  .rvol-red{ color:#ff4468; border-color: rgba(255,68,104,0.4); background: rgba(255,68,104,0.12); }
+  .tc-badge{ display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600; background: rgba(255,255,255,0.05); border:1px solid var(--border); }
+  .tc-white{ color:#ffffff; }
+  .tc-green{ color:#22c55e; border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.12); }
+  .tc-darkgreen{ color:#166534; border-color: rgba(22,101,52,0.4); background: rgba(22,101,52,0.14); }
+  .tc-orange{ color:#fb923c; border-color: rgba(251,146,60,0.35); background: rgba(251,146,60,0.12); }
+
+  /* ---------- Economic Calendar (GENERAL section) ---------- */
+  .cal-refresh-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; color: var(--muted); cursor:pointer; flex-shrink:0; transition: background .15s ease; }
+
+  .sub-tab-bar{ display:flex; gap:4px; padding:10px 16px 0; border-bottom:1px solid var(--border); background: var(--card-2); }
+  .sub-tab-btn{ background:transparent; border:none; border-bottom:2px solid transparent; color: var(--muted); font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700; padding:8px 4px 10px; cursor:pointer; transition: color .15s ease, border-color .15s ease; margin-right:14px; }
+  .sub-tab-btn:hover{ color: var(--header-text); }
+  .sub-tab-btn.active{ color: var(--accent); border-bottom-color: var(--accent); }
+  .subtab-pane{ display:none; }
+  .subtab-pane.active{ display:block; }
+  .pane-toolbar{ display:flex; align-items:center; justify-content:space-between; padding:9px 16px; border-bottom:1px solid var(--border-soft); }
+  .pane-title{ font-size:11px; color: var(--muted); font-weight:600; letter-spacing:0.03em; text-transform:uppercase; }
+  .ipo-view-toggle{ display:flex; gap:6px; }
+  .ipo-view-btn{ background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--muted); font-family:inherit; font-size:11.5px; font-weight:700; padding:5px 12px; border-radius:20px; cursor:pointer; transition: all .15s ease; }
+  .ipo-view-btn:hover{ color: var(--header-text); }
+  .ipo-view-btn.active{ background: var(--accent-dim); color: var(--accent); border-color: rgba(76,158,255,0.35); }
+  .ipo-company{ display:flex; flex-direction:column; }
+  .ipo-company-name{ color: var(--header-text); font-weight:600; }
+  .ipo-company-ticker{ color: var(--muted); font-size:10.5px; }
+  .ipo-row{ display:grid; grid-template-columns: 1fr 100px 90px 90px; align-items:center; gap:8px; padding:9px 16px; border-bottom:1px solid var(--border-soft); font-size:12px; }
+  .ipo-row:last-child{ border-bottom:none; }
+  .ipo-row:hover{ background: var(--card-2); }
+  .ipo-header-row{ display:grid; grid-template-columns: 1fr 100px 90px 90px; gap:8px; padding:6px 16px; font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; color: var(--muted); font-weight:700; min-width:480px; }
+  .ipo-exchange{ display:flex; align-items:center; gap:5px; color: var(--text); direction:rtl; }
+  .ipo-exchange img{ display:block; border-radius:2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); flex-shrink:0; }
+  .ipo-metric, .ipo-metric-head{ text-align:center; color: var(--text); }
+  .cal-refresh-btn:hover{ background:#20242c; color: var(--header-text); }
+  .cal-refresh-btn svg{ transition: transform .5s ease; }
+  .cal-refresh-btn.spinning svg{ animation: spin 0.8s linear infinite; }
+  .cal-wrap{ padding: 14px 0 10px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .cal-day-group{ margin: 0; min-width:460px; }
+  .cal-day-header{ padding:10px 16px 8px; font-size:12.5px; font-weight:700; color: var(--header-text); background: var(--card-2); border-bottom:1px solid var(--border-soft); direction:rtl; text-align:right; }
+  .cal-event-row{ display:grid; grid-template-columns: 58px 1fr 54px 64px 64px 64px; align-items:center; gap:8px; padding:9px 16px; border-bottom:1px solid var(--border-soft); font-size:12px; }
+  .cal-event-row:last-child{ border-bottom:none; }
+  .cal-event-row:hover{ background: var(--card-2); }
+  .cal-time{ color: var(--muted); font-weight:600; }
+  .cal-flag-inline{ display:inline-block; border-radius:2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); vertical-align:middle; margin-left:6px; }
+  .cal-impact{ letter-spacing:1px; font-size:13px; font-weight:700; text-align:center; }
+  .cal-impact-high{ color:#ff4468; }
+  .cal-impact-medium{ color:#fb923c; }
+  .cal-title{ color: var(--text); direction:rtl; text-align:right; unicode-bidi:plaintext; overflow-wrap:break-word; }
+  .cal-metric{ text-align:center; color: var(--text); }
+  .cal-header-row{ display:grid; grid-template-columns: 58px 1fr 54px 64px 64px 64px; gap:8px; padding:8px 16px; margin-bottom:6px; font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; color: var(--muted); font-weight:700; min-width:460px; background: var(--card-2); border-bottom:1px solid var(--border); }
+  .cal-metric-head{ text-align:center; }
+  .cal-empty, .cal-error{ padding: 26px 16px; text-align:center; color: var(--muted); font-size:12.5px; }
+  .cal-error{ color: var(--down); }
+  .cal-error .details{ margin-top:10px; text-align:left; background: rgba(255,68,104,0.08); border:1px solid rgba(255,68,104,0.25); border-radius:8px; padding:10px 12px; font-size:11px; color:#ff8fa1; white-space:pre-wrap; word-break: break-word; max-height: 160px; overflow-y:auto; }
+  .news-badge.hot{ background: rgba(255,138,0,0.14); color:#ff9f43; border:1px solid rgba(255,159,67,0.35); }
+  .news-badge.num{ background: rgba(255,255,255,0.05); color: var(--text); border:1px solid var(--border); }
+
+  /* Price ($) tier badges */
+  .price-badge{ display:inline-block; padding:2px 9px; border-radius:5px; font-weight:700; letter-spacing:0.01em; }
+  .price-badge.blue{ background:#1e3a8a !important; color:#dbeafe !important; box-shadow: 0 0 8px rgba(30,58,138,0.5); }
+  .price-badge.green{ background:#16a34a !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(22,163,74,0.45); }
+  .price-badge.darkgreen{ background:#14532d !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(20,83,45,0.4); }
+  .price-badge.orange{ background:#c2410c !important; color:#fff7ed !important; box-shadow: 0 0 8px rgba(194,65,12,0.45); }
+  .price-badge.white{ background:#ffffff !important; color:#0b0d10 !important; box-shadow: 0 0 8px rgba(255,255,255,0.25); }
+
+  /* % Change (CHG%) tier badges */
+  .chg-badge{ display:inline-block; padding:2px 9px; border-radius:5px; font-weight:700; letter-spacing:0.01em; }
+  .chg-badge.white{ background:#ffffff !important; color:#0b0d10 !important; box-shadow: 0 0 8px rgba(255,255,255,0.25); }
+  .chg-badge.lightgreen{ background:#34d399 !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(52,211,153,0.4); }
+  .chg-badge.green{ background:#16a34a !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(22,163,74,0.4); }
+  .chg-badge.darkgreen{ background:#15803d !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(21,128,61,0.4); }
+  .chg-badge.darkergreen{ background:#052e16 !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(5,46,22,0.5); }
+
+  /* Highlight bar cells */
+  .bar-cell{ position:relative; min-width:82px; height:20px; display:flex; align-items:center; border-radius:5px; overflow:hidden; background: rgba(255,255,255,0.025); border: 1px solid var(--border-soft); }
+  .bar-fill{ position:absolute; left:0; top:0; bottom:0; opacity:0.55; }
+  .bar-fill.teal{ background: linear-gradient(90deg, var(--teal2), var(--teal)); box-shadow: 0 0 10px rgba(34,211,238,0.35); }
+  .bar-fill.purple{ background: linear-gradient(90deg, var(--purple), var(--purple2)); box-shadow: 0 0 10px rgba(124,58,237,0.35); }
+
+  /* Float (FLT) tier fills — width still driven by floatBarPercent(), color by floatColorTier() */
+  .bar-fill.flt-lightgreen{ background: linear-gradient(90deg, #86efac, #bbf7d0); box-shadow: 0 0 10px rgba(134,239,172,0.4); }
+  .bar-fill.flt-green{ background: linear-gradient(90deg, #16a34a, #22c55e); box-shadow: 0 0 10px rgba(34,197,94,0.4); }
+  .bar-fill.flt-darkgreen{ background: linear-gradient(90deg, #14532d, #166534); box-shadow: 0 0 10px rgba(20,83,45,0.4); }
+  .bar-fill.flt-orange{ background: linear-gradient(90deg, #c2410c, #f97316); box-shadow: 0 0 10px rgba(249,115,22,0.4); }
+  .bar-fill.flt-white{ background: linear-gradient(90deg, #e5e7eb, #ffffff); box-shadow: 0 0 10px rgba(255,255,255,0.35); }
+  .bar-label.dark-label{ color:#0b0d10 !important; }
+  .bar-label.float-label-white{ color:#ffffff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+  .bar-label{ position:relative; z-index:1; padding:0 7px; font-size:11.5px; white-space:nowrap; color: var(--header-text); }
+
+  .empty, .err, .loading{ padding: 30px 16px; text-align:center; color: var(--muted); font-size: 12.5px; }
+  .err{ color: var(--down); }
+  .err .details{ margin-top:10px; text-align:left; background: rgba(255,68,104,0.08); border:1px solid rgba(255,68,104,0.25); border-radius:8px; padding:10px 12px; font-size:11px; color:#ff8fa1; white-space:pre-wrap; word-break: break-word; max-height: 160px; overflow-y:auto; }
+
+  .dot-pulse{ display:inline-block;width:6px;height:6px;border-radius:50%; background: var(--accent); margin-right:7px; animation: pulse 1.1s ease-in-out infinite; }
+
+  /* ---------- Debug panel ---------- */
+  .debug-panel{ background: #0d0f12; border: 1px solid var(--border); border-radius: 12px; margin-top: 22px; overflow:hidden; }
+  .debug-head{ display:flex; align-items:center; justify-content:space-between; padding: 12px 16px; cursor:pointer; user-select:none; background:#111318; }
+  .debug-head h3{ margin:0; font-size:12.5px; color:#a8b3c2; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .debug-head h3 .led{ width:6px;height:6px;border-radius:50%; background:var(--accent); box-shadow:0 0 6px var(--accent); }
+  .debug-head .fold-btn{ border-color:var(--border); color:#8a94a6; }
+  .debug-head .fold-btn:hover{ background:#181b21; }
+  .debug-body{ padding: 12px 16px 16px; }
+  .debug-panel.collapsed .debug-body{ display:none; }
+  .debug-panel.collapsed .fold-btn svg{ transform: rotate(-90deg); }
+  .debug-section{ margin-bottom: 12px; }
+  .debug-section h4{ margin:0 0 6px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:#5b6472; font-weight:700; }
+  .log-box{ background:#08090b; border:1px solid var(--border); border-radius:8px; padding:8px 10px; max-height:190px; overflow-y:auto; font-size:11px; color:#8b94a5; }
+  .log-box .line{ padding:2px 0; border-bottom:1px dashed #1a1d23; }
+  .log-box .line:last-child{ border-bottom:none; }
+  .log-box .t{ color:#454b56; margin-right:6px; }
+  .log-box .warn{ color: var(--warn); }
+  .log-box .bad{ color: var(--down); }
+  .log-box .good{ color: var(--up); }
+  .warn-list{ font-size:11.5px; color:var(--warn); line-height:1.7; }
+  .warn-list li{ margin-left:16px; }
+  details.raw summary{ font-size:11px; color:#7dd3fc; cursor:pointer; margin-bottom:4px; }
+  details.raw pre{ background:#08090b; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:10.5px; color:#8b94a5; max-height:160px; overflow:auto; white-space:pre-wrap; word-break:break-word; }
+
+  .footnote{ color: var(--muted); font-size: 11px; text-align:center; margin-top: 14px; line-height:1.6; }
+
+  /* ---------- Symbol click affordance ---------- */
+  .sym-link{ cursor:pointer; border-bottom:1px dashed rgba(59,130,246,0.4); transition: color .15s ease; }
+  .sym-link:hover{ color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ---------- Stock detail modal ---------- */
+  .modal-overlay{
+    position: fixed; inset:0; z-index:200; background: rgba(3,5,8,0.72);
+    display:flex; align-items:flex-end; justify-content:center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal-card{
+    background: var(--card); border:1px solid var(--border); border-radius: 16px 16px 0 0;
+    width:100%; max-width:640px; max-height:88vh; overflow-y:auto;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+    animation: modal-up .2s ease;
+  }
+  @media (min-width: 640px){
+    .modal-overlay{ align-items:center; }
+    .modal-card{ border-radius:16px; max-height:80vh; }
+  }
+  @keyframes modal-up{ from{ transform:translateY(24px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+
+  .modal-head{
+    position:sticky; top:0; z-index:2; background: var(--card-2); border-bottom:1px solid var(--border);
+    padding:16px 18px; display:flex; align-items:flex-start; gap:12px;
+  }
+  .modal-sym-badge{
+    background:#1e3a8a; color:#ffffff; font-weight:800; font-size:16px; letter-spacing:0.02em;
+    padding:9px 14px; border-radius:8px; box-shadow:0 0 10px rgba(30,58,138,0.5); flex-shrink:0; white-space:nowrap;
+  }
+  .modal-head-info{ flex:1; min-width:0; padding-top:2px; }
+  .modal-head-line1-row{ display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+  .modal-head-line1{ font-size:13px; font-weight:600; color: var(--header-text); line-height:1.4; overflow-wrap:break-word; }
+  .modal-header-badges{ display:inline-flex; align-items:center; gap:5px; }
+  .header-badge{ display:inline-block; padding:2px 7px; border-radius:5px; font-size:10px; font-weight:800; letter-spacing:0.02em; line-height:1.5; flex-shrink:0; }
+  .header-badge.badge-rs{ background:#ea580c; color:#ffffff; box-shadow: 0 0 6px rgba(234,88,12,0.45); }
+  .modal-head-line2{ font-size:11.5px; color: var(--muted); margin-top:4px; line-height:1.4; overflow-wrap:break-word; }
+  .modal-close{ background:transparent; border:1px solid var(--border); border-radius:7px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color: var(--muted); cursor:pointer; flex-shrink:0; }
+  .modal-close:hover{ background:#20242c; color: var(--header-text); }
+
+  .modal-body{ padding: 6px 18px 20px; }
+  .modal-section{ margin-top:16px; }
+  .modal-section h4{ margin:0 0 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:#8b95a5; font-weight:700; border-bottom:1px solid var(--border-soft); padding-bottom:6px; }
+  .modal-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
+  .modal-metric{ background: var(--card-2); border:1px solid var(--border-soft); border-radius:8px; padding:8px 10px; }
+  .modal-metric-label{ font-size:10px; color: var(--muted); margin-bottom:3px; }
+  .modal-metric-value{ font-size:13.5px; font-weight:600; color: var(--header-text); }
+  .modal-metric-value.na{ color:#3a3f47; font-weight:500; }
+  .modal-metric-source{ font-size:9px; color:#4b5563; margin-top:2px; }
+
+  /* Recent News (modal) */
+  .modal-section-head{ display:flex; align-items:center; justify-content:space-between; margin:0 0 8px; border-bottom:1px solid var(--border-soft); padding-bottom:6px; }
+  .modal-section-head h4{ margin:0; border:none; padding:0; }
+  .hours-since-news-badge{ display:inline-block; padding:1px 7px; margin-left:5px; border-radius:20px; background: rgba(255,255,255,0.06); color: var(--muted); font-size:9.5px; font-weight:600; vertical-align:middle; text-transform:none; letter-spacing:normal; }
+  .news-translate-note{ font-size:10px; color: var(--muted); margin:-2px 0 8px; line-height:1.4; }
+  .news-refresh-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; color: var(--muted); cursor:pointer; flex-shrink:0; }
+  .news-refresh-btn:hover{ background:#20242c; color: var(--header-text); }
+  .news-refresh-btn svg{ transition: transform .5s ease; }
+  .news-refresh-btn.spinning svg{ animation: spin 0.8s linear infinite; }
+  .news-card{ background: var(--card-2); border:1px solid var(--border-soft); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .news-meta{ font-size:10px; color: var(--muted); margin-bottom:4px; }
+  .news-headline{ font-size:12.5px; font-weight:600; color: var(--header-text); line-height:1.4; }
+  .news-headline[dir="rtl"]{ text-align:right; }
+  .news-summary{ font-size:11.5px; color: var(--text); margin-top:4px; line-height:1.5; }
+  .news-summary[dir="rtl"]{ text-align:right; }
+  .news-original{ font-size:10px; color:#4b5563; margin-top:5px; font-style:italic; border-top:1px dashed var(--border-soft); padding-top:5px; }
+  .sec-links{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .sec-link-btn{ display:block; text-align:center; padding:9px 12px; border-radius:8px; background: var(--accent-dim); color: var(--accent) !important; font-weight:700; font-size:12.5px; text-decoration:none; border:1px solid rgba(76,158,255,0.3); transition: background .15s ease; }
+  .ipo-fallback{ padding:12px 16px; }
+  .sec-link-btn:hover{ background: rgba(76,158,255,0.25); }
+  .sec-link-btn.secondary{ background: rgba(255,255,255,0.04); color: var(--text) !important; border-color: var(--border); }
+  .sec-link-btn.secondary:hover{ background: rgba(255,255,255,0.08); }
+  .news-loading, .news-empty{ font-size:12px; color: var(--muted); padding:8px 2px; display:flex; align-items:center; }
+  .news-error{ font-size:12px; color: var(--down); }
+  .news-error .details{ margin-top:6px; background: rgba(255,68,104,0.08); border:1px solid rgba(255,68,104,0.25); border-radius:6px; padding:8px 10px; font-size:10.5px; color:#ff8fa1; white-space:pre-wrap; word-break:break-word; }
+  .modal-footnote{ font-size:10.5px; color: var(--muted); text-align:center; margin-top:16px; line-height:1.6; }
+
+  @media (max-width: 560px){
+    .brand h1{ font-size:16px; }
+    .market-status-bar{ padding:8px; }
+    thead th, tbody td{ padding: 5px 7px; }
+    .panel-head{ padding: 10px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
+      </span>
+      <div>
+        <h1>ChartsWatcher</h1>
+        <div class="tag">Live Scanner Terminal</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="market-status-bar" id="marketStatusBar">
+    <div class="market-status-left">
+      <span class="market-status-dot" id="marketStatusDot"></span>
+      <span class="market-status-label" id="marketStatusLabel">—</span>
+      <span class="market-status-sep">·</span>
+      <span class="market-status-countdown mono" id="marketStatusCountdown">—</span>
+    </div>
+    <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+
+
+  <!-- ===================== TOP LISTS ===================== -->
+  <div class="section-heading main-section-heading">
+    <h3>Top Lists</h3>
+    <div class="header-live-status">
+      <span class="conn connecting" id="connStatus"><span class="led"></span><span id="connText">Connecting…</span></span>
+      <span class="updated mono" id="statusText">Waiting for first update…</span>
+    </div>
+  </div>
+  <!-- ===== Section 1: Top Gainers ===== -->
+  <div class="panel collapsed" id="panel-table1">
+    <div class="panel-head" data-fold="table1">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse Top Gainers" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-orange">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+        </span>
+        <h2>Top Gainers</h2>
+      </div>
+      <span class="count" id="count1"></span>
+    </div>
+    <div id="table1Wrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
+    </div>
+  </div>
+
+  <!-- ===== Section 3: After Market ===== -->
+  <div class="panel collapsed" id="panel-table3">
+    <div class="panel-head" data-fold="table3">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse After Market" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-green">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+        </span>
+        <h2>After Market</h2>
+      </div>
+      <span class="count" id="count3"></span>
+    </div>
+    <div id="table3Wrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
+    </div>
+  </div>
+
+  <!-- ===== Section 5: Low Float Top Gainers ===== -->
+  <div class="panel collapsed" id="panel-table5">
+    <div class="panel-head" data-fold="table5">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse Low Float Top Gainers" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-blue">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2s7 8.5 7 13a7 7 0 0 1-14 0c0-4.5 7-13 7-13z"/></svg>
+        </span>
+        <h2>Low Float Top Gainers</h2>
+      </div>
+      <span class="count" id="count5"></span>
+    </div>
+    <div id="table5Wrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
+    </div>
+  </div>
+
+  <!-- ===== Section 2: Most Active ===== -->
+  <div class="panel collapsed" id="panel-table2">
+    <div class="panel-head" data-fold="table2">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse Most Active" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-blue">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </span>
+        <h2>Most Active</h2>
+      </div>
+      <span class="count" id="count2"></span>
+    </div>
+    <div id="table2Wrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
+    </div>
+  </div>
+
+  <!-- ===== Section 4: 5 Pillars ===== -->
+  <div class="panel collapsed" id="panel-table4">
+    <div class="panel-head" data-fold="table4">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse 5 Pillars" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-green">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
+        </span>
+        <h2>5 Pillars</h2>
+      </div>
+      <span class="count" id="count4"></span>
+    </div>
+    <div id="table4Wrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
+    </div>
+  </div>
+
+  <!-- ===== Section 6: Split ===== -->
+  <div class="panel collapsed" id="panel-table6">
+    <div class="panel-head" data-fold="table6">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse Split" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-orange">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+        </span>
+        <h2>Split</h2>
+      </div>
+      <span class="count" id="count6"></span>
+    </div>
+    <div id="table6Wrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
+    </div>
+  </div>
+
+  <!-- ===================== ALERTS ===================== -->
+  <div class="section-heading main-section-heading">
+    <h3>Alerts</h3>
+    <button class="notif-toggle-btn" id="notifToggleBtn" title="Enable Web Push notifications — works even when this tab is closed">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span id="notifToggleLabel">Enable Push Notifications</span>
+    </button>
+  </div>
+  <!-- ===== Section: 🟩 HOD MOMO ===== -->
+  <div class="panel collapsed" id="panel-hodmomo">
+    <div class="panel-head" data-fold="hodmomo">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse HOD MOMO" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-green">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
+        </span>
+        <h2>🟩 HOD MOMO</h2>
+      </div>
+      <span class="count" id="hodMomoCount">0 events</span>
+    </div>
+    <div id="hodMomoTableWrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for screening events…</div>
+    </div>
+  </div>
+
+  <!-- ===== Section: 🥇 Running Up ===== -->
+  <div class="panel collapsed" id="panel-runningup">
+    <div class="panel-head" data-fold="runningup">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse Running Up" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-orange">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
+        </span>
+        <h2>🥇 Running Up</h2>
+      </div>
+      <span class="count" id="runningUpCount">0 events</span>
+    </div>
+    <div id="runningUpTableWrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for screening events…</div>
+    </div>
+  </div>
+
+  <!-- ===== Section: Halt ===== -->
+  <div class="panel collapsed" id="panel-halts">
+    <div class="panel-head" data-fold="halts">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse Halts" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-red">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+        </span>
+        <h2>🚦 | HALTS - RESUMPTIONS</h2>
+      </div>
+      <span class="count" id="haltsCount">0 events</span>
+    </div>
+    <div id="haltsTableWrap" class="table-scroll">
+      <div class="loading"><span class="dot-pulse"></span>Waiting for halt/resumption events…</div>
+    </div>
+  </div>
+
+  <!-- ===================== GENERAL ===================== -->
+  <div class="section-heading main-section-heading">
+    <h3>General</h3>
+  </div>
+  <div class="panel collapsed" id="panel-general">
+    <div class="panel-head" data-fold="general">
+      <div class="panel-head-left">
+        <button class="fold-btn" aria-label="Collapse General" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <span class="panel-head-icon icon-blue">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        <h2>Economic &amp; IPO Calendars</h2>
+      </div>
+    </div>
+
+    <div class="general-body">
+      <div class="sub-tab-bar">
+        <button class="sub-tab-btn active" data-subtab="econ">Economic Calendar</button>
+        <button class="sub-tab-btn" data-subtab="ipo">IPO Calendar</button>
+      </div>
+
+      <!-- ===== Sub-tab: Economic Calendar ===== -->
+      <div class="subtab-pane active" id="econPane">
+        <div class="pane-toolbar">
+          <span class="pane-title">Economic Calendar</span>
+        </div>
+        <div id="calendarWrap" class="cal-wrap">
+          <div class="cal-empty">Loading…</div>
+        </div>
+      </div>
+
+      <!-- ===== Sub-tab: IPO Calendar ===== -->
+      <div class="subtab-pane" id="ipoPane" style="display:none;">
+        <div class="pane-toolbar">
+          <div class="ipo-view-toggle">
+            <button class="ipo-view-btn active" data-ipoview="recent">الأخير</button>
+            <button class="ipo-view-btn" data-ipoview="upcoming">القادم</button>
+          </div>
+          <button class="cal-refresh-btn" id="ipoRefreshBtn" title="Refresh IPO calendar" aria-label="Refresh IPO calendar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+        </div>
+      <div id="ipoWrap" class="cal-wrap">
+        <div class="loading"><span class="dot-pulse"></span>Loading IPO calendar…</div>
+      </div>
+      </div>
+    </div>
+  </div>
+  <!-- ===== Debug Panel ===== -->
+  <div class="debug-panel collapsed" id="debugPanel">
+    <div class="debug-head" data-fold="debug">
+      <h3><span class="led"></span>Debug Panel — Connection &amp; Column Diagnostics</h3>
+      <button class="fold-btn" aria-label="Collapse debug panel" tabindex="-1">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </div>
+    <div class="debug-body">
+      <div class="debug-section">
+        <h4>Connection &amp; Column Mapping Log</h4>
+        <div class="log-box mono" id="connLog"></div>
+      </div>
+      <div class="debug-section" id="warnSection" style="display:none;">
+        <h4>Column Matching Warnings</h4>
+        <ul class="warn-list" id="warnList"></ul>
+      </div>
+      <div class="debug-section">
+        <h4>Last Raw Messages</h4>
+        <details class="raw"><summary>Top Gainers — ToplistConfirm</summary><pre id="raw1confirm">—</pre></details>
+        <details class="raw"><summary>Top Gainers — Latest ToplistUpdate</summary><pre id="raw1update">—</pre></details>
+        <details class="raw"><summary>Most Active — ToplistConfirm</summary><pre id="raw2confirm">—</pre></details>
+        <details class="raw"><summary>Most Active — Latest ToplistUpdate</summary><pre id="raw2update">—</pre></details>
+        <details class="raw"><summary>After Market — ToplistConfirm</summary><pre id="raw3confirm">—</pre></details>
+        <details class="raw"><summary>After Market — Latest ToplistUpdate</summary><pre id="raw3update">—</pre></details>
+        <details class="raw"><summary>5 Pillars — ToplistConfirm</summary><pre id="raw4confirm">—</pre></details>
+        <details class="raw"><summary>5 Pillars — Latest ToplistUpdate</summary><pre id="raw4update">—</pre></details>
+        <details class="raw"><summary>Low Float Top Gainers — ToplistConfirm</summary><pre id="raw5confirm">—</pre></details>
+        <details class="raw"><summary>Low Float Top Gainers — Latest ToplistUpdate</summary><pre id="raw5update">—</pre></details>
+        <details class="raw"><summary>Split — ToplistConfirm</summary><pre id="raw6confirm">—</pre></details>
+        <details class="raw"><summary>Split — Latest ToplistUpdate</summary><pre id="raw6update">—</pre></details>
+        <details class="raw"><summary>Alert: 🚦 Halts - Resumptions — AlertConfirm</summary><pre id="rawAlert2confirm">—</pre></details>
+        <details class="raw"><summary>Alert: 🚦 Halts - Resumptions — Latest NewAlert</summary><pre id="rawAlert2update">—</pre></details>
+        <details class="raw"><summary>Alert: 🟩 HOD MOMO — AlertConfirm</summary><pre id="rawAlert5confirm">—</pre></details>
+        <details class="raw"><summary>Alert: 🟩 HOD MOMO — Latest NewAlert</summary><pre id="rawAlert5update">—</pre></details>
+        <details class="raw"><summary>Alert: 🥇 Running Up — AlertConfirm</summary><pre id="rawAlert4confirm">—</pre></details>
+        <details class="raw"><summary>Alert: 🥇 Running Up — Latest NewAlert</summary><pre id="rawAlert4update">—</pre></details>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Data streams live over WebSocket and updates automatically as it arrives · Refresh forces a clean reconnect<br/>
+    Only one connection per ChartsWatcher account is allowed — opening this elsewhere will disconnect this session
+  </div>
+
+</div>
+
+<!-- ===================== STOCK DETAIL MODAL ===================== -->
+<div class="modal-overlay hidden" id="stockModalOverlay">
+  <div class="modal-card" id="stockModalCard" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div class="modal-sym-badge mono" id="modalSym">—</div>
+      <div class="modal-head-info">
+        <div class="modal-head-line1-row">
+          <div class="modal-head-line1" id="modalLine1">—</div>
+          <span id="modalHeaderBadges" class="modal-header-badges"></span>
+        </div>
+        <div class="modal-head-line2" id="modalLine2" dir="auto">—</div>
+      </div>
+      <button class="modal-close" id="modalCloseBtn" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  // ---------------------------------------------------------------
+  // CONFIG — your ChartsWatcher credentials
+  // ---------------------------------------------------------------
+  const BASE_URL = "app.chartswatcher.com";
+  const USER_ID  = "69a98653433cbf6f690bded4";
+  const API_KEY  = "69f5375d70d34dd298dc6e63";
+  const WS_URL   = `wss://${BASE_URL}/api/v1/websocket?user_id=${USER_ID}&api_key=${API_KEY}`;
+
+  // Web Push — real background-capable push notifications (works even
+  // with the tab closed), separate from Telegram and from the old
+  // tab-must-be-open local Notification approach. See
+  // push-notify-backend/app.py for setup. PUSH_BACKEND_URL is the base
+  // URL only (no /push or /subscribe suffix — those are appended per call).
+  const PUSH_BACKEND_URL = ""; // e.g. "https://your-push-backend.onrender.com"
+  const PUSH_VAPID_PUBLIC_KEY = "BMKp2kYy1rkxN331-1iBElYklQy153wivNvEmmNf-hlCK7Pg6KacJSf5YOhgFyAlybuD2Jm8a5I44ZYbnC86oa4";
+
+  // Standardized column order/rendering, shared across every table
+  const STANDARD_COLUMNS = [
+    { display: "Symbol",                     render: "symbol" },
+    { display: "Price ($)",                  render: "price-tier" },
+    { display: "News Icon",                  render: "news-icon" },
+    { display: "% Change",                   render: "change-tier" },
+    { display: "Daily Volume",               render: "volume-tier" },
+    { display: "Float",                      render: "float-tier" },
+    { display: "Relative Daily Volume (%)",  render: "rvol-tier" },
+    { display: "Country",                    render: "country-flag" },
+    { display: "5 min trade count",          render: "trade-count-tier" }
+  ];
+
+  // Same 9 standard columns, plus the two Split-specific fields appended
+  const SPLIT_COLUMNS = [
+    ...STANDARD_COLUMNS,
+    { display: "Days Since Split", render: "default" },
+    { display: "Split Ratio",     render: "default" }
+  ];
+
+  // Compact header icon/abbreviation map (tooltip shows the full label)
+  const HEADER_META = {
+    "Symbol":                    { icon: "🏷️", abbr: "SYM" },
+    "Price ($)":                 { icon: "$",   abbr: "PRICE" },
+    "News Icon":                 { icon: "📄",  abbr: "Min", title: "Minutes since news" },
+    "% Change":                   { icon: "Δ",   abbr: "CHG%", title: "% Change" },
+    "Daily Volume":               { icon: "📊",  abbr: "VOL" },
+    "Float":                       { icon: "🔄",  abbr: "FLT" },
+    "Relative Daily Volume (%)": { icon: "📈",  abbr: "RVOL%" },
+    "Country":                    { icon: "🌍",  abbr: "" },
+    "5 min trade count":          { icon: "⏱️",  abbr: "5M#" },
+    "Days Since Split":            { icon: "✂️",  abbr: "D/SPLIT", title: "Days Since Split" },
+    "Split Ratio":                 { icon: "🔀",  abbr: "RATIO", title: "Split Ratio" },
+    "Time":                          { icon: "🕐",  abbr: "TIME", title: "التوقيت" },
+    "Strategy":                       { icon: "🧭",  abbr: "STRAT", title: "Strategy" }
+  };
+
+  const TABLES = [
+    { key: "table1", name: "Top Gainers",  configId: "6a1c66d57518438c9c7190c1", wrapId: "table1Wrap", countId: "count1", columns: STANDARD_COLUMNS },
+    { key: "table2", name: "Most Active",  configId: "69af3449174bfc7ca6ffc56d", wrapId: "table2Wrap", countId: "count2", columns: STANDARD_COLUMNS },
+    { key: "table3", name: "After Market", configId: "69a986c3433cbf6f690c212b", wrapId: "table3Wrap", countId: "count3", columns: STANDARD_COLUMNS },
+    { key: "table4", name: "5 Pillars",    configId: "69d56d187f6e8e20dfce5c82", wrapId: "table4Wrap", countId: "count4", columns: STANDARD_COLUMNS },
+    { key: "table5", name: "Low Float Top Gainers", configId: "6a1c66d57518438c9c7190c2", wrapId: "table5Wrap", countId: "count5", columns: STANDARD_COLUMNS },
+    { key: "table6", name: "Split", configId: "69ae338c433cbf6f69e76619", wrapId: "table6Wrap", countId: "count6", columns: SPLIT_COLUMNS }
+  ];
+
+  // Alert configs — subscribed by analogy to the documented Toplist schema
+  // ({"@type":"Alert", config_id, action}), since ChartsWatcher's docs
+  // confirm Alerts exist on this same socket but we were never given the
+  // exact message shape. Debug panel logs everything received so the
+  // real schema can be confirmed/corrected.
+  const ALERT_CONFIGS = [
+    { key: "alert2", name: "🚦 | HALTS - RESUMPTIONS", configId: "6a1c66d57518438c9c719050", special: "halts" },
+    { key: "alert5", name: "🟩 HOD MOMO", configId: "69d56d187f6e8e20dfce5c3b", special: "screening", wrapId: "hodMomoTableWrap", countId: "hodMomoCount" },
+    { key: "alert4", name: "🥇 Running Up", configId: "6a1c66d57518438c9c719044", special: "screening", wrapId: "runningUpTableWrap", countId: "runningUpCount" }
+  ];
+  // One config_id -> array of alert keys, since more than one panel can
+  // now point at the same underlying ChartsWatcher config (e.g. Screening
+  // and 🟩 HOD MOMO deliberately share a config_id) — a plain one-to-one
+  // map would silently drop live events for whichever entry registered
+  // second.
+  const configToAlertKeys = {};
+  ALERT_CONFIGS.forEach(a => {
+    if(!configToAlertKeys[a.configId]) configToAlertKeys[a.configId] = [];
+    configToAlertKeys[a.configId].push(a.key);
+  });
+  const configToKey = {};
+  TABLES.forEach(t => configToKey[t.configId] = t.key);
+
+  // ---------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------
+  const columnMapping = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
+  const rawColumnDescs  = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
+  const displayed       = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
+  const lastError         = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
+  const warnedColumns    = { table1: new Set(), table2: new Set(), table3: new Set(), table4: new Set(), table5: new Set(), table6: new Set() };
+  const confirmTimers    = {};
+  const alertConfirmed   = {}; // key -> true once an AlertConfirm (or equivalent) arrives
+  let searchTerm = "";
+  let ws = null;
+  let reconnectTimer = null;
+  let reconnectDelay = 1500;
+  let unloading = false;
+
+  const statusText   = document.getElementById("statusText");
+  const connStatusEl = document.getElementById("connStatus");
+  const connText     = document.getElementById("connText");
+  const refreshBtn   = document.getElementById("refreshBtn");
+  const connLog       = document.getElementById("connLog");
+  const warnSection  = document.getElementById("warnSection");
+  const warnList      = document.getElementById("warnList");
+
+  // ---------------------------------------------------------------
+  // Debug logging
+  // ---------------------------------------------------------------
+  function logLine(msg, level){
+    const time = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    const div = document.createElement("div");
+    div.className = "line" + (level ? " " + level : "");
+    div.innerHTML = `<span class="t">${time}</span>${escapeHtml(msg)}`;
+    connLog.appendChild(div);
+    connLog.scrollTop = connLog.scrollHeight;
+    while(connLog.children.length > 120){ connLog.removeChild(connLog.firstChild); }
+  }
+
+  function addColumnWarning(tableKey, label){
+    if(warnedColumns[tableKey].has(label)) return;
+    warnedColumns[tableKey].add(label);
+    warnSection.style.display = "block";
+    const li = document.createElement("li");
+    li.textContent = `[${TABLES.find(t=>t.key===tableKey).name}] No matching column found for "${label}" in the server's config — showing "—".`;
+    warnList.appendChild(li);
+  }
+
+  // ---------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------
+  function escapeHtml(str){
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  const ALIASES = { chg:"change", pct:"percent", rel:"relative", vol:"volume", min:"minute", mins:"minute", cty:"country", shs:"shares", shrs:"shares", cnt:"count" };
+
+  function normalizeLabel(str){
+    const noParens = String(str).replace(/\(.*?\)/g, " ");
+    const words = (noParens.toLowerCase().match(/[a-z0-9]+/g) || []);
+    return words.map(w => ALIASES[w] || w).join("");
+  }
+
+  function isSymbolDesc(desc){
+    return desc.key === "SymbolColumn" || String(desc.name).toLowerCase().trim() === "symbol";
+  }
+
+  function buildColumnMapping(spec, descList, tableKey){
+    const available = descList.filter(d => !isSymbolDesc(d));
+    const used = new Set();
+    const tableName = TABLES.find(t => t.key === tableKey).name;
+
+    const mapping = spec.map(col => {
+      if(col.render === "symbol"){
+        return { label: col.display, render: "symbol", matchedKey: null, matchedName: null };
+      }
+
+      let match = null;
+
+      // Special-cased matching: News Icon ("Minutes since news") must key
+      // on the word "news" specifically, since generic fuzzy matching was
+      // previously grabbing an unrelated column (stale text like "3d"/"20d").
+      // Check the raw server KEY first (most reliable), then the name,
+      // preferring anything that also mentions "minute" if multiple exist.
+      if(col.display === "News Icon"){
+        const newsCandidates = available.filter(d =>
+          !used.has(d.key) &&
+          (String(d.key).toLowerCase().includes("news") || normalizeLabel(d.name).includes("news"))
+        );
+        match = newsCandidates.find(d => normalizeLabel(d.name).includes("minute"))
+             || newsCandidates.find(d => String(d.key).toLowerCase().includes("news"))
+             || newsCandidates[0]
+             || null;
+      }
+
+      // Special-cased matching: "% Change" must resolve to the price
+      // percent-change column, not an unrelated "change" field like
+      // "Rank Change". Prefer columns whose name/key explicitly signals
+      // a percentage, and explicitly avoid anything mentioning "rank".
+      if(col.display === "% Change"){
+        const changeCandidates = available.filter(d =>
+          !used.has(d.key) &&
+          !/rank/i.test(d.name) &&
+          (normalizeLabel(d.name).includes("change") || String(d.key).toLowerCase().includes("chg") || String(d.key).toLowerCase().includes("change"))
+        );
+        match = changeCandidates.find(d => /%|percent|pct/i.test(d.name) || /pct|percent/i.test(d.key))
+             || changeCandidates[0]
+             || null;
+      }
+
+      if(!match){
+        const target = normalizeLabel(col.display);
+        match = available.find(d => !used.has(d.key) && normalizeLabel(d.name) === target);
+      }
+      if(!match){
+        const target = normalizeLabel(col.display);
+        match = available.find(d => {
+          if(used.has(d.key)) return false;
+          const n = normalizeLabel(d.name);
+          return n.length > 2 && target.length > 2 && (n.includes(target) || target.includes(n));
+        });
+      }
+
+      if(match) used.add(match.key);
+      return { label: col.display, render: col.render, matchedKey: match ? match.key : null, matchedName: match ? match.name : null };
+    });
+
+    // Log the resolved mapping so column-matching issues are visible/verifiable
+    mapping.forEach(m => {
+      if(m.render === "symbol"){
+        logLine(`[${tableName}] "Symbol" → row.symbol field`);
+      } else if(m.matchedKey){
+        logLine(`[${tableName}] "${m.label}" → matched "${m.matchedName}" (key: ${m.matchedKey})`, "good");
+      } else {
+        logLine(`[${tableName}] "${m.label}" → NO MATCH found in column_desc`, "warn");
+      }
+    });
+
+    return mapping;
+  }
+
+  function directionClass(valueStr){
+    if(valueStr === null || valueStr === undefined) return "num-neutral";
+    const s = String(valueStr).trim();
+    if(s.startsWith("-")) return "num-down";
+    if(s.startsWith("+")) return "num-up";
+    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+    if(!isNaN(n)){
+      if(n > 0) return "num-up";
+      if(n < 0) return "num-down";
+    }
+    return "num-neutral";
+  }
+
+  // Parses values like "12.3M", "-1.4B", "300K", "42" into a plain number
+  function parseAbbrevNumber(str){
+    if(str === null || str === undefined) return null;
+    const s = String(str).trim().replace(/,/g, "");
+    const m = s.match(/-?\d+(\.\d+)?/);
+    if(!m) return null;
+    let num = parseFloat(m[0]);
+    const rest = s.slice(m.index + m[0].length).trim();
+    const suffix = rest.charAt(0).toUpperCase();
+    const mult = { K: 1e3, M: 1e6, B: 1e9, T: 1e12 }[suffix];
+    if(mult) num *= mult;
+    return num;
+  }
+
+  function setConnStatus(state, text){
+    connStatusEl.className = "conn " + state;
+    connText.textContent = text;
+  }
+
+  // ---------------------------------------------------------------
+  // Market status bar — pure client-side clock logic, no server data.
+  // Standard US equities sessions in America/New_York time:
+  //   Pre-Market   04:00 - 09:30 ET
+  //   Market Open  09:30 - 16:00 ET
+  //   After Hours  16:00 - 20:00 ET
+  //   Closed       20:00 - 04:00 ET, and all day Sat/Sun
+  // NOTE: this does not account for US market holidays (Thanksgiving,
+  // Christmas, etc.) — it's calendar-day/time-of-day only. DST is handled
+  // automatically via the America/New_York timezone conversion below.
+  // ---------------------------------------------------------------
+  function getEasternParts(){
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    });
+    const parts = {};
+    fmt.formatToParts(new Date()).forEach(p => { parts[p.type] = p.value; });
+    // hour12:false can return "24" for midnight in some environments — normalize to 0
+    let hour = parseInt(parts.hour, 10);
+    if(hour === 24) hour = 0;
+    return {
+      weekday: parts.weekday, // "Mon".."Sun"
+      hour,
+      minute: parseInt(parts.minute, 10),
+      second: parseInt(parts.second, 10)
+    };
+  }
+
+  function formatCountdown(totalSeconds){
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+    if(h > 0) return `${h}h ${String(m).padStart(2,"0")}m`;
+    return `${m}m ${String(s).padStart(2,"0")}s`;
+  }
+
+  function updateMarketStatusBar(){
+    const barEl = document.getElementById("marketStatusBar");
+    const labelEl = document.getElementById("marketStatusLabel");
+    const countdownEl = document.getElementById("marketStatusCountdown");
+    if(!barEl) return;
+
+    const { weekday, hour, minute, second } = getEasternParts();
+    const nowSec = hour * 3600 + minute * 60 + second;
+    const isWeekend = weekday === "Sat" || weekday === "Sun";
+
+    const PRE_START = 4 * 3600;
+    const OPEN_START = 9.5 * 3600;
+    const OPEN_END = 16 * 3600;
+    const AH_END = 20 * 3600;
+
+    let session, sessionClass, secondsToEnd;
+
+    if(isWeekend){
+      session = "Closed (Weekend)";
+      sessionClass = "session-closed";
+      secondsToEnd = null;
+    } else if(nowSec >= AH_END || nowSec < PRE_START){
+      session = "Closed";
+      sessionClass = "session-closed";
+      // Countdown to next pre-market open (04:00 ET), same day if before
+      // PRE_START, otherwise next day
+      secondsToEnd = nowSec < PRE_START ? (PRE_START - nowSec) : ((86400 - nowSec) + PRE_START);
+    } else if(nowSec < OPEN_START){
+      session = "Pre-Market";
+      sessionClass = "session-pre";
+      secondsToEnd = OPEN_START - nowSec;
+    } else if(nowSec < OPEN_END){
+      session = "Market Open";
+      sessionClass = "session-open";
+      secondsToEnd = OPEN_END - nowSec;
+    } else {
+      session = "After Hours";
+      sessionClass = "session-after";
+      secondsToEnd = AH_END - nowSec;
+    }
+
+    barEl.className = "market-status-bar " + sessionClass;
+    labelEl.textContent = session;
+
+    const labelMap = {
+      "Pre-Market": "To Open",
+      "Market Open": "To Close",
+      "After Hours": "To AH End",
+      "Closed": "To Pre-Market",
+      "Closed (Weekend)": "To Pre-Market"
+    };
+    countdownEl.textContent = secondsToEnd !== null
+      ? `${labelMap[session] || "Time left"}: ${formatCountdown(secondsToEnd)}`
+      : "Market closed for the weekend";
+  }
+  updateMarketStatusBar();
+  setInterval(updateMarketStatusBar, 1000);
+
+  // ---------------------------------------------------------------
+  // Cell renderers
+  // ---------------------------------------------------------------
+  // Locale-independent thousands formatter — guaranteed plain ASCII digits
+  // (0-9) regardless of the browser/OS locale. toLocaleString() without an
+  // explicit locale can render Arabic-Indic or other localized digit sets
+  // depending on system settings, so we build the string manually instead.
+  function formatNumberEN(num){
+    const rounded = Math.round(num);
+    const negative = rounded < 0;
+    const digits = String(Math.abs(rounded));
+    const withCommas = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return (negative ? "-" : "") + withCommas;
+  }
+  // window counting as "fresh" enough to show the flame badge
+  const NEWS_FRESH_MINUTES = 90;
+  const MAX_ROWS = 15; // cap each table to the top 15 rows
+  const cellUpdateCache = {}; // "tableKey:symbol:column" -> last seen raw value, used to detect real changes
+
+  // Price ($) tiers: <$1 dark blue, >$10-$20 orange, >$25 white.
+  // $1-$10 and $20-$25 fall outside the specified ranges and render plain.
+  // Price ($) tiers (all solid backgrounds, all with white text except the
+  // white tier which needs dark text for contrast against its own fill):
+  //   <$1            dark blue background, light text
+  //   $1 - <$5       green background, white text
+  //   $5 - <$10      dark green background, white text
+  //   >$10 - $20     orange background, light text
+  //   >$25           white background, dark text
+  //   $20-$25 gap    plain, no range specified
+  function renderPriceCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+    if(isNaN(n)) return `<td class="mono">${escapeHtml(value)}</td>`;
+
+    let tier = null;
+    if(n < 1) tier = "blue";
+    else if(n >= 1 && n < 5) tier = "green";
+    else if(n >= 5 && n < 10) tier = "darkgreen";
+    else if(n > 10 && n <= 20) tier = "orange";
+    else if(n > 25) tier = "white";
+
+    if(tier){
+      return `<td><span class="price-badge ${tier} mono">${escapeHtml(value)}</span></td>`;
+    }
+    return `<td class="mono">${escapeHtml(value)}</td>`;
+  }
+
+  // % Change (CHG%) tiers — magnitude-based, applied to non-negative
+  // values only. Negative changes fall back to the standard red/green
+  // directional coloring used elsewhere, since these ranges are only
+  // specified for gains.
+  //   <10%            white background, black text
+  //   10% - 30%       light green background, white text
+  //   >30% - 60%      standard green background, white text
+  //   >60% - 100%     dark green background, white text
+  //   >100%           deeper/darker green background, white text
+  // Converts a 2-letter ISO country code into its flag emoji via Unicode
+  // Regional Indicator Symbols (e.g. "US" -> 🇺🇸) — no image/SVG library
+  // needed, renders natively in all modern browsers/OSes.
+  // Real flag icon images via flagcdn.com (free, no-key, widely used static
+  // flag asset CDN) instead of Unicode emoji flags — regional-indicator
+  // emoji flags don't render as actual flags on Windows or many Linux
+  // setups, falling back to plain boxed letters that looked duplicated
+  // next to the country code text. An image renders identically everywhere.
+  // Daily Volume tiers — same badge shape as the "Min" (news) column:
+  // subtle dark-transparent background, light border, rounded pill.
+  // Only the text color varies with volume magnitude.
+  //   <1M            white
+  //   1M - 15M       green
+  //   >15M - 50M     orange
+  //   >50M - 100M    dark orange
+  //   >100M          red
+  // Relative Daily Volume (RVOL%) tiers — text color only, transparent
+  // background.
+  //   <100%            white
+  //   100% - 300%      light green
+  //   >300% - 1000%    dark green
+  //   >1000% - 5000%   light pink
+  //   >5000%           dark pink
+  // 5 Min Trade Count (5M#) tiers — pill badge style, matching the Min
+  // column. Also preserves the existing green pulse-flash animation that
+  // fires when a live update genuinely changes the value above 1,000
+  // (unchanged logic — just now applied to the badge span instead of the
+  // bare cell, so the flash plays across the pill itself).
+  //   <500            white
+  //   500 - 2000       green
+  //   >2000 - 5000     dark green
+  //   >5000            orange
+  function renderTradeCountCell(value, cacheKey){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
+
+    let tierCls = "tc-white";
+    if(!isNaN(n)){
+      if(n < 500) tierCls = "tc-white";
+      else if(n <= 2000) tierCls = "tc-green";
+      else if(n <= 5000) tierCls = "tc-darkgreen";
+      else tierCls = "tc-orange";
+    }
+
+    let pulseCls = "";
+    if(cacheKey){
+      const prevVal = cellUpdateCache[cacheKey];
+      if(prevVal !== undefined && String(value) !== prevVal && !isNaN(n) && n > 1000){
+        pulseCls = " cell-pulse-green";
+      }
+      cellUpdateCache[cacheKey] = String(value);
+    }
+
+    return `<td><span class="tc-badge ${tierCls}${pulseCls} mono">${escapeHtml(value)}</span></td>`;
+  }
+
+  function renderRvolCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+    if(isNaN(n)) return `<td class="mono">${escapeHtml(value)}</td>`;
+
+    let cls;
+    if(n < 100) cls = "rvol-white";
+    else if(n <= 300) cls = "rvol-lightgreen";
+    else if(n <= 1000) cls = "rvol-darkgreen";
+    else if(n <= 5000) cls = "rvol-orange";
+    else cls = "rvol-red";
+    return `<td><span class="rvol-badge ${cls} mono">${escapeHtml(value)}</span></td>`;
+  }
+
+  function renderVolumeCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseAbbrevNumber(value);
+    if(n === null) return `<td class="mono">${escapeHtml(value)}</td>`;
+    const abs = Math.abs(n);
+    let tier;
+    if(abs < 1e6) tier = "white";
+    else if(abs <= 15e6) tier = "green";
+    else if(abs <= 50e6) tier = "orange";
+    else if(abs <= 100e6) tier = "darkorange";
+    else tier = "red";
+    return `<td><span class="volume-badge ${tier} mono">${escapeHtml(value)}</span></td>`;
+  }
+
+  // Real flag icon images via flagcdn.com (free, no-key, widely used static
+  // flag asset CDN), shown alongside the text code. If a flag image fails
+  // to load (network/CORS block — this has happened in some sandboxed test
+  // environments previously), it quietly removes itself and the text code
+  // still renders cleanly on its own, so nothing is ever missing entirely.
+  function renderCountryCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const code = String(value).trim();
+    if(!/^[A-Za-z]{2}$/.test(code)){
+      // Not a recognizable 2-letter code — nothing to render a flag for
+      return `<td class="mono">${escapeHtml(code)}</td>`;
+    }
+    const cc = code.toLowerCase();
+    return `<td>
+      <span class="country-cell mono">
+        <img class="flag-icon-img" width="18" height="13" loading="lazy"
+          src="https://flagcdn.com/20x15/${cc}.png"
+          srcset="https://flagcdn.com/40x30/${cc}.png 2x"
+          alt="${escapeHtml(code)}"
+          onerror="this.remove()" />
+        <span>${escapeHtml(code)}</span>
+      </span>
+    </td>`;
+  }
+
+  function renderChangeCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+    if(isNaN(n)) return `<td class="mono">${escapeHtml(value)}</td>`;
+
+    if(n >= 0){
+      let tier;
+      if(n < 10) tier = "white";
+      else if(n <= 30) tier = "lightgreen";
+      else if(n <= 60) tier = "green";
+      else if(n <= 100) tier = "darkgreen";
+      else tier = "darkergreen";
+      return `<td><span class="chg-badge ${tier} mono">${escapeHtml(value)}</span></td>`;
+    }
+    // Negative — outside the specified ranges, use standard down coloring
+    return `<td class="mono ${directionClass(value)}">${escapeHtml(value)}</td>`;
+  }
+
+  function renderNewsCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const strVal = String(value).trim();
+    const lower = strVal.toLowerCase();
+
+    if(["true","yes","fresh","hot","new"].includes(lower)){
+      return `<td><span class="news-badge hot">🔥</span></td>`;
+    }
+    if(["false","no","none"].includes(lower)){
+      return `<td class="na">—</td>`;
+    }
+
+    // Strip thousands-separator commas before parsing — the server sends
+    // values above 1000 pre-formatted as e.g. "1,664", and a plain \d+
+    // match would otherwise stop at the comma and read it as just "1".
+    const cleaned = strVal.replace(/,/g, "");
+    const m = cleaned.match(/-?\d+(\.\d+)?/);
+    const n = m ? parseFloat(m[0]) : null;
+
+    if(n !== null && n <= NEWS_FRESH_MINUTES){
+      return `<td><span class="news-badge hot">🔥 ${formatNumberEN(n)}m</span></td>`;
+    }
+    if(n !== null){
+      return `<td><span class="news-badge num">${formatNumberEN(n)}m</span></td>`;
+    }
+    return `<td><span class="news-badge">${escapeHtml(strVal)}</span></td>`;
+  }
+
+  // Fixed Float (FLT) bar-width thresholds, independent of the rest of the dataset
+  function floatBarPercent(n){
+    if(n === null) return 0;
+    const abs = Math.abs(n);
+    if(abs < 1e6) return 20;
+    if(abs <= 5e6) return 25;
+    if(abs <= 10e6) return 35;
+    if(abs <= 15e6) return 45;
+    if(abs <= 20e6) return 50;
+    if(abs <= 50e6) return 75;
+    return 100;
+  }
+
+  // Float (FLT) color tiers — a separate set of boundaries from the bar-width
+  // thresholds above. { cssClass, dark } — "dark" means the fill is light
+  // enough that the label text needs to switch to dark for contrast.
+  function floatColorTier(n){
+    if(n === null) return { cssClass: null, dark: false };
+    const abs = Math.abs(n);
+    if(abs < 1e6)  return { cssClass: "flt-lightgreen", dark: true };
+    if(abs <= 5e6)  return { cssClass: "flt-green",      dark: false };
+    if(abs <= 15e6) return { cssClass: "flt-darkgreen",  dark: false };
+    if(abs <= 30e6) return { cssClass: "flt-orange",     dark: false };
+    return                 { cssClass: "flt-white",       dark: true };
+  }
+
+  function renderFloatCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseAbbrevNumber(value);
+    const pct = floatBarPercent(n);
+    const tier = floatColorTier(n);
+    const fillClass = tier.cssClass || "teal";
+    // Float value text always renders white — tier backgrounds stay as-is,
+    // only the text color is fixed regardless of which tier the fill is.
+    return `<td><div class="bar-cell"><div class="bar-fill ${fillClass}" style="width:${pct}%;"></div><span class="bar-label float-label-white mono">${escapeHtml(value)}</span></div></td>`;
+  }
+
+  function renderBarCell(value, colorClass, maxAbs){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseAbbrevNumber(value);
+    const pct = colorClass === "teal"
+      ? floatBarPercent(n)
+      : (n === null || !maxAbs) ? 0 : Math.max(4, Math.min(100, (Math.abs(n) / maxAbs) * 100));
+    return `<td><div class="bar-cell"><div class="bar-fill ${colorClass}" style="width:${pct}%;"></div><span class="bar-label mono">${escapeHtml(value)}</span></div></td>`;
+  }
+
+  // ---------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------
+  function renderTable(tableConf){
+    if(!tableConf) return;
+    const wrap = document.getElementById(tableConf.wrapId);
+    const countEl = document.getElementById(tableConf.countId);
+    const err = lastError[tableConf.key];
+
+    if(err){
+      wrap.innerHTML = `<div class="err">Couldn't load this table.<div class="details">${escapeHtml(err)}</div></div>`;
+      countEl.textContent = "";
+      return;
+    }
+
+    const mapping = columnMapping[tableConf.key];
+    const rowsSrc = displayed[tableConf.key];
+
+    if(!mapping || rowsSrc === null){
+      wrap.innerHTML = `<div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>`;
+      countEl.textContent = "";
+      return;
+    }
+
+    let rows = rowsSrc;
+    if(searchTerm){
+      const t = searchTerm.toLowerCase();
+      rows = rows.filter(row => {
+        if(String(row.symbol || "").toLowerCase().includes(t)) return true;
+        return (row.columns || []).some(c => String(c.value).toLowerCase().includes(t));
+      });
+    }
+
+    const matchedCount = rows.length;
+    rows = rows.slice(0, MAX_ROWS);
+
+    if(rows.length === 0){
+      wrap.innerHTML = `<div class="empty">${searchTerm ? "No symbols match your search." : "No rows returned."}</div>`;
+      countEl.textContent = "0 rows";
+      return;
+    }
+
+    const rowColMaps = rows.map(row => {
+      const m = {};
+      (row.columns || []).forEach(c => { m[c.key] = c.value; });
+      return m;
+    });
+
+    const barMax = {};
+    mapping.forEach((m, idx) => {
+      if((m.render === "bar-teal" || m.render === "bar-purple") && m.matchedKey){
+        let max = 0;
+        rowColMaps.forEach(cm => {
+          const n = parseAbbrevNumber(cm[m.matchedKey]);
+          if(n !== null) max = Math.max(max, Math.abs(n));
+        });
+        barMax[idx] = max || 1;
+      }
+    });
+
+    let html = "<table><thead><tr>";
+    mapping.forEach(m => {
+      const meta = HEADER_META[m.label] || {};
+      const icon = meta.icon || "";
+      const abbr = meta.abbr || m.label;
+      const tooltip = meta.title || m.label;
+      html += `<th title="${escapeHtml(tooltip)}">${icon}<span class="th-abbr">${escapeHtml(abbr)}</span></th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    rows.forEach((row, rIdx) => {
+      const colMap = rowColMaps[rIdx];
+      html += "<tr>";
+      mapping.forEach((m, idx) => {
+        if(m.render === "symbol"){
+          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span></td>`;
+          return;
+        }
+        if(!m.matchedKey){
+          addColumnWarning(tableConf.key, m.label);
+          html += `<td class="na">—</td>`;
+          return;
+        }
+        const val = colMap.hasOwnProperty(m.matchedKey) ? colMap[m.matchedKey] : null;
+
+        if(m.render === "news-icon"){
+          html += renderNewsCell(val);
+        } else if(m.render === "price-tier"){
+          html += renderPriceCell(val);
+        } else if(m.render === "float-tier"){
+          html += renderFloatCell(val);
+        } else if(m.render === "change-tier"){
+          html += renderChangeCell(val);
+        } else if(m.render === "country-flag"){
+          html += renderCountryCell(val);
+        } else if(m.render === "volume-tier"){
+          html += renderVolumeCell(val);
+        } else if(m.render === "rvol-tier"){
+          html += renderRvolCell(val);
+        } else if(m.render === "trade-count-tier"){
+          const cacheKey = tableConf.key + ":" + (row.symbol || "") + ":5mincount";
+          html += renderTradeCountCell(val, cacheKey);
+        } else if(m.render === "bar-teal"){
+          html += renderBarCell(val, "teal", barMax[idx]);
+        } else if(m.render === "bar-purple"){
+          html += renderBarCell(val, "purple", barMax[idx]);
+        } else if(val === null || val === undefined){
+          html += `<td class="na">—</td>`;
+        } else {
+          html += `<td class="mono ${directionClass(val)}">${escapeHtml(val)}</td>`;
+        }
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+
+    wrap.innerHTML = html;
+    countEl.textContent = matchedCount > rows.length
+      ? `${rows.length} of ${matchedCount} rows`
+      : `${rows.length} row${rows.length === 1 ? "" : "s"}`;
+  }
+
+  function renderAll(){
+    TABLES.forEach(renderTable);
+  }
+
+  // ---------------------------------------------------------------
+  // Home page overview stats — derived entirely from the live Toplist
+  // data already in memory, no separate index/market data source exists.
+  // ---------------------------------------------------------------
+  // (Telegram notifications removed — Web Push, further down, is the
+  // active notification channel now.)
+
+  // ---------------------------------------------------------------
+  // (Telegram notifications removed — Web Push, further down, is the
+  // active notification channel now. The snapshot-relay-to-backend
+  // module that used to live here was removed too, since it existed
+  // solely to feed the now-deleted top5_alerts.py script — nothing
+  // reads that data anymore.)
+  // ---------------------------------------------------------------
+
+  function findColumnKey(tableKey, label){
+    const mapping = columnMapping[tableKey];
+    if(!mapping) return null;
+    const m = mapping.find(m => m.label === label);
+    return m && m.matchedKey ? m.matchedKey : null;
+  }
+
+  // ---------------------------------------------------------------
+  // Alerts — one collapsible panel per Alert config (same panel/fold
+  // pattern as the Toplist tables), each holding structured key-value
+  // cards. Panels are built dynamically from ALERT_CONFIGS so adding a
+  // new alert config later just means adding an entry to that array.
+  // ---------------------------------------------------------------
+  const alertsByConfig = {}; // key -> array of { time, fields: [{key,value}] }
+  ALERT_CONFIGS.forEach(a => { alertsByConfig[a.key] = []; });
+
+  function buildAlertPanels(){
+    const container = document.getElementById("alertsPanelsContainer");
+    if(!container) return;
+    container.innerHTML = ALERT_CONFIGS.filter(a => !a.special).map(a => `
+      <div class="panel collapsed" id="panel-${a.key}">
+        <div class="panel-head" data-fold="${a.key}">
+          <div class="panel-head-left">
+            <button class="fold-btn" aria-label="Collapse ${escapeHtml(a.name)}" tabindex="-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <span class="panel-head-icon icon-orange">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </span>
+            <h2>${escapeHtml(a.name)}</h2>
+          </div>
+          <span class="count" id="alertCount_${a.key}">0 alerts</span>
+        </div>
+        <div id="alertBody_${a.key}" class="table-scroll" style="padding:12px;">
+          <div class="alerts-empty-note"><span class="dot-pulse"></span>Waiting for alerts…</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function prettifyFieldKey(key){
+    const stripped = String(key).replace(/Column$/i, "").trim();
+    const base = stripped || String(key);
+    return base
+      .replace(/_/g, " ")
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function formatFlexibleTimestamp(v){
+    if(v === null || v === undefined) return null;
+    const n = Number(v);
+    if(!isNaN(n) && n > 0){
+      const ms = String(Math.trunc(n)).length >= 13 ? n : n * 1000; // epoch seconds vs ms
+      const d = new Date(ms);
+      if(!isNaN(d.getTime())) return d.toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    }
+    const parsed = Date.parse(v);
+    if(!isNaN(parsed)) return new Date(parsed).toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    return String(v);
+  }
+
+  // Turn a raw alert message into a flat list of {key,value} fields for
+  // display, excluding purely structural/meta fields, and flattening one
+  // level of nesting (common for a "data"/"alert" wrapper object).
+  const ALERT_META_KEYS = new Set(["@type", "config_id", "action", "success"]);
+  // Confirmed real schema (from ChartsWatcher's /data/v1/lastalerts docs,
+  // which the live WebSocket NewAlert push matches): each alert has a
+  // "row" object with a "columns" array of {key, value, text_color, color}
+  // — the exact same shape as Toplist rows. We only use key/value; the
+  // server's own text_color/color are skipped for the same readability
+  // reason we skip them on the Toplist tables.
+  function flattenAlertFields(rawMsg){
+    const fields = [];
+    if(rawMsg.row && typeof rawMsg.row === "object"){
+      const row = rawMsg.row;
+      if(Array.isArray(row.columns)){
+        row.columns.forEach(col => {
+          if(col && col.key !== undefined) fields.push({ key: col.key, value: col.value });
+        });
+      }
+      if(row.symbol !== undefined && row.symbol !== null && !fields.some(f => normalizeLabel(f.key).includes("symbol"))){
+        fields.push({ key: "SymbolColumn", value: row.symbol });
+      }
+      return fields;
+    }
+    // Defensive fallback for any alert type that doesn't follow the
+    // row/columns shape.
+    Object.keys(rawMsg).forEach(k => {
+      if(ALERT_META_KEYS.has(k)) return;
+      const v = rawMsg[k];
+      if(v !== null && typeof v === "object" && !Array.isArray(v)){
+        Object.keys(v).forEach(k2 => fields.push({ key: k2, value: v[k2] }));
+      } else {
+        fields.push({ key: k, value: Array.isArray(v) ? v.join(", ") : v });
+      }
+    });
+    return fields;
+  }
+
+  function parseAlertItem(rawMsg){
+    const allFields = flattenAlertFields(rawMsg);
+    const tsField = allFields.find(f => /time|epoch|date/i.test(f.key));
+    const symField = allFields.find(f => /symbol|ticker/i.test(f.key));
+    // Remaining fields exclude Time/Symbol so they aren't shown twice
+    // (once promoted to the card header, once in the generic grid);
+    // also exclude the news-icon field (raw SVG markup) and Strategy Name
+    // (generic/non-useful, always the same placeholder value).
+    const fields = allFields.filter(f =>
+      f !== tsField &&
+      f !== symField &&
+      !/newsicon/i.test(f.key) &&
+      !/strategy/i.test(f.key)
+    );
+    return {
+      fields,
+      ts: tsField ? tsField.value : null,
+      symbol: symField ? symField.value : null
+    };
+  }
+
+  // ---------------------------------------------------------------
+  // Halts table — a bespoke fixed-column renderer for the "🚦 | HALTS -
+  // RESUMPTIONS" alert config. Field names in each NewAlert event are
+  // unknown ahead of time (no column_desc exists for Alerts the way it
+  // does for Toplists), so each column is resolved per-event via the same
+  // hint-matching approach used elsewhere in this app.
+  // ---------------------------------------------------------------
+  const HALTS_COLUMN_DEFS = {
+    "Time":            { hints: ["time", "timestamp", "epoch", "date"] },
+    "Symbol":           { hints: ["symbol", "ticker"] },
+    "Price ($)":       { hints: ["price"] },
+    "Float":             { hints: ["float"] },
+    "Daily Volume":     { hints: ["dailyvolume", "dvolume", "volume", "vol"] },
+    "Explanation":      { hints: ["explanation", "reason", "status", "description", "message"] },
+    "Change %":          { hints: ["changepercent", "pctchange", "change"] },
+    "5 Min Volume":     { hints: ["5minvolume", "fiveminvolume", "5minvol", "vol5min", "5mvol", "5min", "absvolumefiltermin5", "volumefiltermin5", "filtermin5"] }
+  };
+  const HALTS_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "Float", "Daily Volume", "Explanation", "Change %", "5 Min Volume"];
+  // Most collision-prone/specific columns matched first (e.g. "5 Min
+  // Volume" must claim its field before the generic "Daily Volume" hint
+  // can loosely grab it via substring matching).
+  const HALTS_MATCH_ORDER = ["5 Min Volume", "Time", "Symbol", "Price ($)", "Float", "Change %", "Explanation", "Daily Volume"];
+
+  function matchHaltRow(fields){
+    const used = new Set();
+    const result = {};
+    HALTS_MATCH_ORDER.forEach(label => {
+      const hints = HALTS_COLUMN_DEFS[label].hints;
+      let match = fields.find(f => !used.has(f.key) && hints.some(h => normalizeLabel(f.key) === h));
+      if(!match){
+        match = fields.find(f => {
+          if(used.has(f.key)) return false;
+          const norm = normalizeLabel(f.key);
+          return hints.some(h => norm.includes(h) || h.includes(norm));
+        });
+      }
+      if(match) used.add(match.key);
+      result[label] = match ? match.value : null;
+    });
+    return result;
+  }
+
+  function explanationBadgeHtml(text){
+    if(text === null || text === undefined || text === "") return `<td class="na">—</td>`;
+    const lower = String(text).toLowerCase();
+    let cls = "neutral";
+    if(/resum|conclud|reopen/.test(lower)) cls = "resumed";
+    else if(/halt|pause|volatility/.test(lower)) cls = "paused";
+    return `<td><span class="halt-badge ${cls}">${escapeHtml(text)}</span></td>`;
+  }
+
+  const haltsRows = [];
+
+  // =================================================================
+  // Web Push notifications for the Alerts section (Halts, Screening,
+  // Running Up, HOD MOMO). Unlike the browser's local Notification API
+  // (`new Notification(...)` called directly from this page, which only
+  // fires while this exact tab is open and running), this uses a real
+  // service worker + push subscription, so notifications can arrive even
+  // with the tab fully closed — the browser's own push infrastructure
+  // wakes the service worker up in the background.
+  //
+  // Requires PUSH_BACKEND_URL and PUSH_VAPID_PUBLIC_KEY to be configured
+  // (see push-notify-backend/app.py), and sw.js + manifest.json hosted
+  // at your site's root alongside this file.
+  //
+  // iOS note: still requires the site to be Added to Home Screen first
+  // (Apple's restriction, unchanged from before) — what's different is
+  // that once installed and subscribed, delivery works in the
+  // background, not just while the page happens to be open.
+  // =================================================================
+  let pushSubscribed = localStorage.getItem("pushSubscribed") === "true";
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for(let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  function updateNotifToggleUI(){
+    const btn = document.getElementById("notifToggleBtn");
+    const label = document.getElementById("notifToggleLabel");
+    if(!btn || !label) return;
+    const supported = "serviceWorker" in navigator && "PushManager" in window;
+    if(!supported){
+      btn.classList.add("denied");
+      label.textContent = "Push Unsupported";
+      return;
+    }
+    if(Notification.permission === "denied"){
+      btn.classList.remove("enabled");
+      btn.classList.add("denied");
+      label.textContent = "Notifications Blocked";
+    } else if(pushSubscribed && Notification.permission === "granted"){
+      btn.classList.remove("denied");
+      btn.classList.add("enabled");
+      label.textContent = "Push Notifications On";
+    } else {
+      btn.classList.remove("enabled", "denied");
+      label.textContent = "Enable Push Notifications";
+    }
+  }
+
+  async function toggleBrowserNotifications(){
+    if(!("serviceWorker" in navigator) || !("PushManager" in window)){
+      logLine("Push notifications aren't supported in this browser.", "warn");
+      return;
+    }
+    if(!PUSH_BACKEND_URL){
+      logLine("PUSH_BACKEND_URL isn't configured yet — see push-notify-backend/app.py setup notes.", "warn");
+      return;
+    }
+    if(Notification.permission === "denied"){
+      logLine("Notifications are blocked at the browser level — re-enable them in your browser's site settings for this page.", "warn");
+      updateNotifToggleUI();
+      return;
+    }
+
+    if(pushSubscribed){
+      // Turn off — unsubscribe both locally and on the backend
+      try{
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if(sub){
+          await fetch(`${PUSH_BACKEND_URL}/unsubscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: sub.endpoint })
+          });
+          await sub.unsubscribe();
+        }
+      }catch(e){
+        logLine(`Push unsubscribe failed: ${e.message}`, "warn");
+      }
+      pushSubscribed = false;
+      localStorage.setItem("pushSubscribed", "false");
+      updateNotifToggleUI();
+      return;
+    }
+
+    // Turn on — register the service worker, request permission, subscribe
+    try{
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      let perm = Notification.permission;
+      if(perm === "default") perm = await Notification.requestPermission();
+      if(perm !== "granted"){
+        logLine("Notification permission was not granted.", "warn");
+        updateNotifToggleUI();
+        return;
+      }
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)
+      });
+      const res = await fetch(`${PUSH_BACKEND_URL}/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub)
+      });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      pushSubscribed = true;
+      localStorage.setItem("pushSubscribed", "true");
+      logLine("Push notifications enabled — works even if this tab is closed.", "good");
+    }catch(e){
+      logLine(`Push subscription failed: ${e.message}`, "bad");
+    }
+    updateNotifToggleUI();
+  }
+
+  // Sends the actual push via the backend (which relays it to every
+  // subscribed browser through the Web Push protocol). Only while this
+  // tab isn't focused — avoids a redundant popup while you're already
+  // looking straight at the new row on screen.
+  async function sendPushAlert(title, body){
+    if(!pushSubscribed || !PUSH_BACKEND_URL) return;
+    if(!document.hidden) return;
+    try{
+      await fetch(`${PUSH_BACKEND_URL}/push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body })
+      });
+    }catch(e){
+      logLine(`Push send failed: ${e.message}`, "warn");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", updateNotifToggleUI);
+  updateNotifToggleUI();
+
+  function pushHaltEvent(rawMsg){
+    const fields = flattenAlertFields(rawMsg);
+    const row = matchHaltRow(fields);
+
+    // Same duplicate guard as Screening — matters now that the REST
+    // catch-up seed re-runs on every reconnect.
+    const isDuplicate = haltsRows.some(r => r["Symbol"] === row["Symbol"] && r["Time"] === row["Time"]);
+    if(isDuplicate) return;
+
+    haltsRows.unshift(row);
+    if(haltsRows.length > MAX_ROWS) haltsRows.length = MAX_ROWS;
+    renderHaltsTable();
+
+    if(row["Symbol"]){
+      sendPushAlert(
+        `🚦 Halt/Resumption: ${row["Symbol"]}`,
+        `${row["Explanation"] || ""} · ${row["Price ($)"] || ""}`
+      );
+    }
+
+    // Diagnostics: show exactly what the server sent vs. what we resolved,
+    // so a mismatch can be identified precisely instead of guessed at.
+    logLine(`Halts event raw keys: ${fields.map(f => `${f.key}="${f.value}"`).join(", ")}`, "good");
+    const unmatched = HALTS_DISPLAY_ORDER.filter(label => row[label] === null || row[label] === undefined);
+    if(unmatched.length){
+      logLine(`Halts event — couldn't match: ${unmatched.join(", ")}. Check the raw keys logged above and adjust HALTS_COLUMN_DEFS hints if a real field was missed.`, "warn");
+    }
+    const rawEl = document.getElementById("rawAlert2update");
+    if(rawEl) rawEl.textContent = JSON.stringify(rawMsg, null, 2);
+  }
+
+  function renderHaltsTable(){
+    const wrap = document.getElementById("haltsTableWrap");
+    const countEl = document.getElementById("haltsCount");
+    if(!wrap) return;
+    countEl.textContent = `${haltsRows.length} event${haltsRows.length === 1 ? "" : "s"}`;
+
+    if(haltsRows.length === 0){
+      wrap.innerHTML = `<div class="loading"><span class="dot-pulse"></span>Waiting for halt/resumption events…</div>`;
+      return;
+    }
+
+    let html = `<table><thead><tr>`;
+    HALTS_DISPLAY_ORDER.forEach(label => { html += `<th>${escapeHtml(label)}</th>`; });
+    html += `</tr></thead><tbody>`;
+
+    haltsRows.forEach(row => {
+      html += "<tr>";
+      HALTS_DISPLAY_ORDER.forEach(label => {
+        const val = row[label];
+        if(label === "Symbol"){
+          html += val
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span></td>`
+            : `<td class="na">—</td>`;
+        } else if(label === "Price ($)"){
+          html += renderPriceCell(val);
+        } else if(label === "Float"){
+          html += renderFloatCell(val);
+        } else if(label === "Explanation"){
+          html += explanationBadgeHtml(val);
+        } else if(label === "Time"){
+          html += val ? `<td class="mono">${escapeHtml(formatFlexibleTimestamp(val))}</td>` : `<td class="na">—</td>`;
+        } else if(label === "Change %"){
+          html += val ? `<td class="mono ${directionClass(val)}">${escapeHtml(val)}</td>` : `<td class="na">—</td>`;
+        } else {
+          html += val !== null && val !== undefined && val !== "" ? `<td class="mono">${escapeHtml(val)}</td>` : `<td class="na">—</td>`;
+        }
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    wrap.innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------
+  // 🥇 Screening table — same 9 standard columns as the Toplist tables,
+  // plus "Time" (التوقيت) as the leading column. Delivered via the Alert
+  // pipeline (@type: "Alert" / "NewAlert"), same as Halts, so columns are
+  // resolved per-event via hint matching rather than a column_desc.
+  // Reuses the exact same cell renderers (price/float/news/change/volume/
+  // country) as every Toplist table for identical styling and behavior.
+  // ---------------------------------------------------------------
+  const SCREENING_COLUMN_DEFS = {
+    "Time":                          { hints: ["time", "timestamp", "epoch", "date"] },
+    "Symbol":                         { hints: ["symbol", "ticker"] },
+    "Price ($)":                     { hints: ["price", "pricenooption"] },
+    "News Icon":                     { hints: ["news"] },
+    "% Change":                       { hints: ["changepercent", "pctchange", "change", "changefromcloseprz"] },
+    "Float":                           { hints: ["float", "newfloatnooption"] },
+    "Country":                         { hints: ["country", "countryinfo"] },
+    // TradeCountFilterMIN5 — note "min5" not "5min": our old "5min" hint
+    // checked the substring in the wrong order and silently never matched.
+    "5 min trade count":              { hints: ["5mintradecount", "fiveminutetradecount", "tradecountfiltermin5", "min5"] },
+    // PrzVolumeFilterFD1 — a cryptic internal filter ID with zero semantic
+    // resemblance to "relative volume", confirmed via real payload data.
+    "Relative Daily Volume (%)":     { hints: ["relativedailyvolume", "rvol", "przvolumefilterfd1"] },
+    "Daily Volume":                   { hints: ["dailyvolume", "dvolume", "volume", "vol", "absvolumefilterday1"] },
+    "Strategy":                        { hints: ["strategyname", "strategy"] }
+  };
+  const SCREENING_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Daily Volume", "Float", "Relative Daily Volume (%)", "Country", "5 min trade count", "Strategy"];
+  // Most specific/collision-prone columns matched first, Daily Volume last
+  // (broadest hints) — same defensive ordering approach as Halts.
+  const SCREENING_MATCH_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Float", "Country", "5 min trade count", "Relative Daily Volume (%)", "Daily Volume", "Strategy"];
+
+  // Converts a raw Time value (epoch, ISO string, or "HH:MM:SS") into a
+  // comparable number for sorting newest-first, regardless of exact
+  // format. Unparseable values sort to the bottom rather than erroring.
+  function timeSortKey(raw){
+    if(raw === null || raw === undefined || raw === "") return -Infinity;
+    const str = String(raw).trim();
+    const num = Number(str);
+    if(!isNaN(num) && num > 1e8) return num; // epoch seconds/ms
+    const m = str.match(/^(\d{1,2}):(\d{2})(:(\d{2}))?$/);
+    if(m){
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number(m[1]), Number(m[2]), Number(m[4] || 0)).getTime();
+    }
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? -Infinity : d.getTime();
+  }
+
+  function matchScreeningRow(fields){
+    const used = new Set();
+    const result = {};
+    SCREENING_MATCH_ORDER.forEach(label => {
+      const hints = SCREENING_COLUMN_DEFS[label].hints;
+      let match = fields.find(f => !used.has(f.key) && hints.some(h => normalizeLabel(f.key) === h));
+      if(!match){
+        match = fields.find(f => {
+          if(used.has(f.key)) return false;
+          const norm = normalizeLabel(f.key);
+          return hints.some(h => norm.includes(h) || h.includes(norm));
+        });
+      }
+      // Some ChartsWatcher fields (e.g. DaySinceNewsIcon) send raw SVG
+      // markup instead of a usable value. Rendering that as data would
+      // mean accidentally parsing a stray number out of the markup (e.g.
+      // "height: 20px" → a fabricated "20m" news badge) — reject it and
+      // honestly show "no data" instead.
+      if(match && /<svg/i.test(String(match.value))){
+        used.add(match.key); // still consumed, so nothing else claims it
+        match = null;
+      }
+      if(match) used.add(match.key);
+      result[label] = match ? match.value : null;
+    });
+    return result;
+  }
+
+  // screeningState[cfgKey] = { rows: [] } — one entry per "screening-style"
+  // alert config (currently: Screening, Running Up). Sharing this one
+  // implementation keeps them structurally identical by construction,
+  // rather than risking drift between hand-duplicated copies.
+  const screeningState = {};
+  function getScreeningState(cfgKey){
+    if(!screeningState[cfgKey]) screeningState[cfgKey] = { rows: [] };
+    return screeningState[cfgKey];
+  }
+
+  function pushScreeningEvent(rawMsg, cfgKey){
+    const cfg = ALERT_CONFIGS.find(a => a.key === cfgKey);
+    const state = getScreeningState(cfgKey);
+    const fields = flattenAlertFields(rawMsg);
+    const row = matchScreeningRow(fields);
+
+    // Guard against duplicates — matters now that the REST catch-up seed
+    // re-runs on every reconnect (see below), which could otherwise
+    // re-insert alerts already received live.
+    const isDuplicate = state.rows.some(r => r["Symbol"] === row["Symbol"] && r["Time"] === row["Time"]);
+    if(isDuplicate) return;
+
+    state.rows.unshift(row);
+    if(state.rows.length > MAX_ROWS) state.rows.length = MAX_ROWS;
+    renderScreeningTable(cfgKey);
+
+    // Every Screening-style event is already a discrete occurrence (unlike
+    // a Toplist row, which re-broadcasts the same symbol repeatedly) — so
+    // it always triggers an alert.
+    if(row["Symbol"]){
+      sendPushAlert(
+        `${cfg ? cfg.name : "Screening"}: ${row["Symbol"]}`,
+        `$${row["Price ($)"] || "?"} · ${row["% Change"] || ""}`
+      );
+    }
+
+    logLine(`${cfg ? cfg.name : cfgKey} event raw keys: ${fields.map(f => `${f.key}="${f.value}"`).join(", ")}`, "good");
+    const unmatched = SCREENING_DISPLAY_ORDER.filter(label => row[label] === null || row[label] === undefined);
+    if(unmatched.length){
+      logLine(`${cfg ? cfg.name : cfgKey} event — couldn't match: ${unmatched.join(", ")}. Check the raw keys logged above and adjust SCREENING_COLUMN_DEFS hints if a real field was missed.`, "warn");
+    }
+    const rawEl = document.getElementById("raw" + cfgKey.replace("alert", "Alert") + "update");
+    if(rawEl) rawEl.textContent = JSON.stringify(rawMsg, null, 2);
+  }
+
+  function renderScreeningTable(cfgKey){
+    const cfg = ALERT_CONFIGS.find(a => a.key === cfgKey);
+    if(!cfg) return;
+    const state = getScreeningState(cfgKey);
+    const wrap = document.getElementById(cfg.wrapId);
+    const countEl = document.getElementById(cfg.countId);
+    if(!wrap) return;
+    if(countEl) countEl.textContent = `${state.rows.length} event${state.rows.length === 1 ? "" : "s"}`;
+
+    if(state.rows.length === 0){
+      wrap.innerHTML = `<div class="loading"><span class="dot-pulse"></span>Waiting for screening events…</div>`;
+      return;
+    }
+
+    let html = `<table><thead><tr>`;
+    SCREENING_DISPLAY_ORDER.forEach(label => {
+      const meta = HEADER_META[label] || {};
+      const icon = meta.icon || "";
+      const abbr = meta.abbr || label;
+      const tooltip = meta.title || label;
+      html += `<th title="${escapeHtml(tooltip)}">${icon}<span class="th-abbr">${escapeHtml(abbr)}</span></th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    // Newest-first, sorted by the actual Time value rather than just
+    // insertion order — insertion order can drift from true chronological
+    // order (e.g. REST-seeded history mixed with live pushes).
+    const sortedRows = [...state.rows].sort((a, b) => timeSortKey(b["Time"]) - timeSortKey(a["Time"]));
+
+    sortedRows.forEach(row => {
+      html += "<tr>";
+      SCREENING_DISPLAY_ORDER.forEach(label => {
+        const val = row[label];
+        if(label === "Symbol"){
+          html += val
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span></td>`
+            : `<td class="na">—</td>`;
+        } else if(label === "Price ($)"){
+          html += renderPriceCell(val);
+        } else if(label === "Float"){
+          html += renderFloatCell(val);
+        } else if(label === "News Icon"){
+          html += renderNewsCell(val);
+        } else if(label === "% Change"){
+          html += renderChangeCell(val);
+        } else if(label === "Daily Volume"){
+          html += renderVolumeCell(val);
+        } else if(label === "Relative Daily Volume (%)"){
+          html += renderRvolCell(val);
+        } else if(label === "Country"){
+          html += renderCountryCell(val);
+        } else if(label === "5 min trade count"){
+          const cacheKey = cfgKey + ":" + (row["Symbol"] || "") + ":5mincount";
+          html += renderTradeCountCell(val, cacheKey);
+        } else if(label === "Time"){
+          html += val ? `<td class="mono">${escapeHtml(formatFlexibleTimestamp(val))}</td>` : `<td class="na">—</td>`;
+        } else {
+          html += val !== null && val !== undefined && val !== "" ? `<td class="mono">${escapeHtml(val)}</td>` : `<td class="na">—</td>`;
+        }
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    wrap.innerHTML = html;
+  }
+
+  function renderAlertPanel(key){
+    const bodyEl = document.getElementById("alertBody_" + key);
+    const countEl = document.getElementById("alertCount_" + key);
+    if(!bodyEl) return;
+    const items = alertsByConfig[key] || [];
+    countEl.textContent = `${items.length} alert${items.length === 1 ? "" : "s"}`;
+    if(items.length === 0){
+      bodyEl.innerHTML = `<div class="alerts-empty-note"><span class="dot-pulse"></span>Waiting for alerts…</div>`;
+      return;
+    }
+    bodyEl.innerHTML = items.map(item => `
+      <div class="alert-card">
+        <div class="alert-card-head">
+          <div class="alert-card-head-left">
+            <span class="alert-card-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </span>
+            <div class="alert-time mono">${escapeHtml(item.time)}</div>
+          </div>
+          ${item.symbol ? `<span class="sym sym-link alert-sym-badge" data-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</span>` : ""}
+        </div>
+        <div class="alert-kv-grid">
+          ${item.fields.map(f => `
+            <div class="alert-kv">
+              <div class="alert-kv-label">${escapeHtml(prettifyFieldKey(f.key))}</div>
+              <div class="alert-kv-value mono">${escapeHtml(f.value === null || f.value === undefined || f.value === "" ? "—" : String(f.value))}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function pushAlertItem(key, rawMsg){
+    if(!alertsByConfig[key]) alertsByConfig[key] = [];
+    const parsed = parseAlertItem(rawMsg);
+    const time = parsed.ts ? formatFlexibleTimestamp(parsed.ts) : new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    alertsByConfig[key].unshift({ time, symbol: parsed.symbol, fields: parsed.fields });
+    if(alertsByConfig[key].length > 50) alertsByConfig[key].length = 50;
+    renderAlertPanel(key);
+    const rawEl = document.getElementById("raw" + key.replace("alert", "Alert") + "update");
+    if(rawEl) rawEl.textContent = JSON.stringify(rawMsg, null, 2);
+  }
+
+  buildAlertPanels();
+
+  // Pre-seed each alert panel with recent history via the confirmed REST
+  // endpoint GET /data/v1/lastalerts, so panels show existing alerts
+  // immediately instead of staying empty until the next live push.
+  function buildLastAlertsUrl(configId){
+    const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY, config_id: configId });
+    return `https://${BASE_URL}/data/v1/lastalerts?${params.toString()}`;
+  }
+
+  async function seedInitialAlerts(cfg){
+    try{
+      const res = await fetch(buildLastAlertsUrl(cfg.configId));
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error(`HTTP ${res.status} — response wasn't JSON: ${text.slice(0, 200)}`); }
+      if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
+      const alerts = Array.isArray(json.alerts) ? json.alerts : [];
+      logLine(`Seeded ${alerts.length} existing alert(s) for "${cfg.name}" via REST.`, "good");
+      // Reverse so the oldest is unshifted first, leaving newest-first order
+      alerts.slice().reverse().forEach(a => {
+        if(cfg.special === "halts") pushHaltEvent(a);
+        else if(cfg.special === "screening") pushScreeningEvent(a, cfg.key);
+        else pushAlertItem(cfg.key, a);
+      });
+    }catch(e){
+      logLine(`Couldn't seed initial alerts for "${cfg.name}": ${e.message}`, "warn");
+    }
+  }
+  // (No standalone call here — seeding now happens inside ws.onopen,
+  // covering both the first connection and every reconnect after.)
+
+  // ---------------------------------------------------------------
+  // Stock detail modal
+  //
+  // IMPORTANT HONESTY NOTE: ChartsWatcher's documented API only gives us
+  // whatever columns each Toplist config is configured with — there is no
+  // separate "get full ticker detail" endpoint. Many of the requested
+  // metrics (Market Cap, Short Interest, Days since IPO, VWAP distance,
+  // etc.) are NOT part of our 9 standard columns. What we do here is
+  // search the FULL raw column_desc/columns the server sends for every
+  // table the symbol appears in (not just our matched 9), in case the
+  // underlying configs happen to include extra fields under different
+  // names. Anything we can't find a genuine match for is shown plainly
+  // as "Not available in connected feeds" — never fabricated.
+  // ---------------------------------------------------------------
+  const METRIC_GROUPS = [
+    {
+      title: "Float & Ownership",
+      metrics: [
+        { label: "Shares Outstanding", hints: ["sharesoutstanding", "outstandingshares", "sharesout"] },
+        { label: "Market Cap",          hints: ["marketcap", "mcap", "marketcapnooption"] },
+        { label: "Float Rotation",       hints: ["floatrotation"] },
+        { label: "Float",                 hints: ["float"] }
+      ]
+    },
+    {
+      title: "Short Interest",
+      metrics: [
+        { label: "Shares Short",       hints: ["sharesshort", "shortshares", "sharesshortcolumn"] },
+        { label: "Short Ratio",         hints: ["shortratio", "daystocover", "shortrationooption"] },
+        { label: "Short Interest (%)", hints: ["shortinterest", "shortinterestnooption"] }
+      ]
+    },
+    {
+      title: "Trading Activity",
+      metrics: [
+        // Confirmed against a real ChartsWatcher payload — these cryptic
+        // internal filter names have zero resemblance to what they mean,
+        // same pattern as the Screening/Halts field-name fixes earlier.
+        { label: "5 Min Volume",                    hints: ["5minvolume", "fiveminutevolume", "absvolumefiltermin5"] },
+        { label: "5 Min Trade Count",               hints: ["5mintradecount", "fiveminutetradecount", "tradecountfiltermin5"] },
+        { label: "Relative 5 Min Trade Count (%)", hints: ["relative5mintradecount"] },
+        { label: "Relative Daily Volume (%)",      hints: ["relativedailyvolume", "przvolumefilterfd1"] }
+      ]
+    },
+    {
+      title: "Corporate Actions",
+      metrics: [
+        { label: "Days Since IPO",   hints: ["dayssinceipo", "ipoage", "dayssinceiponooption"] },
+        { label: "Days Since Split", hints: ["dayssincesplit", "splitage", "dayssincesplitnooption"] },
+        { label: "Split Ratio",       hints: ["splitratio", "splitrationooption"] }
+      ]
+    },
+    {
+      title: "Price Levels",
+      metrics: [
+        { label: "High of Day",                          hints: ["dayhigh", "highoftheday", "highcolumn", "high"] },
+        { label: "Low of Day",                             hints: ["daylow", "lowoftheday", "lowcolumn", "low"] },
+        { label: "Previous Day's Close ($)",              hints: ["previousclose", "prevclose", "previousdayclose", "previousdaysclosenooption"] },
+        { label: "Distance from VWAP ($)",                hints: ["distancefromvwap", "vwapdistance", "vwap"] },
+        { label: "Distance from EMA(200) Daily (%)",     hints: ["distancefromema200", "ema200distance", "ema200", "distancefrommovingaverageema200d"] }
+      ]
+    },
+    {
+      title: "Alerts",
+      metrics: [
+        { label: "Alert Counter", hints: ["alertcounter", "alertcount", "alerts"] }
+      ]
+    }
+  ];
+
+  // Search every subscribed table's raw column_desc + the clicked symbol's
+  // row in that table for a value matching any of the given hints.
+  function findMetricAcrossTables(symbol, hints){
+    const reservedRowKeys = new Set(["symbol", "columns", "color"]);
+    for(const t of TABLES){
+      const rows = displayed[t.key];
+      if(!rows) continue;
+      const row = rows.find(r => r.symbol === symbol);
+      if(!row) continue;
+
+      // 1) Some ChartsWatcher fields (Sector, Industry, MarketCap, etc.)
+      // arrive as direct top-level properties on the row object itself,
+      // the same way "symbol" already does, rather than inside the
+      // generic "columns" array. Check those first.
+      for(const key of Object.keys(row)){
+        if(reservedRowKeys.has(key)) continue;
+        const val = row[key];
+        if(val === null || val === undefined || val === "") continue;
+        const normKey = normalizeLabel(key);
+        if(hints.some(h => normKey === h || normKey.includes(h) || h.includes(normKey))){
+          return { value: val, source: t.name };
+        }
+      }
+
+      // 2) Fall back to the generic column_desc-matched columns array.
+      const descs = rawColumnDescs[t.key];
+      if(!descs) continue;
+      const colMap = {};
+      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+      for(const desc of descs){
+        const normName = normalizeLabel(desc.name);
+        if(!hints.some(h => normName === h || normName.includes(h) || h.includes(normName))) continue;
+        if(desc.key === "SymbolColumn") continue;
+        if(colMap.hasOwnProperty(desc.key) && colMap[desc.key] !== undefined && colMap[desc.key] !== null && colMap[desc.key] !== ""){
+          return { value: colMap[desc.key], source: t.name };
+        }
+      }
+    }
+    return null;
+  }
+
+  // Also grab whichever row/table the symbol was clicked from, for the
+  // header (price, % change, company-level fields if present).
+  function findAnyRow(symbol){
+    for(const t of TABLES){
+      const rows = displayed[t.key];
+      if(!rows) continue;
+      const row = rows.find(r => r.symbol === symbol);
+      if(row) return { row, tableKey: t.key, tableName: t.name };
+    }
+    return null;
+  }
+
+  function metricValueHtml(result){
+    if(!result){
+      return `<div class="modal-metric-value na">Not available in connected feeds</div>`;
+    }
+    return `<div class="modal-metric-value mono">${escapeHtml(result.value)}</div><div class="modal-metric-source">via ${escapeHtml(result.source)}</div>`;
+  }
+
+  let currentModalSymbol = null;
+
+  // ---------------------------------------------------------------
+  // Recent News — real REST endpoint: GET /data/v1/lastnews
+  // Confirmed via ChartsWatcher's API docs (Swagger), not guessed.
+  // ---------------------------------------------------------------
+  // Full symbol universe — GET /data/v1/symbols. Fetched once and cached
+  // client-side so search + company-name lookups work for ANY ticker,
+  // not just ones currently streaming in a loaded table/alert.
+  // ---------------------------------------------------------------
+  let allSymbolsMap = null;      // Map<symbol, name> once loaded; null until then
+  let allSymbolsLoading = false;
+
+  function buildSymbolsUrl(){
+    const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY });
+    return `https://${BASE_URL}/data/v1/symbols?${params.toString()}`;
+  }
+
+  async function loadAllSymbols(){
+    if(allSymbolsMap || allSymbolsLoading) return;
+    allSymbolsLoading = true;
+    try{
+      const res = await fetch(buildSymbolsUrl());
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error(`HTTP ${res.status} — response wasn't JSON: ${text.slice(0, 200)}`); }
+      if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
+
+      const list = Array.isArray(json) ? json : [];
+      allSymbolsMap = new Map();
+      list.forEach(item => {
+        if(item && item.symbol) allSymbolsMap.set(String(item.symbol).toUpperCase(), item.name || "");
+      });
+      logLine(`Loaded full symbol universe: ${allSymbolsMap.size} symbols via /data/v1/symbols.`, "good");
+    }catch(e){
+      // Cache an empty (non-null) map so search still works via the loaded
+      // tables and the "open ticker regardless" fallback, without retrying
+      // this fetch on every keystroke.
+      allSymbolsMap = new Map();
+      logLine(`Couldn't load full symbol universe: ${e.message}`, "warn");
+    }
+    allSymbolsLoading = false;
+  }
+  loadAllSymbols();
+
+  // ---------------------------------------------------------------
+  // Recent News — real REST endpoint: GET /data/v1/lastnews
+  // Confirmed via ChartsWatcher's API docs (Swagger), not guessed.
+  // ---------------------------------------------------------------
+  const newsCache = {}; // symbol -> { articles, fetchedAt } | { error }
+
+  function buildNewsUrl(symbol){
+    const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY, symbol });
+    return `https://${BASE_URL}/data/v1/lastnews?${params.toString()}`;
+  }
+
+  function formatNewsTime(epochSecond){
+    if(!epochSecond) return "";
+    const d = new Date(epochSecond * 1000);
+    return d.toLocaleString([], { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function newsListHtml(symbol){
+    const cache = newsCache[symbol];
+    if(!cache){
+      return `<div class="news-loading"><span class="dot-pulse"></span>Loading news…</div>`;
+    }
+    if(cache.error){
+      return `<div class="news-error">Couldn't load news.<div class="details">${escapeHtml(cache.error)}</div></div>`;
+    }
+    if(!cache.articles || cache.articles.length === 0){
+      return `<div class="news-empty">No recent news found for ${escapeHtml(symbol)}.</div>`;
+    }
+    return cache.articles.map(a => `
+      <div class="news-card">
+        <div class="news-meta mono">${escapeHtml(formatNewsTime(a.epochSecond))}${a.source ? " · " + escapeHtml(a.source) : ""}</div>
+        <div class="news-headline" dir="rtl">${escapeHtml(a.headline || "(untitled)")}</div>
+        ${a.summary ? `<div class="news-summary" dir="rtl">${escapeHtml(a.summary)}</div>` : ""}
+        ${a.headlineTranslated && a.headlineOriginal ? `<div class="news-original">${escapeHtml(a.headlineOriginal)}</div>` : ""}
+      </div>
+    `).join("");
+  }
+
+  function updateNewsSectionDom(symbol){
+    if(currentModalSymbol !== symbol) return; // modal moved on to a different symbol
+    const listEl = document.getElementById("newsList");
+    if(listEl) listEl.innerHTML = newsListHtml(symbol);
+  }
+
+  // Free, no-key, documented translation API (mymemory.translated.net).
+  // Falls back to the original English text if translation fails for any
+  // reason (rate limit, network, empty response) rather than showing blank.
+  // Primary translator: Google Translate's public "gtx" client endpoint.
+  // This is NOT an official/supported Google API — it's the same
+  // unauthenticated endpoint the translate.google.com web page itself
+  // calls, widely relied on for exactly this no-backend use case. Unlike
+  // MyMemory (a translation-memory lookup), this is a real MT engine, so
+  // it actually translates novel text like stock headlines instead of
+  // just echoing back anything it doesn't recognize. Being unofficial,
+  // it could stop working without notice — that's why MyMemory stays in
+  // as a documented, stable fallback if this one fails.
+  async function translateViaGoogle(text){
+    try{
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURIComponent(text)}`;
+      const res = await fetch(url);
+      if(!res.ok) return null;
+      const json = await res.json();
+      if(Array.isArray(json) && Array.isArray(json[0])){
+        const translated = json[0].map(seg => seg[0]).join("");
+        if(translated && translated.trim().toLowerCase() !== String(text).trim().toLowerCase()){
+          return translated;
+        }
+      }
+      return null;
+    }catch(e){
+      logLine(`Google translate endpoint unreachable: ${e.message}`, "warn");
+      return null;
+    }
+  }
+
+  async function translateViaMyMemory(text){
+    try{
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ar`;
+      const res = await fetch(url);
+      if(!res.ok){
+        logLine(`MyMemory request failed: HTTP ${res.status}`, "warn");
+        return null;
+      }
+      const json = await res.json();
+      const status = json?.responseStatus;
+      const translated = json?.responseData?.translatedText;
+
+      if(status && Number(status) !== 200){
+        logLine(`MyMemory returned status ${status}${json?.responseDetails ? `: ${json.responseDetails}` : ""}`, "warn");
+        return null;
+      }
+      if(translated && /mymemory/i.test(translated)){
+        logLine(`MyMemory quota/warning message: "${translated}"`, "warn");
+        return null;
+      }
+      if(translated && translated.trim().toLowerCase() === String(text).trim().toLowerCase()){
+        logLine(`No Arabic translation found for "${text}" (MyMemory returned the text unchanged).`, "warn");
+        return null;
+      }
+      return translated || null;
+    }catch(e){
+      logLine(`MyMemory request error: ${e.message}`, "warn");
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Sector / Industry Arabic translation — a static dictionary rather
+  // than a live translation API call, since this is a well-known, finite
+  // vocabulary (standard GICS-style sector/industry classifications).
+  // Terms not covered here honestly fall back to the original English
+  // rather than guessing a translation.
+  // ---------------------------------------------------------------
+  const SECTOR_INDUSTRY_AR = {
+    // Yahoo-Finance-style top-level sectors — confirmed as the actual
+    // taxonomy in use (e.g. "Consumer Defensive", not GICS's "Consumer
+    // Staples") from real company data, not GICS.
+    "technology": "التكنولوجيا",
+    "information technology": "تكنولوجيا المعلومات",
+    "healthcare": "الرعاية الصحية",
+    "health care": "الرعاية الصحية",
+    "financials": "المالية",
+    "financial services": "الخدمات المالية",
+    "energy": "الطاقة",
+    "utilities": "المرافق العامة",
+    "real estate": "العقارات",
+    "industrials": "الصناعات",
+    "materials": "المواد",
+    "basic materials": "المواد الأساسية",
+    "consumer discretionary": "السلع الاستهلاكية الكمالية",
+    "consumer cyclical": "السلع الاستهلاكية الكمالية",
+    "consumer staples": "السلع الاستهلاكية الأساسية",
+    "consumer defensive": "السلع الاستهلاكية الأساسية",
+    "communication services": "خدمات الاتصالات",
+
+    // Common industry / sub-sector terms
+    "biotechnology": "التقنية الحيوية",
+    "pharmaceuticals": "الأدوية",
+    "drug manufacturers": "شركات تصنيع الأدوية",
+    "medical devices": "الأجهزة الطبية",
+    "medical instruments & supplies": "الأدوات والمستلزمات الطبية",
+    "diagnostics & research": "التشخيص والأبحاث",
+    "healthcare plans": "خطط الرعاية الصحية",
+    "medical care facilities": "مرافق الرعاية الطبية",
+    "medical distribution": "توزيع المستلزمات الطبية",
+    "software": "البرمجيات",
+    "software - infrastructure": "البرمجيات - البنية التحتية",
+    "software - application": "البرمجيات - التطبيقات",
+    "infrastructure": "البنية التحتية",
+    "application": "التطبيقات",
+    "semiconductors": "أشباه الموصلات",
+    "semiconductor equipment & materials": "معدات ومواد أشباه الموصلات",
+    "internet content & information": "محتوى ومعلومات الإنترنت",
+    "internet retail": "التجزئة عبر الإنترنت",
+    "computer hardware": "أجهزة الحاسوب",
+    "consumer electronics": "الإلكترونيات الاستهلاكية",
+    "electronic components": "المكونات الإلكترونية",
+    "electronic gaming & multimedia": "الألعاب الإلكترونية والوسائط المتعددة",
+    "communication equipment": "معدات الاتصالات",
+    "information technology services": "خدمات تكنولوجيا المعلومات",
+    "solar": "الطاقة الشمسية",
+    "scientific & technical instruments": "الأدوات العلمية والتقنية",
+    "banks": "البنوك",
+    "banks - regional": "البنوك - إقليمية",
+    "banks - diversified": "البنوك - متنوعة",
+    "regional": "إقليمية",
+    "diversified": "متنوعة",
+    "insurance": "التأمين",
+    "insurance - life": "التأمين - الحياة",
+    "insurance - property & casualty": "التأمين - الممتلكات والحوادث",
+    "insurance - specialty": "التأمين - متخصص",
+    "life": "الحياة",
+    "asset management": "إدارة الأصول",
+    "capital markets": "أسواق رأس المال",
+    "credit services": "خدمات الائتمان",
+    "shell companies": "شركات صورية",
+    "oil & gas e&p": "النفط والغاز - الاستكشاف والإنتاج",
+    "oil & gas midstream": "النفط والغاز - النقل والتخزين",
+    "oil & gas refining & marketing": "النفط والغاز - التكرير والتسويق",
+    "oil & gas integrated": "النفط والغاز - متكاملة",
+    "oil & gas equipment & services": "النفط والغاز - المعدات والخدمات",
+    "oil & gas drilling": "النفط والغاز - الحفر",
+    "uranium": "اليورانيوم",
+    "coal": "الفحم",
+    "renewable utilities": "المرافق المتجددة",
+    "renewable": "متجددة",
+    "regulated electric": "الكهرباء المنظمة",
+    "regulated gas": "الغاز المنظم",
+    "regulated water": "المياه المنظمة",
+    "independent power producers": "منتجو الطاقة المستقلون",
+    "retail": "التجزئة",
+    "specialty retail": "تجزئة متخصصة",
+    "department stores": "المتاجر الكبرى",
+    "discount stores": "متاجر التخفيضات",
+    "grocery stores": "متاجر البقالة",
+    "home improvement retail": "تجزئة تحسين المنازل",
+    "auto manufacturers": "صناعة السيارات",
+    "auto - manufacturers": "السيارات - الشركات المصنعة",
+    "auto": "السيارات",
+    "manufacturers": "الشركات المصنعة",
+    "auto parts": "قطع غيار السيارات",
+    "auto & truck dealerships": "وكالات السيارات والشاحنات",
+    "airlines": "الطيران",
+    "airports & air services": "المطارات وخدمات الطيران",
+    "aerospace & defense": "الطيران والدفاع",
+    "telecom services": "خدمات الاتصالات",
+    "telecommunications": "الاتصالات",
+    "media": "الإعلام",
+    "entertainment": "الترفيه",
+    "broadcasting": "البث الإعلامي",
+    "publishing": "النشر",
+    "advertising agencies": "وكالات الإعلان",
+    "mining": "التعدين",
+    "gold": "الذهب",
+    "silver": "الفضة",
+    "copper": "النحاس",
+    "steel": "الصلب",
+    "aluminum": "الألومنيوم",
+    "chemicals": "الكيماويات",
+    "specialty chemicals": "الكيماويات المتخصصة",
+    "agricultural inputs": "المدخلات الزراعية",
+    "agriculture": "الزراعة",
+    "farm products": "المنتجات الزراعية",
+    "construction": "البناء والتشييد",
+    "building materials": "مواد البناء",
+    "building products & equipment": "منتجات ومعدات البناء",
+    "engineering & construction": "الهندسة والإنشاءات",
+    "residential construction": "الإنشاءات السكنية",
+    "real estate services": "خدمات العقارات",
+    "real estate - development": "العقارات - التطوير",
+    "reit - residential": "صناديق استثمار عقاري - سكنية",
+    "reit - diversified": "صناديق استثمار عقاري - متنوعة",
+    "reit - retail": "صناديق استثمار عقاري - تجزئة",
+    "reit - office": "صناديق استثمار عقاري - مكاتب",
+    "reit - industrial": "صناديق استثمار عقاري - صناعية",
+    "reit - healthcare facilities": "صناديق استثمار عقاري - مرافق صحية",
+    "reit - hotel & motel": "صناديق استثمار عقاري - فنادق",
+    "hospitality": "الضيافة",
+    "restaurants": "المطاعم",
+    "lodging": "الإقامة الفندقية",
+    "resorts & casinos": "المنتجعات والكازينوهات",
+    "gambling": "المقامرة",
+    "leisure": "الترفيه والتسلية",
+    "travel services": "خدمات السفر",
+    "apparel": "الملابس",
+    "apparel manufacturing": "تصنيع الملابس",
+    "apparel retail": "تجزئة الملابس",
+    "footwear & accessories": "الأحذية والإكسسوارات",
+    "textile manufacturing": "تصنيع المنسوجات",
+    "manufacturing": "التصنيع",
+    "textiles": "المنسوجات",
+    "furnishings, fixtures & appliances": "الأثاث والتجهيزات والأجهزة",
+    "household & personal products": "المنتجات المنزلية والشخصية",
+    "personal products & services": "المنتجات والخدمات الشخصية",
+    "food distribution": "توزيع الأغذية",
+    "packaged foods": "الأغذية المعبأة",
+    "confectioners": "منتجو الحلويات",
+    "beverages": "المشروبات",
+    "beverages - alcoholic": "المشروبات - الكحولية",
+    "beverages - non-alcoholic": "المشروبات - غير الكحولية",
+    "beverages - wineries & distilleries": "المشروبات - مصانع النبيذ والتقطير",
+    "alcoholic": "الكحولية",
+    "non-alcoholic": "غير الكحولية",
+    "tobacco": "التبغ",
+    "conglomerates": "الشركات القابضة",
+    "shipping & ports": "الشحن والموانئ",
+    "marine shipping": "الشحن البحري",
+    "trucking": "النقل البري",
+    "railroads": "السكك الحديدية",
+    "airlines, airports & air services": "الطيران والمطارات وخدمات الطيران",
+    "integrated freight & logistics": "الشحن واللوجستيات المتكاملة",
+    "air freight & logistics": "الشحن الجوي واللوجستيات",
+    "rental & leasing services": "خدمات التأجير",
+    "staffing & employment services": "خدمات التوظيف والاستقدام",
+    "specialty business services": "خدمات الأعمال المتخصصة",
+    "consulting services": "الخدمات الاستشارية",
+    "security & protection services": "خدمات الأمن والحماية",
+    "waste management": "إدارة النفايات",
+    "pollution & treatment controls": "أدوات مكافحة التلوث والمعالجة",
+    "industrial distribution": "التوزيع الصناعي",
+    "farm & heavy construction machinery": "المعدات الزراعية ومعدات البناء الثقيلة",
+    "specialty industrial machinery": "الآلات الصناعية المتخصصة",
+    "metal fabrication": "تشكيل المعادن",
+    "tools & accessories": "الأدوات والإكسسوارات",
+    "electrical equipment & parts": "المعدات والأجزاء الكهربائية"
+  };
+
+  // Translates a Sector/Industry string, including compound values like
+  // "Software - Infrastructure" (splits on " - ", translates each part,
+  // rejoins). Unrecognized terms are left in English rather than guessed.
+  function translateSectorTerm(text){
+    if(!text) return text;
+    const raw = String(text).trim();
+    const direct = SECTOR_INDUSTRY_AR[raw.toLowerCase()];
+    if(direct) return direct;
+
+    if(raw.includes(" - ")){
+      const parts = raw.split(" - ").map(p => p.trim());
+      const translatedParts = parts.map(p => SECTOR_INDUSTRY_AR[p.toLowerCase()] || p);
+      // Only use the translated version if at least one segment matched —
+      // otherwise it's just the original text split and rejoined.
+      if(translatedParts.some((p, i) => p !== parts[i])) return translatedParts.join(" - ");
+    }
+    return raw; // honest fallback — term not in the dictionary
+  }
+
+  async function translateToArabic(text){
+    if(!text) return { text: "", translated: false };
+
+    const google = await translateViaGoogle(text);
+    if(google) return { text: google, translated: true, via: "Google" };
+
+    const mymemory = await translateViaMyMemory(text);
+    if(mymemory) return { text: mymemory, translated: true, via: "MyMemory" };
+
+    logLine(`Both translation providers failed for "${text}" — showing original English.`, "bad");
+    return { text, translated: false };
+  }
+
+  // ---------------------------------------------------------------
+  // SEC EDGAR filings (S-1, S-3) — LINKS ONLY, no fetch.
+  //
+  // Both of SEC's programmatic APIs are confirmed unreachable from this
+  // client-side app: data.sec.gov explicitly doesn't support CORS per
+  // SEC's own docs, and efts.sec.gov (full-text search) was confirmed
+  // blocked by live testing. Rather than keep retrying a fetch that
+  // cannot succeed without a backend proxy, this opens the real EDGAR
+  // search UI in a new tab — a normal page navigation, not a JS fetch,
+  // so no CORS restriction applies at all. This means: no embedded list,
+  // and no way to auto-detect "has an S-3" for the header badge (that
+  // required fetched data we can no longer retrieve client-side).
+  // ---------------------------------------------------------------
+  const SEC_FORMS = "S-1,S-3";
+
+  function buildSecSearchLink(symbol){
+    const universeName = allSymbolsMap ? allSymbolsMap.get(symbol.toUpperCase()) : null;
+    const query = universeName || symbol;
+    const params = new URLSearchParams({ q: query, forms: SEC_FORMS });
+    return `https://www.sec.gov/edgar/search/#/${params.toString()}`;
+  }
+
+  function buildSecBrowseLink(symbol){
+    // SEC's classic browse-edgar tool also accepts a ticker directly in
+    // the CIK parameter — shows the full recent filing history, unfiltered.
+    const params = new URLSearchParams({
+      action: "getcompany", CIK: symbol.toUpperCase(), type: "", dateb: "", owner: "include", count: "40"
+    });
+    return `https://www.sec.gov/cgi-bin/browse-edgar?${params.toString()}`;
+  }
+
+  function secFilingsSectionHtml(symbol){
+    return `
+      <a class="sec-link-btn" href="${escapeHtml(buildSecSearchLink(symbol))}" target="_blank" rel="noopener noreferrer">
+        Search EDGAR for S-1 / S-3 →
+      </a>
+      <a class="sec-link-btn secondary" href="${escapeHtml(buildSecBrowseLink(symbol))}" target="_blank" rel="noopener noreferrer">
+        Browse all EDGAR filings for ${escapeHtml(symbol)} →
+      </a>
+    `;
+  }
+
+  // =================================================================
+  // ECONOMIC CALENDAR (GENERAL section) — no fetch at all, by design.
+  // The previous version attempted a direct client-side fetch to a
+  // third-party feed (nfs.faireconomy.media), which is CORS-blocked in
+  // most environments, plus a "sample data" fallback for when it failed.
+  // Both are removed entirely per request — no network call, no console
+  // errors/warnings, no fabricated data ever shown. Just a static link
+  // out to the real calendar, same pattern as the IPO tab's fallback.
+  // =================================================================
+  const ECONOMIC_CALENDAR_PAGE = "https://www.forexfactory.com/calendar";
+
+  function renderEconomicCalendarLink(){
+    const wrap = document.getElementById("calendarWrap");
+    if(!wrap) return;
+    wrap.innerHTML = `
+      <div class="cal-empty">
+        لعرض التقويم الاقتصادي المباشر (فعلي، متوقع، سابق)، افتح الموقع الرسمي مباشرة.
+      </div>
+      <div class="ipo-fallback">
+        <a class="sec-link-btn" href="${ECONOMIC_CALENDAR_PAGE}" target="_blank" rel="noopener noreferrer">Open Economic Calendar (Forex Factory) →</a>
+      </div>
+    `;
+  }
+
+  // =================================================================
+  // IPO CALENDAR (GENERAL section) — genuine direct client-side fetch,
+  // no backend. TradingView doesn't offer a public IPO calendar widget,
+  // so this tries Nasdaq's own (unofficial) IPO endpoint directly from
+  // the browser. This endpoint is known to often reject cross-origin
+  // browser requests — if that happens here, the error is surfaced
+  // honestly (debug panel + on-screen) and a guaranteed-working link to
+  // Nasdaq's real IPO calendar page is shown as a fallback, same pattern
+  // used for SEC filings earlier in this build.
+  // =================================================================
+  let ipoLoaded = false;
+  let currentIpoView = "recent"; // "recent" | "upcoming"
+  const ipoCache = { recent: null, upcoming: null, error: null };
+
+  const EXCHANGE_AR = {
+    "nasdaq": "ناسداك",
+    "nyse": "نيويورك",
+    "nyse american": "نيويورك أمريكان",
+    "nyse mkt": "نيويورك أمريكان",
+    "amex": "أمريكان"
+  };
+  function translateExchange(name){
+    if(!name) return name;
+    return EXCHANGE_AR[String(name).trim().toLowerCase()] || name;
+  }
+
+  const NASDAQ_IPO_URL = "https://api.nasdaq.com/api/ipo/calendar";
+  const NASDAQ_IPO_PAGE = "https://www.nasdaq.com/market-activity/ipos";
+
+  function monthStr(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+
+  async function fetchNasdaqMonth(monthStr_, section){
+    const res = await fetch(`${NASDAQ_IPO_URL}?date=${monthStr_}`, {
+      headers: { "Accept": "application/json" }
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const data = (json && json.data) || {};
+    if(section === "priced"){
+      return ((data.priced || {}).rows) || [];
+    }
+    const upcoming = data.upcoming || {};
+    if(upcoming.upcomingTable && Array.isArray(upcoming.upcomingTable.rows)) return upcoming.upcomingTable.rows;
+    return Array.isArray(upcoming.rows) ? upcoming.rows : [];
+  }
+
+  function normalizePriced(row){
+    return {
+      symbol: row.proposedTickerSymbol || row.symbol || "",
+      company: row.companyName || row.company || "",
+      exchange: row.proposedExchange || row.exchange || "",
+      date: row.pricedDate || row.dateFiled || "",
+      last_price: row.currentPrice || row.lastSalePrice || "",
+      ipo_price: row.proposedSharePrice || row.offerPrice || ""
+    };
+  }
+  function normalizeUpcoming(row){
+    return {
+      symbol: row.proposedTickerSymbol || row.symbol || "",
+      company: row.companyName || row.company || "",
+      exchange: row.proposedExchange || row.exchange || "",
+      date: row.expectedPriceDate || row.pricedDate || "",
+      price_range: row.proposedSharePrice || row.priceRange || "",
+      offering_size: row.dollarValueOfSharesOffered || row.sharesOffered || ""
+    };
+  }
+
+  async function fetchIpoCalendar(){
+    const btn = document.getElementById("ipoRefreshBtn");
+    if(btn) btn.classList.add("spinning");
+    try{
+      const now = new Date();
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const [recentPrev, recentThis, upThis, upNext] = await Promise.all([
+        fetchNasdaqMonth(monthStr(prevMonth), "priced"),
+        fetchNasdaqMonth(monthStr(thisMonth), "priced"),
+        fetchNasdaqMonth(monthStr(thisMonth), "upcoming"),
+        fetchNasdaqMonth(monthStr(nextMonth), "upcoming")
+      ]);
+
+      ipoCache.recent = [...recentPrev, ...recentThis].filter(Boolean).map(normalizePriced);
+      ipoCache.upcoming = [...upThis, ...upNext].filter(Boolean).map(normalizeUpcoming);
+      ipoCache.error = null;
+      logLine(`Loaded ${ipoCache.recent.length} recent / ${ipoCache.upcoming.length} upcoming IPO(s) directly from Nasdaq.`, "good");
+    }catch(e){
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel
+        ? " (Network-level rejection — most likely Nasdaq's API not permitting this origin's CORS request, since this is a direct browser call with no backend proxy.)"
+        : "";
+      ipoCache.error = e.message + hint;
+      logLine(`IPO calendar fetch failed: ${e.message}${hint}`, "bad");
+    }
+    if(btn) btn.classList.remove("spinning");
+    renderIpoCalendar();
+  }
+
+  function parseNasdaqDateStr(str){
+    if(!str) return null;
+    const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(m) return new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]));
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function renderIpoCalendar(){
+    const wrap = document.getElementById("ipoWrap");
+    if(!wrap) return;
+
+    const fallbackLink = `<a class="sec-link-btn" href="${NASDAQ_IPO_PAGE}" target="_blank" rel="noopener noreferrer">Open Nasdaq's IPO Calendar directly →</a>`;
+
+    if(ipoCache.error){
+      wrap.innerHTML = `<div class="cal-error">Couldn't load the IPO calendar directly.<div class="details">${escapeHtml(ipoCache.error)}</div></div><div class="ipo-fallback">${fallbackLink}</div>`;
+      return;
+    }
+    const rows = currentIpoView === "recent" ? ipoCache.recent : ipoCache.upcoming;
+    if(rows === null){
+      wrap.innerHTML = `<div class="loading"><span class="dot-pulse"></span>Loading IPO calendar…</div>`;
+      return;
+    }
+    if(rows.length === 0){
+      wrap.innerHTML = `<div class="cal-empty">${currentIpoView === "recent" ? "No recent IPOs found." : "No upcoming IPOs found."}</div><div class="ipo-fallback">${fallbackLink}</div>`;
+      return;
+    }
+
+    const groups = new Map();
+    rows.forEach(row => {
+      const d = parseNasdaqDateStr(row.date);
+      if(!d) return;
+      const dayKey = d.toISOString().slice(0, 10);
+      if(!groups.has(dayKey)) groups.set(dayKey, { date: d, rows: [] });
+      groups.get(dayKey).rows.push(row);
+    });
+    const sortedDays = Array.from(groups.values()).sort((a, b) => a.date - b.date);
+
+    const isRecent = currentIpoView === "recent";
+    let html = `<div class="ipo-header-row">
+      <span style="direction:rtl;">الشركة</span>
+      <span>البورصة</span>
+      <span class="ipo-metric-head">${isRecent ? "آخر سعر" : "سعر الاكتتاب"}</span>
+      <span class="ipo-metric-head">${isRecent ? "سعر الاكتتاب" : "قيمة الاكتتاب"}</span>
+    </div>`;
+
+    sortedDays.forEach(day => {
+      html += `<div class="cal-day-group">`;
+      html += `<div class="cal-day-header">${formatArabicDayHeader(day.date)}</div>`;
+      day.rows.forEach(row => {
+        const metric1 = isRecent ? row.last_price : row.price_range;
+        const metric2 = isRecent ? row.ipo_price : row.offering_size;
+        html += `<div class="ipo-row">
+          <div class="ipo-company">
+            <span class="ipo-company-name">${escapeHtml(row.company || "—")}</span>
+            <span class="ipo-company-ticker mono">${escapeHtml(row.symbol || "")}</span>
+          </div>
+          <span class="ipo-exchange mono">
+            <img src="https://flagcdn.com/16x12/us.png" width="16" height="12" alt="US" onerror="this.remove()" />
+            ${escapeHtml(translateExchange(row.exchange) || "—")}
+          </span>
+          <span class="ipo-metric mono">${metric1 ? escapeHtml(metric1) : "—"}</span>
+          <span class="ipo-metric mono">${metric2 ? escapeHtml(metric2) : "—"}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+    html += `<div class="ipo-fallback">${fallbackLink}</div>`;
+
+    wrap.innerHTML = html;
+  }
+
+  // Arabic day/month formatting shared by the IPO calendar
+  const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+  const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+  function toArabicDigits(n){ return String(n).replace(/[0-9]/g, d => AR_DIGITS[d]); }
+  function formatArabicDayHeader(dateObj){
+    return `${AR_WEEKDAYS[dateObj.getDay()]}، ${toArabicDigits(dateObj.getDate())} ${AR_MONTHS[dateObj.getMonth()]}`;
+  }
+
+  renderEconomicCalendarLink();
+
+  async function fetchNews(symbol){
+    const btn = document.querySelector('[data-refresh-news]');
+    if(btn) btn.classList.add("spinning");
+    try{
+      const res = await fetch(buildNewsUrl(symbol));
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error(`HTTP ${res.status} — response wasn't JSON: ${text.slice(0, 200)}`); }
+      if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
+
+      // Only the 3 most recent stories, per request
+      const latest = (Array.isArray(json.news) ? json.news : [])
+        .slice()
+        .sort((a, b) => (b.epochSecond || 0) - (a.epochSecond || 0))
+        .slice(0, 3);
+
+      logLine(`Fetched ${latest.length} news item(s) for ${symbol}, translating to Arabic…`);
+
+      const articles = await Promise.all(latest.map(async a => {
+        const [headlineAr, summaryAr] = await Promise.all([
+          translateToArabic(a.headline),
+          translateToArabic(a.summary)
+        ]);
+        return {
+          source: a.source,
+          epochSecond: a.epochSecond,
+          headline: headlineAr.text,
+          headlineTranslated: headlineAr.translated,
+          headlineVia: headlineAr.via,
+          summary: summaryAr.text,
+          summaryTranslated: summaryAr.translated,
+          headlineOriginal: a.headline
+        };
+      }));
+
+      newsCache[symbol] = { articles, fetchedAt: Date.now() };
+      const translatedCount = articles.filter(a => a.headlineTranslated).length;
+      const viaGoogle = articles.filter(a => a.headlineVia === "Google").length;
+      const viaMyMemory = articles.filter(a => a.headlineVia === "MyMemory").length;
+      logLine(`Translated ${translatedCount}/${articles.length} headline(s) to Arabic (${viaGoogle} via Google, ${viaMyMemory} via MyMemory).`, "good");
+    }catch(e){
+      // A bare TypeError with a short message like "Load failed" (Safari/
+      // WebKit) or "Failed to fetch" (Chrome) means the request never
+      // reached the server at all — almost always a CORS rejection or the
+      // browser blocking a request that originated from a local file
+      // rather than a real hosted URL, not a bug in the parsing logic.
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel
+        ? " (This is a network-level rejection — likely CORS or the browser blocking a request from a local file/edge://external-file origin, rather than a server error. Try hosting this file at a real https:// URL, or test on a different browser/device.)"
+        : "";
+      newsCache[symbol] = { error: e.message + hint };
+      logLine(`News fetch failed for ${symbol}: ${e.message}${hint}`, "bad");
+    }
+    if(btn) btn.classList.remove("spinning");
+    updateNewsSectionDom(symbol);
+  }
+
+  // ---------------------------------------------------------------
+  // Header badges: S-3 (recent SEC S-3 filing) and RS (Split table shows
+  // Days Since Split <= 10 — "RS" is the user's own label, driven purely
+  // by recency, not a distinction between forward/reverse splits).
+  // ---------------------------------------------------------------
+
+  function hasRecentReverseSplit(symbol){
+    const rows = displayed.table6;
+    const mapping = columnMapping.table6;
+    if(!rows || !mapping) return false;
+    const row = rows.find(r => r.symbol === symbol);
+    if(!row) return false;
+    const daysKey = findColumnKey("table6", "Days Since Split");
+    if(!daysKey) return false;
+    const colMap = {};
+    (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+    const days = parseFloat(String(colMap[daysKey]).replace(/[^0-9.\-]/g, ""));
+    return !isNaN(days) && days <= 10;
+  }
+
+  function updateModalHeaderBadges(symbol){
+    if(currentModalSymbol !== symbol) return;
+    const el = document.getElementById("modalHeaderBadges");
+    if(!el) return;
+    const badges = [];
+    // S-3 badge removed: it required fetching SEC filing data, which is
+    // confirmed unreachable from this client-side app (CORS). The "SEC
+    // Filings" section's links are the way to check S-3 status manually.
+    if(hasRecentReverseSplit(symbol)) badges.push(`<span class="header-badge badge-rs" title="Split occurred within the last 10 days (Days Since Split)">RS</span>`);
+    el.innerHTML = badges.join("");
+  }
+
+  function renderStockModal(symbol){
+    const found = findAnyRow(symbol);
+
+    document.getElementById("modalSym").textContent = symbol;
+
+    // Company name: prefer the authoritative full-universe lookup (works
+    // for ANY symbol, not just ones with data in a loaded table) over the
+    // fuzzy table-column guess, which is kept only as a fallback.
+    const universeName = allSymbolsMap ? allSymbolsMap.get(symbol.toUpperCase()) : null;
+    const tableNameGuess = findMetricAcrossTables(symbol, ["companyname", "company"]);
+    const companyNameVal = universeName || tableNameGuess?.value || null;
+
+    const exchange = findMetricAcrossTables(symbol, ["exchange", "source"]);
+    const sector = findMetricAcrossTables(symbol, ["sector"]);
+    const industry = findMetricAcrossTables(symbol, ["industry"]);
+    const country = found ? findColumnKey(found.tableKey, "Country") : null;
+    const countryVal = found && country ? (found.row.columns || []).find(c => c.key === country)?.value : null;
+
+    // Line 1: Company Name | Country
+    const line1Parts = [companyNameVal, countryVal].filter(Boolean);
+    const symbolIsRecognized = !allSymbolsMap || allSymbolsMap.size === 0 || allSymbolsMap.has(symbol.toUpperCase());
+    document.getElementById("modalLine1").textContent = line1Parts.length
+      ? line1Parts.join(" | ")
+      : symbolIsRecognized
+        ? "Company info not available in connected feeds"
+        : "Symbol not found in ChartsWatcher's universe";
+
+    // Line 2: Exchange | Sector | Industry (Sector/Industry via Arabic dictionary)
+    const line2Parts = [
+      exchange?.value,
+      sector?.value ? translateSectorTerm(sector.value) : null,
+      industry?.value ? translateSectorTerm(industry.value) : null
+    ].filter(Boolean);
+    document.getElementById("modalLine2").textContent = line2Parts.length
+      ? line2Parts.join(" | ")
+      : "Exchange / sector data not available in connected feeds";
+
+    const priceKey = found ? findColumnKey(found.tableKey, "Price ($)") : null;
+    const priceVal = found && priceKey ? (found.row.columns || []).find(c => c.key === priceKey)?.value : null;
+
+    const changeKey = found ? findColumnKey(found.tableKey, "% Change") : null;
+    const changeVal = found && changeKey ? (found.row.columns || []).find(c => c.key === changeKey)?.value : null;
+
+    const hoursSinceNews = findMetricAcrossTables(symbol, ["hourssincenews"]);
+
+    let bodyHtml = `<div class="modal-section">
+      <div class="modal-section-head">
+        <h4>Recent News (آخر 3 أخبار)${hoursSinceNews?.value ? ` <span class="hours-since-news-badge">${escapeHtml(hoursSinceNews.value)}h ago</span>` : ""}</h4>
+        <button class="news-refresh-btn" data-refresh-news="1" title="Refresh news" aria-label="Refresh news">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+      <div class="news-translate-note">Auto-translated to Arabic (Google, with MyMemory fallback) — original headline shown below each for reference</div>
+      <div id="newsList">${newsListHtml(symbol)}</div>
+    </div>`;
+
+    bodyHtml += `<div class="modal-section">
+      <h4>SEC Filings (S-1 / S-3)</h4>
+      <div class="news-translate-note">SEC's filing APIs don't allow direct browser access from this app (CORS) — these open the real EDGAR search on sec.gov in a new tab instead.</div>
+      <div class="sec-links">${secFilingsSectionHtml(symbol)}</div>
+    </div>`;
+
+    bodyHtml += `<div class="modal-section"><h4>Overview</h4><div class="modal-grid">
+      <div class="modal-metric"><div class="modal-metric-label">Price ($)</div>${priceVal ? `<div class="modal-metric-value mono">${escapeHtml(priceVal)}</div>` : `<div class="modal-metric-value na">Not available</div>`}</div>
+      <div class="modal-metric"><div class="modal-metric-label">% Change</div>${changeVal ? `<div class="modal-metric-value mono ${directionClass(changeVal)}">${escapeHtml(changeVal)}</div>` : `<div class="modal-metric-value na">Not available</div>`}</div>
+    </div></div>`;
+
+    METRIC_GROUPS.forEach(group => {
+      bodyHtml += `<div class="modal-section"><h4>${escapeHtml(group.title)}</h4><div class="modal-grid">`;
+      group.metrics.forEach(metric => {
+        const result = findMetricAcrossTables(symbol, metric.hints);
+        bodyHtml += `<div class="modal-metric"><div class="modal-metric-label">${escapeHtml(metric.label)}</div>${metricValueHtml(result)}</div>`;
+      });
+      bodyHtml += `</div></div>`;
+    });
+    document.getElementById("modalBody").innerHTML = bodyHtml;
+    updateModalHeaderBadges(symbol);
+  }
+
+  function openStockModal(symbol){
+    currentModalSymbol = symbol;
+    renderStockModal(symbol);
+    document.getElementById("stockModalOverlay").classList.remove("hidden");
+    fetchNews(symbol);
+  }
+
+  function closeStockModal(){
+    currentModalSymbol = null;
+    document.getElementById("stockModalOverlay").classList.add("hidden");
+  }
+
+  function refreshModalIfOpen(){
+    if(currentModalSymbol) renderStockModal(currentModalSymbol);
+  }
+
+  // Event delegation: symbol cells are regenerated on every render, so we
+  // bind one listener on the document rather than re-binding per row.
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest(".sym-link");
+    if(link && link.dataset.symbol){
+      openStockModal(link.dataset.symbol);
+      return;
+    }
+    const newsRefreshBtn = e.target.closest("[data-refresh-news]");
+    if(newsRefreshBtn && currentModalSymbol){
+      fetchNews(currentModalSymbol);
+      return;
+    }
+    if(e.target === document.getElementById("stockModalOverlay") || e.target.closest("#modalCloseBtn")){
+      closeStockModal();
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeStockModal();
+  });
+
+  // ---------------------------------------------------------------
+  // WebSocket connection
+  // ---------------------------------------------------------------
+  function connect(){
+    clearTimeout(reconnectTimer);
+    setConnStatus("connecting", "Connecting…");
+    logLine(`Connecting to wss://${BASE_URL}/api/v1/websocket …`);
+
+    try{
+      ws = new WebSocket(WS_URL);
+    }catch(e){
+      setConnStatus("error", "Connection failed");
+      logLine(`Failed to construct WebSocket: ${e.message}`, "bad");
+      scheduleReconnect();
+      return;
+    }
+
+    ws.onopen = () => {
+      reconnectDelay = 1500;
+      setConnStatus("live", "Live");
+      logLine("Connected.", "good");
+      TABLES.forEach((t, i) => {
+        setTimeout(() => {
+          if(ws.readyState !== WebSocket.OPEN) return;
+          ws.send(JSON.stringify({ "@type": "Toplist", "config_id": t.configId, "action": "subscribe" }));
+          logLine(`Subscribing to "${t.name}" (config ${t.configId})`);
+
+          // Watchdog: if no ToplistConfirm arrives for this config within
+          // 8s, surface it clearly instead of leaving the table stuck on
+          // "Waiting for data…" with no explanation.
+          clearTimeout(confirmTimers[t.key]);
+          confirmTimers[t.key] = setTimeout(() => {
+            if(!columnMapping[t.key]){
+              logLine(`No confirmation received yet for "${t.name}" (config ${t.configId}) after 8s — the config ID, a per-account subscription limit, or a slow server response could be the cause.`, "warn");
+            }
+          }, 8000);
+        }, i * 250); // stagger sends so a burst of subscribes can't race/overwhelm the connection
+      });
+
+      ALERT_CONFIGS.forEach((a, i) => {
+        setTimeout(() => {
+          if(ws.readyState !== WebSocket.OPEN) return;
+          ws.send(JSON.stringify({ "@type": "Alert", "config_id": a.configId, "action": "subscribe" }));
+          logLine(`Subscribing to Alert config "${a.name}" (${a.configId})`);
+
+          clearTimeout(confirmTimers[a.key]);
+          confirmTimers[a.key] = setTimeout(() => {
+            if(!alertConfirmed[a.key]){
+              logLine(`No confirmation received yet for Alert "${a.name}" (${a.configId}) after 8s — the Alert message schema may differ from our best-guess ("Alert"/"AlertConfirm"/"AlertUpdate"), or the config ID/subscription limit could be the cause.`, "warn");
+            }
+          }, 8000);
+        }, (TABLES.length + i) * 250);
+      });
+
+      // Re-run the REST catch-up on every fresh connection, not just
+      // page load. The live WebSocket subscription only streams events
+      // going forward from the moment it opens — it never backfills
+      // anything that happened while disconnected (e.g. a backgrounded
+      // mobile tab silently pausing for several minutes). Without this,
+      // a reconnect would resume live streaming but permanently miss
+      // whatever fired during the gap. The duplicate guards added to
+      // pushHaltEvent/pushScreeningEvent keep this from re-inserting
+      // alerts already received.
+      ALERT_CONFIGS.forEach(seedInitialAlerts);
+    };
+
+    ws.onmessage = (evt) => {
+      let msg;
+      try{ msg = JSON.parse(evt.data); }
+      catch(e){ logLine("Received a message that wasn't valid JSON.", "warn"); return; }
+
+      if(msg["@type"] === "KeepAlive"){
+        return;
+      }
+
+      if(msg["@type"] === "ToplistConfirm"){
+        const key = configToKey[msg.config_id];
+        if(!key){
+          logLine(`Received ToplistConfirm for an unrecognized config_id "${msg.config_id}" — doesn't match any configured table.`, "warn");
+          return;
+        }
+        clearTimeout(confirmTimers[key]);
+        const tableName = TABLES.find(t=>t.key===key).name;
+        if(msg.action === "subscribe"){
+          if(msg.success === false){
+            lastError[key] = msg.msg || "Subscription failed.";
+            logLine(`Subscription to "${tableName}" failed: ${msg.msg || "unknown reason"}`, "bad");
+          } else if(Array.isArray(msg.column_desc)){
+            lastError[key] = null;
+            rawColumnDescs[key] = msg.column_desc;
+            columnMapping[key] = buildColumnMapping(TABLES.find(t=>t.key===key).columns, msg.column_desc, key);
+          }
+          const confirmEl = document.getElementById("raw" + key.replace("table","") + "confirm");
+          if(confirmEl) confirmEl.textContent = JSON.stringify(msg, null, 2);
+        }
+        renderTable(TABLES.find(t => t.key === key));
+        return;
+      }
+
+      if(msg["@type"] === "ToplistUpdate"){
+        const key = configToKey[msg.config_id];
+        if(!key){
+          logLine(`Received ToplistUpdate for an unrecognized config_id "${msg.config_id}" — doesn't match any configured table.`, "warn");
+          return;
+        }
+        const rows = Array.isArray(msg.rows) ? msg.rows : [];
+
+        // Apply immediately — fully real-time, no manual step required
+        displayed[key] = rows;
+        renderTable(TABLES.find(t => t.key === key));
+        refreshModalIfOpen();
+
+        const updateEl = document.getElementById("raw" + key.replace("table","") + "update");
+        if(updateEl) updateEl.textContent = JSON.stringify(msg, null, 2).slice(0, 4000);
+
+        const now = new Date();
+        statusText.textContent = `Live · last update ${now.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" })}`;
+        return;
+      }
+
+      if(msg["@type"] === "AlertConfirm"){
+        const keys = configToAlertKeys[msg.config_id];
+        if(!keys || keys.length === 0){
+          logLine(`Received AlertConfirm for an unrecognized config_id "${msg.config_id}".`, "warn");
+          return;
+        }
+        keys.forEach(key => {
+          clearTimeout(confirmTimers[key]);
+          const alertName = ALERT_CONFIGS.find(a => a.key === key).name;
+          if(msg.success === false){
+            logLine(`Alert subscription to "${alertName}" failed: ${msg.msg || "unknown reason"}`, "bad");
+          } else {
+            alertConfirmed[key] = true;
+            logLine(`Alert "${alertName}" subscribed successfully.`, "good");
+          }
+          const confirmEl = document.getElementById("rawAlert" + key.replace("alert","") + "confirm");
+          if(confirmEl) confirmEl.textContent = JSON.stringify(msg, null, 2);
+        });
+        return;
+      }
+
+      // Confirmed real message type: individual alert events arrive as
+      // {"@type":"NewAlert", ...}. Resolve which config(s) it belongs to
+      // via config_id — more than one panel can share the same config_id
+      // (e.g. Screening and 🟩 HOD MOMO), so every matching key gets the
+      // event, not just the first one registered.
+      if(msg["@type"] === "NewAlert" || msg["@type"] === "AlertUpdate"){
+        let keys = configToAlertKeys[msg.config_id];
+        if((!keys || keys.length === 0) && ALERT_CONFIGS.length === 1) keys = [ALERT_CONFIGS[0].key];
+        if(!keys || keys.length === 0){
+          logLine(`Received "${msg["@type"]}" but couldn't resolve which Alert config it belongs to (config_id: ${msg.config_id}).`, "warn");
+          return;
+        }
+
+        keys.forEach(key => {
+          clearTimeout(confirmTimers[key]);
+          alertConfirmed[key] = true; // receiving an alert implies the subscription is working
+          const alertCfg = ALERT_CONFIGS.find(a => a.key === key);
+          const alertName = alertCfg.name;
+
+          // AlertUpdate might carry a batch; NewAlert is a single event.
+          const items = Array.isArray(msg.alerts) ? msg.alerts
+                       : Array.isArray(msg.data) ? msg.data
+                       : Array.isArray(msg.rows) ? msg.rows
+                       : [msg];
+          if(alertCfg.special === "halts"){
+            items.forEach(item => pushHaltEvent(item));
+          } else if(alertCfg.special === "screening"){
+            items.forEach(item => pushScreeningEvent(item, key));
+          } else {
+            items.forEach(item => pushAlertItem(key, item));
+          }
+          logLine(`Alert "${alertName}" — ${items.length} new event${items.length === 1 ? "" : "s"}.`, "good");
+        });
+        return;
+      }
+
+      // Anything else — log it plainly. We no longer guess unknown types
+      // are alerts by default now that "NewAlert" is confirmed real; an
+      // unrecognized type just gets logged for visibility.
+      logLine(`Received unrecognized message type "${msg["@type"] || "Unknown"}".`, "warn");
+    };
+
+    ws.onerror = () => {
+      setConnStatus("error", "Connection error");
+      logLine("WebSocket error event fired.", "bad");
+    };
+
+    ws.onclose = (event) => {
+      logLine(`Closed — code ${event.code}${event.reason ? `, reason: "${event.reason}"` : " (no reason given)"}`, "bad");
+      if(unloading) return;
+      // Always auto-reconnect on any drop — including ones caused by the
+      // manual Refresh button — so the stream never needs a person to
+      // babysit it back to life.
+      setConnStatus("connecting", "Reconnecting…");
+      scheduleReconnect();
+    };
+  }
+
+  function scheduleReconnect(){
+    clearTimeout(reconnectTimer);
+    logLine(`Reconnecting in ${Math.round(reconnectDelay/1000)}s…`, "warn");
+    reconnectTimer = setTimeout(() => {
+      reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
+      connect();
+    }, reconnectDelay);
+  }
+
+  // ---------------------------------------------------------------
+  // Events
+  // ---------------------------------------------------------------
+  refreshBtn.addEventListener("click", () => {
+    refreshBtn.classList.add("spinning");
+    logLine("Manual refresh requested — forcing reconnect…");
+    clearTimeout(reconnectTimer);
+    reconnectDelay = 1000;
+    if(ws){ try{ ws.close(); }catch(e){} }
+    connect();
+    setTimeout(() => refreshBtn.classList.remove("spinning"), 500);
+  });
+
+  // Fold / collapse toggles — delegated so it also works for alert panels
+  // that are created dynamically after this listener is attached.
+  //
+  // Expanding a table/alert panel (.panel) now goes full-screen rather
+  // than expanding inline, so only one can be open at a time — opening
+  // one auto-collapses whichever other panel was already open. The
+  // Debug Panel is excluded (it stays as a normal inline expand/collapse,
+  // it never needs full-screen).
+  document.addEventListener("click", (e) => {
+    if(e.target.closest("#notifToggleBtn")){
+      toggleBrowserNotifications();
+      return;
+    }
+    if(e.target.closest("#ipoRefreshBtn")){
+      fetchIpoCalendar();
+      return;
+    }
+    const subtabBtn = e.target.closest(".sub-tab-btn");
+    if(subtabBtn){
+      const name = subtabBtn.getAttribute("data-subtab");
+      document.querySelectorAll(".sub-tab-btn").forEach(b => b.classList.toggle("active", b === subtabBtn));
+      const econPane = document.getElementById("econPane");
+      const ipoPane = document.getElementById("ipoPane");
+      econPane.style.display = name === "econ" ? "" : "none";
+      econPane.classList.toggle("active", name === "econ");
+      ipoPane.style.display = name === "ipo" ? "" : "none";
+      ipoPane.classList.toggle("active", name === "ipo");
+      if(name === "ipo" && !ipoLoaded){
+        ipoLoaded = true;
+        fetchIpoCalendar();
+      }
+      return;
+    }
+    const ipoViewBtn = e.target.closest(".ipo-view-btn");
+    if(ipoViewBtn){
+      document.querySelectorAll(".ipo-view-btn").forEach(b => b.classList.toggle("active", b === ipoViewBtn));
+      currentIpoView = ipoViewBtn.getAttribute("data-ipoview");
+      renderIpoCalendar();
+      return;
+    }
+    const head = e.target.closest("[data-fold]");
+    if(!head) return;
+    const id = head.getAttribute("data-fold");
+
+    if(id === "debug"){
+      const debugPanel = document.getElementById("debugPanel");
+      if(debugPanel) debugPanel.classList.toggle("collapsed");
+      return;
+    }
+
+    const panel = document.getElementById("panel-" + id);
+    if(!panel) return;
+
+    const isOpening = panel.classList.contains("collapsed");
+    if(isOpening){
+      // Only one full-screen panel at a time — collapse any other open one
+      document.querySelectorAll(".panel:not(.collapsed)").forEach(p => {
+        if(p !== panel) p.classList.add("collapsed");
+      });
+    }
+    panel.classList.toggle("collapsed");
+    document.body.classList.toggle("panel-fullscreen-active", !panel.classList.contains("collapsed"));
+  });
+
+  window.addEventListener("beforeunload", () => {
+    unloading = true;
+    if(ws) ws.close();
+  });
+
+  connect();
+
+})();
+</script>
+
+</body>
+</html>
