@@ -53,16 +53,9 @@
   .main-section-heading h3{ font-size:17px; letter-spacing:0.01em; text-transform:uppercase; color: var(--accent); }
   .header-live-status{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:12px; text-transform:none; letter-spacing:normal; }
 
-  /* ---------- View Toggle (Desktop grid vs Mobile tab-bar) — applies to Top Lists and Alerts ---------- */
   .view-toggle-btn{ display:flex; align-items:center; gap:6px; background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--text); font-family:inherit; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:20px; cursor:pointer; transition: all .15s ease; }
   .view-toggle-btn:hover{ background: rgba(255,255,255,0.08); }
 
-  /* Desktop grid: cards sit side by side in their natural (collapsed,
-     header-only) height — no fixed height, no internal scrollbar, since
-     there's no long content showing until you actually expand a card.
-     Clicking any card uses the app's existing fullscreen-on-click
-     behavior unchanged — this grid only affects the compact, collapsed
-     resting state. */
   .view-desktop #topListsContainer,
   .view-desktop #alertsContainer{
     display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:16px; align-items:start;
@@ -76,20 +69,11 @@
   .view-desktop #topListsContainer .panel,
   .view-desktop #alertsContainer .panel{ margin-bottom:0; }
 
-  /* Explicit Close (X) button, shown only while a panel is fullscreen.
-     True viewport-covering fullscreen has no "outside" to click, so this
-     is the primary close affordance (clicking the header again still
-     works too, same as before). */
   .panel-close-btn{ display:none; position:absolute; top:12px; right:16px; align-items:center; justify-content:center; width:28px; height:28px; border-radius:7px; color: var(--muted); z-index:3; }
   .panel-close-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
   .panel:not(.collapsed) .panel-close-btn{ display:flex; }
   .panel-head{ position:relative; }
 
-  /* Card Preview — compact top-5-row glance shown only on a collapsed
-     card in Desktop View. Hidden once fullscreen (the full table takes
-     over) and hidden in Mobile View (its tab bar already shows one full
-     table at a time, a preview would be redundant there). No scrollbars
-     by design — exactly 5 short rows, nothing to overflow. */
   .card-preview{ display:none; }
   .view-desktop .panel.collapsed .card-preview{ display:block; padding: 4px 16px 12px; }
   .card-preview-row{ display:grid; grid-template-columns: 1fr auto auto; align-items:center; gap:10px; padding:4px 0; font-size:11.5px; border-bottom:1px dashed var(--border-soft); }
@@ -99,9 +83,6 @@
   .cp-change{ text-align:right; font-weight:700; min-width:56px; }
   .card-preview-empty{ padding:6px 0; font-size:11px; color: var(--muted); text-align:center; }
 
-  /* Top Lists preview only: [Ticker+Flag] | [Price] | [Change%] | [Float] | [5M#] —
-     Strict 5-column grid for pixel-perfect vertical alignment across rows.
-     Alerts keep the original 3-column layout above, untouched. */
   .card-preview-row-toplist{
     grid-template-columns: minmax(110px, 1.4fr) minmax(50px, 0.8fr) minmax(60px, 0.9fr) minmax(55px, 0.9fr) minmax(45px, 0.8fr);
     gap: 0;
@@ -191,21 +172,6 @@
   .cp-float-badge.cpflt-orange{ background: linear-gradient(90deg, #c2410c, #f97316); color:#fff; }
   .cp-float-badge.cpflt-white{ background: linear-gradient(90deg, #e5e7eb, #ffffff); color:#111827; }
 
-  /* Mobile tab bar: one tab per Top List table, only the active one
-     rendered — the rest are display:none (not just collapsed-header),
-     so there's no long vertical scroll at all.
-
-     Fix: the active tab's panel gets .collapsed removed so its table
-     shows — but that alone matches the app's global ".panel:not(.collapsed)"
-     rule, which makes ANY panel go fullscreen (position:fixed covering
-     the viewport). That was firing the moment you switched into Mobile
-     View at all, auto-launching Top Gainers fullscreen with no click —
-     exactly the unwanted behavior reported. Cancelled specifically for
-     the mobile active-tab panel below, so it just renders inline,
-     naturally, wherever it sits on the page — no jump, no forced focus.
-     Its header bar is also hidden, since the tab bar above already
-     serves that same "which table am I looking at" purpose — showing
-     both was redundant. */
   .toplist-tab-bar{ display:flex; gap:6px; overflow-x:auto; padding:2px 0 12px; -webkit-overflow-scrolling:touch; }
   .toplist-tab-btn{ flex-shrink:0; background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--muted); font-family:inherit; font-size:12px; font-weight:700; padding:8px 14px; border-radius:20px; cursor:pointer; white-space:nowrap; transition: all .15s ease; }
   .toplist-tab-btn:hover{ color: var(--header-text); }
@@ -218,9 +184,6 @@
   }
   .view-mobile #topListsContainer .panel.mobile-tab-active .panel-head{ display:none; }
 
-  /* Alerts on mobile: compact 2-column grid instead of full-width
-     stacked bars — smaller cards, same collapse/fullscreen-on-click
-     behavior as before (unchanged), just a denser resting layout. */
   .view-mobile #alertsContainer{
     display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom:16px;
   }
@@ -230,7 +193,6 @@
   .view-mobile #alertsContainer .panel-head-icon{ width:20px; height:20px; }
   .view-mobile #alertsContainer .panel-head .count{ font-size:9.5px; }
 
-  /* ---------- Market Pulse ---------- */
   .market-pulse-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom: 8px; }
   @media (min-width: 700px){
     .market-pulse-grid{ grid-template-columns: repeat(4, 1fr); }
@@ -263,22 +225,18 @@
   .notif-toggle-btn.enabled{ background: rgba(110,219,143,0.12); color: var(--up); border-color: rgba(110,219,143,0.35); }
   .notif-toggle-btn.denied{ background: rgba(255,68,104,0.1); color: var(--down); border-color: rgba(255,68,104,0.3); cursor:not-allowed; }
 
-  /* ---------- Home page ---------- */
-  /* Shared icon badges — used in each collapsible section's header */
   .icon-badge, .panel-head-icon{ width:24px; height:24px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .icon-blue{ background: var(--accent-dim); color: var(--accent); }
   .icon-orange{ background: var(--accent-orange-dim); color: var(--accent-orange); }
   .icon-green{ background: var(--up-glow); color: var(--up); }
   .icon-red{ background: var(--down-glow); color: var(--down); }
 
-  /* ---------- Empty-state pages (Alerts / Halt) ---------- */
   .empty-page{ text-align:center; padding: 54px 20px; color: var(--muted); }
   .empty-page-icon{ font-size:38px; margin-bottom:12px; }
   .empty-page h3{ color: var(--header-text); margin:0 0 10px; font-size:16px; }
   .empty-page p{ font-size:12.5px; line-height:1.6; margin:0 0 8px; max-width:420px; margin-left:auto; margin-right:auto; }
   .empty-page-hint{ color:#8b95a5; }
 
-  /* Alerts feed cards (populate automatically if the connection ever sends alert-type messages) */
   .alert-card{ background: var(--card-2); border:1px solid var(--border-soft); border-radius:10px; padding:11px 13px; margin-bottom:9px; }
   .alert-card-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px; }
   .alert-card-head-left{ display:flex; align-items:center; gap:6px; }
@@ -291,13 +249,11 @@
   .alert-kv-value{ font-size:12px; font-weight:600; color: var(--header-text); word-break:break-word; }
   .alerts-empty-note{ padding:26px 16px; text-align:center; color: var(--muted); font-size:12.5px; }
 
-  /* Halts table status badge */
   .halt-badge{ display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
   .halt-badge.paused{ background: rgba(255,68,104,0.14); color:#ff8fa1; border:1px solid rgba(255,68,104,0.35); }
   .halt-badge.resumed{ background: rgba(57,255,140,0.14); color:#7cffb2; border:1px solid rgba(57,255,140,0.35); }
   .halt-badge.neutral{ background: rgba(255,255,255,0.05); color: var(--text); border:1px solid var(--border); }
 
-  /* ---------- Header ---------- */
   .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 10px; flex-wrap: wrap; }
 
   .market-status-bar{
@@ -338,18 +294,14 @@
   .conn.error #connText{ color: var(--down); }
   @keyframes pulse{ 0%,100%{opacity:.4;} 50%{opacity:1;} }
 
-  /* Brief green flash for 5min trade count cells updating above 1,000 */
   @keyframes cellPulseGreen{
     0%{ background: rgba(110,219,143,0.45); box-shadow: 0 0 8px rgba(110,219,143,0.5); }
     100%{ background: transparent; box-shadow: none; }
   }
   .cell-pulse-green{ animation: cellPulseGreen 1.1s ease-out; border-radius:4px; }
 
-  /* ---------- Panels ---------- */
   .panel{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; box-shadow: var(--shadow); }
 
-  /* Expanded panels take over the full viewport instead of expanding
-     inline — clean full-width/full-height view for wide tables. */
   body.panel-fullscreen-active{ overflow: hidden; }
   .panel:not(.collapsed){
     position: fixed;
@@ -371,7 +323,7 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    padding-right: 48px; /* reserve space for .panel-close-btn so it never overlaps the count badge */
+    padding-right: 48px;
   }
   .panel:not(.collapsed) .table-scroll{
     flex: 1 1 auto;
@@ -409,7 +361,6 @@
   .country-cell{ display:inline-flex; align-items:center; gap:6px; }
   .flag-icon-img{ display:block; border-radius:2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); flex-shrink:0; }
 
-  /* News icon / badge column */
   .news-badge{ display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:20px; font-size:11px; font-weight:600; }
   .volume-badge{ display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600; background: rgba(255,255,255,0.05); border:1px solid var(--border); }
   .volume-badge.white{ color:#ffffff; }
@@ -429,7 +380,6 @@
   .tc-darkgreen{ color:#166534; border-color: rgba(22,101,52,0.4); background: rgba(22,101,52,0.14); }
   .tc-orange{ color:#fb923c; border-color: rgba(251,146,60,0.35); background: rgba(251,146,60,0.12); }
 
-  /* ---------- Economic Calendar (GENERAL section) ---------- */
   .cal-refresh-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; color: var(--muted); cursor:pointer; flex-shrink:0; transition: background .15s ease; }
 
   .sub-tab-bar{ display:flex; gap:4px; padding:10px 16px 0; border-bottom:1px solid var(--border); background: var(--card-2); }
@@ -478,7 +428,6 @@
   .news-badge.hot{ background: rgba(255,138,0,0.14); color:#ff9f43; border:1px solid rgba(255,159,67,0.35); }
   .news-badge.num{ background: rgba(255,255,255,0.05); color: var(--text); border:1px solid var(--border); }
 
-  /* Price ($) tier badges */
   .price-badge{ display:inline-block; padding:2px 9px; border-radius:5px; font-weight:700; letter-spacing:0.01em; }
   .price-badge.blue{ background:#1e3a8a !important; color:#dbeafe !important; box-shadow: 0 0 8px rgba(30,58,138,0.5); }
   .price-badge.green{ background:#16a34a !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(22,163,74,0.45); }
@@ -486,7 +435,6 @@
   .price-badge.orange{ background:#c2410c !important; color:#fff7ed !important; box-shadow: 0 0 8px rgba(194,65,12,0.45); }
   .price-badge.white{ background:#ffffff !important; color:#0b0d10 !important; box-shadow: 0 0 8px rgba(255,255,255,0.25); }
 
-  /* % Change (CHG%) tier badges */
   .chg-badge{ display:inline-block; padding:2px 9px; border-radius:5px; font-weight:700; letter-spacing:0.01em; }
   .chg-badge.white{ background:#ffffff !important; color:#0b0d10 !important; box-shadow: 0 0 8px rgba(255,255,255,0.25); }
   .chg-badge.lightgreen{ background:#34d399 !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(52,211,153,0.4); }
@@ -494,13 +442,11 @@
   .chg-badge.darkgreen{ background:#15803d !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(21,128,61,0.4); }
   .chg-badge.darkergreen{ background:#052e16 !important; color:#ffffff !important; box-shadow: 0 0 8px rgba(5,46,22,0.5); }
 
-  /* Highlight bar cells */
   .bar-cell{ position:relative; min-width:82px; height:20px; display:flex; align-items:center; border-radius:5px; overflow:hidden; background: rgba(255,255,255,0.025); border: 1px solid var(--border-soft); }
   .bar-fill{ position:absolute; left:0; top:0; bottom:0; opacity:0.55; }
   .bar-fill.teal{ background: linear-gradient(90deg, var(--teal2), var(--teal)); box-shadow: 0 0 10px rgba(34,211,238,0.35); }
   .bar-fill.purple{ background: linear-gradient(90deg, var(--purple), var(--purple2)); box-shadow: 0 0 10px rgba(124,58,237,0.35); }
 
-  /* Float (FLT) tier fills — width still driven by floatBarPercent(), color by floatColorTier() */
   .bar-fill.flt-lightgreen{ background: linear-gradient(90deg, #86efac, #bbf7d0); box-shadow: 0 0 10px rgba(134,239,172,0.4); }
   .bar-fill.flt-green{ background: linear-gradient(90deg, #16a34a, #22c55e); box-shadow: 0 0 10px rgba(34,197,94,0.4); }
   .bar-fill.flt-darkgreen{ background: linear-gradient(90deg, #14532d, #166534); box-shadow: 0 0 10px rgba(20,83,45,0.4); }
@@ -516,7 +462,6 @@
 
   .dot-pulse{ display:inline-block;width:6px;height:6px;border-radius:50%; background: var(--accent); margin-right:7px; animation: pulse 1.1s ease-in-out infinite; }
 
-  /* ---------- Debug panel ---------- */
   .debug-panel{ background: #0d0f12; border: 1px solid var(--border); border-radius: 12px; margin-top: 22px; overflow:hidden; }
   .debug-head{ display:flex; align-items:center; justify-content:space-between; padding: 12px 16px; cursor:pointer; user-select:none; background:#111318; }
   .debug-head h3{ margin:0; font-size:12.5px; color:#a8b3c2; font-weight:600; display:flex; align-items:center; gap:8px; }
@@ -542,11 +487,9 @@
 
   .footnote{ color: var(--muted); font-size: 11px; text-align:center; margin-top: 14px; line-height:1.6; }
 
-  /* ---------- Symbol click affordance ---------- */
   .sym-link{ cursor:pointer; border-bottom:1px dashed rgba(59,130,246,0.4); transition: color .15s ease; }
   .sym-link:hover{ color: var(--accent); border-bottom-color: var(--accent); }
 
-  /* ---------- Stock detail modal ---------- */
   .modal-overlay{
     position: fixed; inset:0; z-index:200; background: rgba(3,5,8,0.72);
     display:flex; align-items:flex-end; justify-content:center;
@@ -609,12 +552,16 @@
   .modal-metric-value.na{ color:#3a3f47; font-weight:500; }
   .modal-metric-source{ font-size:9px; color:#4b5563; margin-top:2px; }
 
-  /* Recent News (modal) */
   .modal-section-head{ display:flex; align-items:center; justify-content:space-between; margin:0 0 8px; border-bottom:1px solid var(--border-soft); padding-bottom:6px; }
   .modal-section-head h4{ margin:0; border:none; padding:0; }
   .hours-since-news-badge{ display:inline-block; padding:1px 7px; margin-left:5px; border-radius:20px; background: rgba(255,255,255,0.06); color: var(--muted); font-size:9.5px; font-weight:600; vertical-align:middle; text-transform:none; letter-spacing:normal; }
   .hours-since-news-badge.hot{ background: rgba(255,138,0,0.14); color:#ff9f43; border:1px solid rgba(255,159,67,0.35); }
   .news-translate-note{ font-size:10px; color: var(--muted); margin:-2px 0 8px; line-height:1.4; }
+  .borrow-fee-live{ display:grid; grid-template-columns: 1.3fr auto auto; gap:10px; align-items:center; margin-top:8px; padding:9px 12px; background: rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; font-size:11.5px; }
+  .borrow-fee-live .bf-date{ color: var(--muted); font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:10.5px; }
+  .borrow-fee-live .bf-fee{ text-align:right; font-weight:700; font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  .borrow-fee-live .bf-avail{ text-align:right; font-family:'IBM Plex Mono', ui-monospace, monospace; color: var(--text); }
+  .borrow-fee-live .bf-label{ font-size:9px; color: var(--muted); text-transform:uppercase; letter-spacing:0.04em; display:block; margin-bottom:1px; }
   .news-refresh-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; color: var(--muted); cursor:pointer; flex-shrink:0; }
   .news-refresh-btn:hover{ background:#20242c; color: var(--header-text); }
   .news-refresh-btn svg{ transition: transform .5s ease; }
@@ -1025,15 +972,11 @@
 <script>
 (function(){
 
-  // ---------------------------------------------------------------
-  // CONFIG — your ChartsWatcher credentials
-  // ---------------------------------------------------------------
   const BASE_URL = "app.chartswatcher.com";
   const USER_ID  = "69a98653433cbf6f690bded4";
   const API_KEY  = "69f5375d70d34dd298dc6e63";
   const WS_URL   = `wss://${BASE_URL}/api/v1/websocket?user_id=${USER_ID}&api_key=${API_KEY}`;
 
-  // Standardized column order/rendering, shared across every table
   const STANDARD_COLUMNS = [
     { display: "Symbol",                     render: "symbol" },
     { display: "Price ($)",                  render: "price-tier" },
@@ -1046,14 +989,12 @@
     { display: "5 min trade count",          render: "trade-count-tier" }
   ];
 
-  // Same 9 standard columns, plus the two Split-specific fields appended
   const SPLIT_COLUMNS = [
     ...STANDARD_COLUMNS,
     { display: "Days Since Split", render: "default" },
     { display: "Split Ratio",     render: "default" }
   ];
 
-  // Compact header icon/abbreviation map (tooltip shows the full label)
   const HEADER_META = {
     "Symbol":                    { icon: "🏷️", abbr: "SYM" },
     "Price ($)":                 { icon: "$",   abbr: "PRICE" },
@@ -1079,16 +1020,6 @@
     { key: "table6", name: "Split", configId: "69ae338c433cbf6f69e76619", wrapId: "table6Wrap", countId: "count6", columns: SPLIT_COLUMNS }
   ];
 
-  // =================================================================
-  // VIEW TOGGLE (Desktop grid vs Mobile tab-bar) — applies to the Top
-  // Lists tables specifically (Top Gainers, After Market, Low Float,
-  // Most Active, 5 Pillars, Split). Data fetching/WebSocket/rendering
-  // for each table is completely unchanged — this only changes how the
-  // already-rendered panels are arranged/shown. Deliberately NOT applied
-  // to Alerts or General (Economic/IPO Calendar already has its own
-  // internal tab navigation) to avoid retrofitting this onto sections
-  // it wasn't really designed for.
-  // =================================================================
   function getDefaultViewMode(){
     return window.innerWidth >= 900 ? "desktop" : "mobile";
   }
@@ -1109,8 +1040,6 @@
       const panel = document.getElementById("panel-" + t.key);
       if(!panel) return;
       panel.classList.toggle("mobile-tab-active", t.key === key);
-      // The active tab's table should actually be visible (not
-      // collapsed-to-header) the moment you switch to it.
       if(t.key === key) panel.classList.remove("collapsed");
     });
     document.querySelectorAll(".toplist-tab-btn").forEach(btn => {
@@ -1119,15 +1048,6 @@
   }
 
   function applyViewMode(){
-    // Reset first, every time this runs (initial load AND every switch
-    // between Desktop/Mobile): collapse every Top List/Alert panel and
-    // clear any fullscreen state. Without this, a panel left expanded in
-    // one mode stays ":not(.collapsed)" after switching — and since the
-    // app's global fullscreen CSS isn't scoped to view mode, it would
-    // immediately re-trigger fullscreen in the NEW mode too (e.g. a
-    // table left open on Mobile would snap straight to fullscreen the
-    // moment you switched back to Desktop, instead of landing on the
-    // grid overview).
     document.querySelectorAll("#topListsContainer .panel, #alertsContainer .panel").forEach(p => {
       p.classList.add("collapsed");
       p.classList.remove("mobile-tab-active");
@@ -1145,10 +1065,6 @@
       if(icon) icon.textContent = "🖥️";
       if(label) label.textContent = "Desktop View";
       if(tabBar) tabBar.style.display = "none";
-      // Cards stay in their natural (collapsed, compact) resting state
-      // in the grid — clicking one expands it to fullscreen, same as
-      // every other panel in the app. Clear any leftover mobile-only
-      // active-tab marker so it doesn't linger when switching modes.
       TABLES.forEach(t => {
         const panel = document.getElementById("panel-" + t.key);
         if(panel) panel.classList.remove("mobile-tab-active");
@@ -1173,12 +1089,6 @@
     if(tabBtn) setMobileActiveTable(tabBtn.dataset.tabKey);
   });
 
-  // Explicit Close (X) button on every Top List / Alert panel — only
-  // visible while that panel is fullscreen (see .panel-close-btn CSS).
-  // Clicking it bubbles up to the same delegated [data-fold] handler
-  // above (it's inside .panel-head, which already has data-fold), so no
-  // separate click handler is needed here — this just adds the visible
-  // affordance a plain header-click didn't have before.
   document.querySelectorAll("#topListsContainer .panel-head, #alertsContainer .panel-head").forEach(head => {
     const closeBtn = document.createElement("span");
     closeBtn.className = "panel-close-btn";
@@ -1190,35 +1100,17 @@
 
   applyViewMode();
 
-  // Alert configs — subscribed by analogy to the documented Toplist schema
-  // ({"@type":"Alert", config_id, action}), since ChartsWatcher's docs
-  // confirm Alerts exist on this same socket but we were never given the
-  // exact message shape. Debug panel logs everything received so the
-  // real schema can be confirmed/corrected.
   const ALERT_CONFIGS = [
     { key: "alert2", name: "🚦 | HALTS - RESUMPTIONS", configId: "6a1c66d57518438c9c719050", special: "halts" },
     { key: "alert5", name: "🟩 Small Cap - High of Day Momentum", configId: "69a986c3433cbf6f690c210e", special: "screening", wrapId: "hodMomoTableWrap", countId: "hodMomoCount" },
     { key: "alert6", name: "🌅 Pre-Market Bounce", configId: "69b1b25780ca4d8e3b6e3245", special: "screening", wrapId: "preMarketBounceTableWrap", countId: "preMarketBounceCount" }
   ];
-  // One config_id -> array of alert keys, since more than one panel can
-  // now point at the same underlying ChartsWatcher config (e.g. Screening
-  // and 🟩 HOD MOMO deliberately share a config_id) — a plain one-to-one
-  // map would silently drop live events for whichever entry registered
-  // second.
   const configToAlertKeys = {};
   ALERT_CONFIGS.forEach(a => {
     if(!configToAlertKeys[a.configId]) configToAlertKeys[a.configId] = [];
     configToAlertKeys[a.configId].push(a.key);
   });
-  // =================================================================
-  // Card Preview — a compact inline preview (top 5 rows, Symbol/Price/
-  // Change% only) shown inside each collapsed card in Desktop View, so
-  // you get a live glance at what's happening without needing to open
-  // the fullscreen view. Applies to both Top Lists and Alerts. Hidden
-  // automatically once a card goes fullscreen (the full detailed table
-  // takes over then, completely unchanged) and hidden in Mobile View
-  // (which already shows one full table at a time via its tab bar).
-  // =================================================================
+
   const PREVIEW_TARGETS = [
     ...TABLES.map(t => ({ panelId: "panel-" + t.key, dataKey: t.key, isToplist: true })),
     { panelId: "panel-halts", dataKey: "halts", isToplist: false },
@@ -1235,12 +1127,6 @@
     head.insertAdjacentElement("afterend", preview);
   });
 
-  // Pulls just Symbol/Price/Change% from a row, regardless of its shape
-  // (Toplist rows use row.columns[] resolved via column_desc; Screening/
-  // Halts rows are already flat label-keyed objects — Halts happens to
-  // label its change field "Change %" instead of "% Change").
-  // Resolves "hours since news" from row props or the News Icon column
-  // (raw minutes in Toplist rows — same source as renderNewsCell).
   function resolveHoursSinceNews(row, tableKey){
     if(row.hoursSinceNews != null && row.hoursSinceNews !== ""){
       const h = parseFloat(String(row.hoursSinceNews).replace(/,/g, ""));
@@ -1254,18 +1140,15 @@
       const m = parseFloat(String(row.newsMinutes).replace(/,/g, ""));
       if(!isNaN(m)) return m / 60;
     }
-
     const colMap = {};
     (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
     const newsKey = findColumnKey(tableKey, "News Icon");
     const raw = newsKey ? colMap[newsKey] : null;
     if(raw === null || raw === undefined || raw === "") return null;
-
     const strVal = String(raw).trim();
     const lower = strVal.toLowerCase();
     if(["false", "no", "none", "—", "n/a", "na"].includes(lower)) return null;
     if(["true", "yes", "fresh", "hot", "new"].includes(lower)) return 0;
-
     const cleaned = strVal.replace(/,/g, "");
     const m = cleaned.match(/-?\d+(\.\d+)?/);
     if(!m) return null;
@@ -1307,17 +1190,12 @@
     };
   }
 
-  // Small inline flag image for the compact preview row — same
-  // flagcdn.com source as the main table's Country column, just smaller.
   function previewFlagImg(countryCode){
     if(!countryCode || !/^[A-Za-z]{2}$/.test(String(countryCode).trim())) return "";
     const cc = String(countryCode).trim().toLowerCase();
     return `<img class="cp-flag" src="https://flagcdn.com/16x12/${cc}.png" width="13" height="10" alt="${escapeHtml(countryCode)}" onerror="this.remove()" />`;
   }
 
-  // Compact float badge — reuses the same tier thresholds/colors as the
-  // main Float column (floatColorTier) so it reads consistently with the
-  // rest of the app, just as a small pill instead of a full bar.
   function previewFloatBadge(value){
     if(value === null || value === undefined || value === "") return `<span class="cp-float-badge">—</span>`;
     const n = parseAbbrevNumber(value);
@@ -1326,7 +1204,6 @@
     return `<span class="cp-float-badge ${cls}">${escapeHtml(value)}</span>`;
   }
 
-  // Compact 5M# badge — same tier thresholds as the main table's trade-count column.
   function previewTradeCountBadge(value){
     if(value === null || value === undefined || value === "") return `<span class="cp-trade-badge">—</span>`;
     const n = parseFloat(String(value).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
@@ -1352,7 +1229,6 @@
     sample.forEach(row => {
       const f = extractPreviewFields(tableKeyForLookup, row, isToplist);
       if(isToplist){
-        // [Ticker][Flag][📰 if <7h] | [Price] | [Change %] | [Float] | [5M#]
         html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
           <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
@@ -1374,16 +1250,13 @@
   const configToKey = {};
   TABLES.forEach(t => configToKey[t.configId] = t.key);
 
-  // ---------------------------------------------------------------
-  // State
-  // ---------------------------------------------------------------
   const columnMapping = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
   const rawColumnDescs  = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
   const displayed       = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
   const lastError         = { table1: null, table2: null, table3: null, table4: null, table5: null, table6: null };
   const warnedColumns    = { table1: new Set(), table2: new Set(), table3: new Set(), table4: new Set(), table5: new Set(), table6: new Set() };
   const confirmTimers    = {};
-  const alertConfirmed   = {}; // key -> true once an AlertConfirm (or equivalent) arrives
+  const alertConfirmed   = {};
   let searchTerm = "";
   let ws = null;
   let reconnectTimer = null;
@@ -1398,9 +1271,6 @@
   const warnSection  = document.getElementById("warnSection");
   const warnList      = document.getElementById("warnList");
 
-  // ---------------------------------------------------------------
-  // Debug logging
-  // ---------------------------------------------------------------
   function logLine(msg, level){
     const time = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
     const div = document.createElement("div");
@@ -1420,9 +1290,6 @@
     warnList.appendChild(li);
   }
 
-  // ---------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------
   function escapeHtml(str){
     return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
@@ -1451,11 +1318,6 @@
 
       let match = null;
 
-      // Special-cased matching: News Icon ("Minutes since news") must key
-      // on the word "news" specifically, since generic fuzzy matching was
-      // previously grabbing an unrelated column (stale text like "3d"/"20d").
-      // Check the raw server KEY first (most reliable), then the name,
-      // preferring anything that also mentions "minute" if multiple exist.
       if(col.display === "News Icon"){
         const newsCandidates = available.filter(d =>
           !used.has(d.key) &&
@@ -1467,10 +1329,6 @@
              || null;
       }
 
-      // Special-cased matching: "% Change" must resolve to the price
-      // percent-change column, not an unrelated "change" field like
-      // "Rank Change". Prefer columns whose name/key explicitly signals
-      // a percentage, and explicitly avoid anything mentioning "rank".
       if(col.display === "% Change"){
         const changeCandidates = available.filter(d =>
           !used.has(d.key) &&
@@ -1499,7 +1357,6 @@
       return { label: col.display, render: col.render, matchedKey: match ? match.key : null, matchedName: match ? match.name : null };
     });
 
-    // Log the resolved mapping so column-matching issues are visible/verifiable
     mapping.forEach(m => {
       if(m.render === "symbol"){
         logLine(`[${tableName}] "Symbol" → row.symbol field`);
@@ -1526,7 +1383,6 @@
     return "num-neutral";
   }
 
-  // Parses values like "12.3M", "-1.4B", "300K", "42" into a plain number
   function parseAbbrevNumber(str){
     if(str === null || str === undefined) return null;
     const s = String(str).trim().replace(/,/g, "");
@@ -1545,17 +1401,6 @@
     connText.textContent = text;
   }
 
-  // ---------------------------------------------------------------
-  // Market status bar — pure client-side clock logic, no server data.
-  // Standard US equities sessions in America/New_York time:
-  //   Pre-Market   04:00 - 09:30 ET
-  //   Market Open  09:30 - 16:00 ET
-  //   After Hours  16:00 - 20:00 ET
-  //   Closed       20:00 - 04:00 ET, and all day Sat/Sun
-  // NOTE: this does not account for US market holidays (Thanksgiving,
-  // Christmas, etc.) — it's calendar-day/time-of-day only. DST is handled
-  // automatically via the America/New_York timezone conversion below.
-  // ---------------------------------------------------------------
   function getEasternParts(){
     const fmt = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/New_York",
@@ -1563,11 +1408,10 @@
     });
     const parts = {};
     fmt.formatToParts(new Date()).forEach(p => { parts[p.type] = p.value; });
-    // hour12:false can return "24" for midnight in some environments — normalize to 0
     let hour = parseInt(parts.hour, 10);
     if(hour === 24) hour = 0;
     return {
-      weekday: parts.weekday, // "Mon".."Sun"
+      weekday: parts.weekday,
       hour,
       minute: parseInt(parts.minute, 10),
       second: parseInt(parts.second, 10)
@@ -1606,8 +1450,6 @@
     } else if(nowSec >= AH_END || nowSec < PRE_START){
       session = "Closed";
       sessionClass = "session-closed";
-      // Countdown to next pre-market open (04:00 ET), same day if before
-      // PRE_START, otherwise next day
       secondsToEnd = nowSec < PRE_START ? (PRE_START - nowSec) : ((86400 - nowSec) + PRE_START);
     } else if(nowSec < OPEN_START){
       session = "Pre-Market";
@@ -1640,13 +1482,6 @@
   updateMarketStatusBar();
   setInterval(updateMarketStatusBar, 1000);
 
-  // ---------------------------------------------------------------
-  // Cell renderers
-  // ---------------------------------------------------------------
-  // Locale-independent thousands formatter — guaranteed plain ASCII digits
-  // (0-9) regardless of the browser/OS locale. toLocaleString() without an
-  // explicit locale can render Arabic-Indic or other localized digit sets
-  // depending on system settings, so we build the string manually instead.
   function formatNumberEN(num){
     const rounded = Math.round(num);
     const negative = rounded < 0;
@@ -1654,28 +1489,11 @@
     const withCommas = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return (negative ? "-" : "") + withCommas;
   }
-  // window counting as "fresh" enough to show the flame badge
   const NEWS_FRESH_HOURS = 7;
-  const MAX_ROWS = 15; // cap each Toplist table (Top Gainers, After Market, etc.) to the top 15 rows — unrelated to the alert sections below, left as-is
-  // Alert-driven tables (Halts, Screening, Running Up, HOD MOMO) get a
-  // much higher cap — these are event logs that should keep accumulating
-  // through the trading session, not a ranked top-N view like the
-  // Toplists. 500 is "practically unlimited" for a session while still
-  // bounding memory/render cost over a very long day — raise this
-  // further (or remove the cap check entirely) if you want truly no limit.
+  const MAX_ROWS = 15;
   const MAX_ALERT_ROWS = 500;
-  const cellUpdateCache = {}; // "tableKey:symbol:column" -> last seen raw value, used to detect real changes
+  const cellUpdateCache = {};
 
-  // Price ($) tiers: <$1 dark blue, >$10-$20 orange, >$25 white.
-  // $1-$10 and $20-$25 fall outside the specified ranges and render plain.
-  // Price ($) tiers (all solid backgrounds, all with white text except the
-  // white tier which needs dark text for contrast against its own fill):
-  //   <$1            dark blue background, light text
-  //   $1 - <$5       green background, white text
-  //   $5 - <$10      dark green background, white text
-  //   >$10 - $20     orange background, light text
-  //   >$25           white background, dark text
-  //   $20-$25 gap    plain, no range specified
   function renderPriceCell(value){
     if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
     const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
@@ -1694,47 +1512,6 @@
     return `<td class="mono">${escapeHtml(value)}</td>`;
   }
 
-  // % Change (CHG%) tiers — magnitude-based, applied to non-negative
-  // values only. Negative changes fall back to the standard red/green
-  // directional coloring used elsewhere, since these ranges are only
-  // specified for gains.
-  //   <10%            white background, black text
-  //   10% - 30%       light green background, white text
-  //   >30% - 60%      standard green background, white text
-  //   >60% - 100%     dark green background, white text
-  //   >100%           deeper/darker green background, white text
-  // Converts a 2-letter ISO country code into its flag emoji via Unicode
-  // Regional Indicator Symbols (e.g. "US" -> 🇺🇸) — no image/SVG library
-  // needed, renders natively in all modern browsers/OSes.
-  // Real flag icon images via flagcdn.com (free, no-key, widely used static
-  // flag asset CDN) instead of Unicode emoji flags — regional-indicator
-  // emoji flags don't render as actual flags on Windows or many Linux
-  // setups, falling back to plain boxed letters that looked duplicated
-  // next to the country code text. An image renders identically everywhere.
-  // Daily Volume tiers — same badge shape as the "Min" (news) column:
-  // subtle dark-transparent background, light border, rounded pill.
-  // Only the text color varies with volume magnitude.
-  //   <1M            white
-  //   1M - 15M       green
-  //   >15M - 50M     orange
-  //   >50M - 100M    dark orange
-  //   >100M          red
-  // Relative Daily Volume (RVOL%) tiers — text color only, transparent
-  // background.
-  //   <100%            white
-  //   100% - 300%      light green
-  //   >300% - 1000%    dark green
-  //   >1000% - 5000%   light pink
-  //   >5000%           dark pink
-  // 5 Min Trade Count (5M#) tiers — pill badge style, matching the Min
-  // column. Also preserves the existing green pulse-flash animation that
-  // fires when a live update genuinely changes the value above 1,000
-  // (unchanged logic — just now applied to the badge span instead of the
-  // bare cell, so the flash plays across the pill itself).
-  //   <500            white
-  //   500 - 2000       green
-  //   >2000 - 5000     dark green
-  //   >5000            orange
   function renderTradeCountCell(value, cacheKey){
     if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
     const n = parseFloat(String(value).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
@@ -1787,16 +1564,10 @@
     return `<td><span class="volume-badge ${tier} mono">${escapeHtml(value)}</span></td>`;
   }
 
-  // Real flag icon images via flagcdn.com (free, no-key, widely used static
-  // flag asset CDN), shown alongside the text code. If a flag image fails
-  // to load (network/CORS block — this has happened in some sandboxed test
-  // environments previously), it quietly removes itself and the text code
-  // still renders cleanly on its own, so nothing is ever missing entirely.
   function renderCountryCell(value){
     if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
     const code = String(value).trim();
     if(!/^[A-Za-z]{2}$/.test(code)){
-      // Not a recognizable 2-letter code — nothing to render a flag for
       return `<td class="mono">${escapeHtml(code)}</td>`;
     }
     const cc = code.toLowerCase();
@@ -1826,7 +1597,6 @@
       else tier = "darkergreen";
       return `<td><span class="chg-badge ${tier} mono">${escapeHtml(value)}</span></td>`;
     }
-    // Negative — outside the specified ranges, use standard down coloring
     return `<td class="mono ${directionClass(value)}">${escapeHtml(value)}</td>`;
   }
 
@@ -1842,10 +1612,6 @@
       return `<td class="na">—</td>`;
     }
 
-    // Strip thousands-separator commas before parsing — the server sends
-    // values above 1000 pre-formatted as e.g. "1,664", and a plain \d+
-    // match would otherwise stop at the comma and read it as just "1".
-    // Raw value arrives in MINUTES — converted to hours for display.
     const cleaned = strVal.replace(/,/g, "");
     const m = cleaned.match(/-?\d+(\.\d+)?/);
     const minutes = m ? parseFloat(m[0]) : null;
@@ -1860,15 +1626,11 @@
     return `<td><span class="news-badge">${escapeHtml(strVal)}</span></td>`;
   }
 
-  // Shared formatting for "hours since news" everywhere it's shown (main
-  // tables, Screening-family tables, and the modal) — whole hours show
-  // as "2h", fractional hours show one decimal as "5.5h".
   function formatHoursSinceNews(hours){
     const rounded = Math.round(hours * 10) / 10;
     return (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + "h";
   }
 
-  // Fixed Float (FLT) bar-width thresholds, independent of the rest of the dataset
   function floatBarPercent(n){
     if(n === null) return 0;
     const abs = Math.abs(n);
@@ -1881,9 +1643,6 @@
     return 100;
   }
 
-  // Float (FLT) color tiers — a separate set of boundaries from the bar-width
-  // thresholds above. { cssClass, dark } — "dark" means the fill is light
-  // enough that the label text needs to switch to dark for contrast.
   function floatColorTier(n){
     if(n === null) return { cssClass: null, dark: false };
     const abs = Math.abs(n);
@@ -1900,8 +1659,6 @@
     const pct = floatBarPercent(n);
     const tier = floatColorTier(n);
     const fillClass = tier.cssClass || "teal";
-    // Float value text always renders white — tier backgrounds stay as-is,
-    // only the text color is fixed regardless of which tier the fill is.
     return `<td><div class="bar-cell"><div class="bar-fill ${fillClass}" style="width:${pct}%;"></div><span class="bar-label float-label-white mono">${escapeHtml(value)}</span></div></td>`;
   }
 
@@ -1914,9 +1671,6 @@
     return `<td><div class="bar-cell"><div class="bar-fill ${colorClass}" style="width:${pct}%;"></div><span class="bar-label mono">${escapeHtml(value)}</span></div></td>`;
   }
 
-  // ---------------------------------------------------------------
-  // Rendering
-  // ---------------------------------------------------------------
   function renderTable(tableConf){
     if(!tableConf) return;
     const wrap = document.getElementById(tableConf.wrapId);
@@ -2041,21 +1795,6 @@
     TABLES.forEach(renderTable);
   }
 
-  // ---------------------------------------------------------------
-  // Home page overview stats — derived entirely from the live Toplist
-  // data already in memory, no separate index/market data source exists.
-  // ---------------------------------------------------------------
-  // (Telegram notifications removed — Web Push, further down, is the
-  // active notification channel now.)
-
-  // ---------------------------------------------------------------
-  // (Telegram notifications removed — Web Push, further down, is the
-  // active notification channel now. The snapshot-relay-to-backend
-  // module that used to live here was removed too, since it existed
-  // solely to feed the now-deleted top5_alerts.py script — nothing
-  // reads that data anymore.)
-  // ---------------------------------------------------------------
-
   function findColumnKey(tableKey, label){
     const mapping = columnMapping[tableKey];
     if(!mapping) return null;
@@ -2063,13 +1802,7 @@
     return m && m.matchedKey ? m.matchedKey : null;
   }
 
-  // ---------------------------------------------------------------
-  // Alerts — one collapsible panel per Alert config (same panel/fold
-  // pattern as the Toplist tables), each holding structured key-value
-  // cards. Panels are built dynamically from ALERT_CONFIGS so adding a
-  // new alert config later just means adding an entry to that array.
-  // ---------------------------------------------------------------
-  const alertsByConfig = {}; // key -> array of { time, fields: [{key,value}] }
+  const alertsByConfig = {};
   ALERT_CONFIGS.forEach(a => { alertsByConfig[a.key] = []; });
 
   function buildAlertPanels(){
@@ -2109,7 +1842,7 @@
     if(v === null || v === undefined) return null;
     const n = Number(v);
     if(!isNaN(n) && n > 0){
-      const ms = String(Math.trunc(n)).length >= 13 ? n : n * 1000; // epoch seconds vs ms
+      const ms = String(Math.trunc(n)).length >= 13 ? n : n * 1000;
       const d = new Date(ms);
       if(!isNaN(d.getTime())) return d.toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
     }
@@ -2118,16 +1851,7 @@
     return String(v);
   }
 
-  // Turn a raw alert message into a flat list of {key,value} fields for
-  // display, excluding purely structural/meta fields, and flattening one
-  // level of nesting (common for a "data"/"alert" wrapper object).
   const ALERT_META_KEYS = new Set(["@type", "config_id", "action", "success"]);
-  // Confirmed real schema (from ChartsWatcher's /data/v1/lastalerts docs,
-  // which the live WebSocket NewAlert push matches): each alert has a
-  // "row" object with a "columns" array of {key, value, text_color, color}
-  // — the exact same shape as Toplist rows. We only use key/value; the
-  // server's own text_color/color are skipped for the same readability
-  // reason we skip them on the Toplist tables.
   function flattenAlertFields(rawMsg){
     const fields = [];
     if(rawMsg.row && typeof rawMsg.row === "object"){
@@ -2142,8 +1866,6 @@
       }
       return fields;
     }
-    // Defensive fallback for any alert type that doesn't follow the
-    // row/columns shape.
     Object.keys(rawMsg).forEach(k => {
       if(ALERT_META_KEYS.has(k)) return;
       const v = rawMsg[k];
@@ -2160,10 +1882,6 @@
     const allFields = flattenAlertFields(rawMsg);
     const tsField = allFields.find(f => /time|epoch|date/i.test(f.key));
     const symField = allFields.find(f => /symbol|ticker/i.test(f.key));
-    // Remaining fields exclude Time/Symbol so they aren't shown twice
-    // (once promoted to the card header, once in the generic grid);
-    // also exclude the news-icon field (raw SVG markup) and Strategy Name
-    // (generic/non-useful, always the same placeholder value).
     const fields = allFields.filter(f =>
       f !== tsField &&
       f !== symField &&
@@ -2177,13 +1895,6 @@
     };
   }
 
-  // ---------------------------------------------------------------
-  // Halts table — a bespoke fixed-column renderer for the "🚦 | HALTS -
-  // RESUMPTIONS" alert config. Field names in each NewAlert event are
-  // unknown ahead of time (no column_desc exists for Alerts the way it
-  // does for Toplists), so each column is resolved per-event via the same
-  // hint-matching approach used elsewhere in this app.
-  // ---------------------------------------------------------------
   const HALTS_COLUMN_DEFS = {
     "Time":            { hints: ["time", "timestamp", "epoch", "date"] },
     "Symbol":           { hints: ["symbol", "ticker"] },
@@ -2195,9 +1906,6 @@
     "5 Min Volume":     { hints: ["5minvolume", "fiveminvolume", "5minvol", "vol5min", "5mvol", "5min", "absvolumefiltermin5", "volumefiltermin5", "filtermin5"] }
   };
   const HALTS_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "Float", "Daily Volume", "Explanation", "Change %", "5 Min Volume"];
-  // Most collision-prone/specific columns matched first (e.g. "5 Min
-  // Volume" must claim its field before the generic "Daily Volume" hint
-  // can loosely grab it via substring matching).
   const HALTS_MATCH_ORDER = ["5 Min Volume", "Time", "Symbol", "Price ($)", "Float", "Change %", "Explanation", "Daily Volume"];
 
   function matchHaltRow(fields){
@@ -2230,18 +1938,6 @@
 
   const haltsRows = [];
 
-  // =================================================================
-  // Browser notifications for the Alerts section (Halts, Screening,
-  // Running Up, HOD MOMO). Back to the simple local Notification API
-  // (`new Notification(...)` called directly from this page) after Web
-  // Push (service worker + backend + VAPID subscription) proved to be
-  // more complexity than it was worth in practice. The tradeoff of this
-  // simpler approach: notifications only fire while this exact tab is
-  // open and running somewhere — no delivery with the tab fully closed.
-  // Preference persists via localStorage (this runs as a real hosted
-  // page, not Claude's artifact preview sandbox, so localStorage works
-  // normally here).
-  // =================================================================
   let browserNotifsEnabled = localStorage.getItem("browserNotifsEnabled") === "true";
 
   function updateNotifToggleUI(){
@@ -2299,17 +1995,6 @@
     updateNotifToggleUI();
   }
 
-  // Fires a native OS notification, only if enabled/granted, and only
-  // while this tab isn't the one currently focused (avoids redundant
-  // popups while you're already looking straight at the new row).
-  // Fires a native OS notification for any genuinely new event, whether
-  // or not this tab currently has focus. Previously this only fired
-  // while the tab was hidden — but that meant events "caught up" via the
-  // reconnect backfill (which typically happens exactly when you switch
-  // back to the tab, i.e. the moment it regains focus) never notified at
-  // all, since the tab was already visible by the time the notification
-  // would fire. Better to occasionally show a notification for something
-  // already visible on screen than to silently miss real alerts.
   function sendPushAlert(title, body){
     if(!browserNotifsEnabled) return;
     if(!("Notification" in window) || Notification.permission !== "granted") return;
@@ -2324,45 +2009,11 @@
   document.addEventListener("DOMContentLoaded", updateNotifToggleUI);
   updateNotifToggleUI();
 
-  // =================================================================
-  // MARKET PULSE — computed entirely from live alert-driven data (Halts
-  // + every Screening-family table: Running Up, Small Cap - High of Day
-  // Momentum, etc. via screeningState). Deliberately does NOT touch
-  // TABLES/5 Pillars or any other Toplist — "alert tickers" per the
-  // spec means the alert feeds specifically, not the ranked Toplists.
-  //
-  // Design choices worth being explicit about (the spec left some room
-  // for interpretation):
-  //   - "Active" window = last 5 minutes, for all four metrics.
-  //   - Momentum/Volume Pressure/Float Velocity dedupe by symbol (a
-  //     ticker firing 3 alerts in 5 min counts once, using its most
-  //     recent values) — a single hot ticker firing repeatedly shouldn't
-  //     alone dominate the market-wide average.
-  //   - Catalyst Pulse is the one EVENT count, not deduped — that's what
-  //     "pulse" naturally means (how much is actually happening).
-  //   - Momentum score: average % change directly, clamped to 0-100 —
-  //     these are already percentage values, so this is a direct,
-  //     defensible reading rather than an arbitrary rescale.
-  //   - Volume Pressure "x": RVOL% / 100 (100% RVOL = 1x normal volume,
-  //     the standard convention).
-  //   - Float Velocity: (cumulative volume / float) * 100, as a %.
-  //   - Halts rows have no RVOL field, so they contribute to Momentum/
-  //     Float Velocity/Catalyst Pulse but not Volume Pressure — handled
-  //     by filtering NaNs per-metric rather than requiring every field.
-  // =================================================================
-  const MARKET_PULSE_WINDOW_MS = 5 * 60 * 1000; // Catalyst Pulse's own trend comparison only (unchanged — its count window is separate, see below)
-  const TREND_WINDOW_MS = 15 * 60 * 1000; // Momentum/Volume Pressure/Float Velocity trend comparison — general market gauge, not a scalping signal
-  const CATALYST_PULSE_WINDOW_MS = 200 * 60 * 1000; // Catalyst Pulse's own counting window, separate from either trend window above
-  const marketPulseHistory = []; // [{ t, momentum, volumePressureX, floatVelocity, catalystPulseCount }]
+  const MARKET_PULSE_WINDOW_MS = 5 * 60 * 1000;
+  const TREND_WINDOW_MS = 15 * 60 * 1000;
+  const CATALYST_PULSE_WINDOW_MS = 200 * 60 * 1000;
+  const marketPulseHistory = [];
 
-  // Looks for a field on a single Toplist row by hint, checking both
-  // top-level row properties and the generic columns array — same dual-
-  // location pattern used elsewhere in this app for Toplist rows (some
-  // ChartsWatcher fields arrive as extra top-level properties, not just
-  // inside "columns"). Used here specifically to search for 5-minute
-  // candle High/Low fields, which are NOT part of any confirmed
-  // ChartsWatcher payload we've seen — this is a best-effort search, not
-  // an assumption they exist.
   function resolveRowField(row, hints){
     const reserved = new Set(["symbol", "columns", "color"]);
     for(const key of Object.keys(row)){
@@ -2380,20 +2031,12 @@
   }
 
   function computeMarketPulseMetrics(){
-    // ---- Momentum / Volume Pressure / Float Velocity: from the current
-    // Top Gainers snapshot (top 15 rows), NOT a rolling alert-event
-    // window. This is a deliberate fix: the previous alert-window
-    // approach correctly went to 0 whenever no new alerts fired for 5
-    // minutes (e.g. after hours) — technically honest, but not useful as
-    // a persistent gauge. Toplist data persists at its last-known value
-    // regardless of whether new WS updates are actively streaming, so
-    // these three no longer flatline outside active hours.
     const gainersRows = (displayed["table1"] || []).slice(0, 15);
     let fiveMinHighLowFound = false;
 
     const stockMomentums = [];
-    const stockRvols = [];        // capped at 20x (2000%) each, per spec
-    const stockFloatVelocities = []; // capped at 100% each, per spec
+    const stockRvols = [];
+    const stockFloatVelocities = [];
 
     gainersRows.forEach(row => {
       const colMap = {};
@@ -2404,14 +2047,6 @@
       };
       const num = (v) => { const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, "")); return isNaN(n) ? null : n; };
 
-      // ---- Momentum (per stock) ----
-      // Exact requested formula: (Price - 5m Low) / (5m High - 5m Low) * 100.
-      // 5m High/Low aren't part of any confirmed ChartsWatcher field set —
-      // searched defensively via hints in case they exist under some
-      // other name; if not found (or High === Low), falls back to the
-      // daily % Change value, clamped >= 0, per the fallback you specified
-      // ("if High equals Low, fall back to % change normalized") extended
-      // to also cover "field doesn't exist at all" the same way.
       const price = num(get("Price ($)"));
       const fiveMinHigh = num(resolveRowField(row, ["5minhigh", "fiveminutehigh", "high5min"]));
       const fiveMinLow = num(resolveRowField(row, ["5minlow", "fiveminutelow", "low5min"]));
@@ -2425,11 +2060,9 @@
       }
       if(stockMomentum !== null && !isNaN(stockMomentum)) stockMomentums.push(stockMomentum);
 
-      // ---- Volume Pressure (per stock), capped at 20x (2000%) ----
       const rvolPct = num(get("Relative Daily Volume (%)"));
       if(rvolPct !== null) stockRvols.push(Math.min(2000, rvolPct));
 
-      // ---- Float Velocity (per stock), capped at 100% ----
       const volume = parseAbbrevNumber(get("Daily Volume"));
       const float = parseAbbrevNumber(get("Float"));
       if(volume !== null && float !== null && float > 0){
@@ -2441,27 +2074,17 @@
       logLine("Market Pulse: no 5-minute High/Low field found on Top Gainers rows — Momentum is using the daily % Change fallback instead.", "warn");
     }
 
-    // Composite formula exactly as specified: min(100, sum / count)
     const momentum = stockMomentums.length
       ? Math.min(100, stockMomentums.reduce((a, b) => a + b, 0) / stockMomentums.length)
       : 0;
 
     const avgRvolPercent = stockRvols.length ? stockRvols.reduce((a, b) => a + b, 0) / stockRvols.length : 0;
-    const volumePressureX = avgRvolPercent / 100; // capped at 20x per-stock, so this averages to at most 20x
+    const volumePressureX = avgRvolPercent / 100;
 
     const floatVelocity = stockFloatVelocities.length
       ? stockFloatVelocities.reduce((a, b) => a + b, 0) / stockFloatVelocities.length
       : 0;
 
-    // ---- Catalyst Pulse: count of catalyst/news events in the last 200
-    // minutes. Two sources, both raw counts (not deduped by symbol,
-    // consistent with this metric always meaning "how much is actually
-    // happening" rather than "how many distinct tickers"):
-    //   1. Alert events (Halts + every Screening-family table)
-    //   2. Top Gainers rows whose News/Min value (minutes since news) is
-    //      200 or less — these are catalysts even if no alert fired.
-    // The 5-minute trend comparison below is untouched — it still
-    // compares against the snapshot from MARKET_PULSE_WINDOW_MS ago.
     const catalystCutoffMs = Date.now() - CATALYST_PULSE_WINDOW_MS;
     let catalystPulseCount = 0;
     function countEvents(rows, getTime){
@@ -2473,10 +2096,6 @@
     Object.keys(screeningState).forEach(key => countEvents(screeningState[key].rows, r => r["Time"]));
     countEvents(haltsRows, r => r["Time"]);
 
-    // Source 2: Top Gainers rows with news within the last 200 minutes
-    // (the "Min" column — minutes since news). Uses the same 15-row
-    // Top Gainers sample already pulled for Momentum/Volume Pressure/
-    // Float Velocity above.
     gainersRows.forEach(row => {
       const colMap = {};
       (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
@@ -2509,7 +2128,6 @@
     el.className = "mp-trend " + (pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat");
   }
 
-  // Finds the history snapshot closest to (but not after) `windowMs` ago.
   function findPrevSnapshot(now, windowMs){
     const targetT = now - windowMs;
     let prevSnap = null;
@@ -2519,13 +2137,6 @@
     return prevSnap;
   }
 
-  // ---- Market Health status bar: a single weighted 0-100 score across
-  // all four cards, with a status label + color band. ----
-  //
-  // i18n readiness: labels live in a dictionary keyed by locale, with a
-  // `currentLocale` switch — adding Arabic later is just adding an "ar"
-  // key here and wiring a toggle button to change `currentLocale`,
-  // nothing else needs restructuring.
   let currentLocale = "en";
   const MARKET_HEALTH_LABELS = {
     en: {
@@ -2535,21 +2146,10 @@
       weak: "⚠️ WEAK MARKET",
       dead: "🧊 DEAD MARKET"
     }
-    // ar: { ... } — add here later, then a toggle button sets currentLocale = "ar"
   };
 
-  // Normalization notes (not explicitly specified by the original
-  // request, so flagged clearly here rather than silently assumed) —
-  // these ceilings are ONLY for the composite Health Score's 0-100
-  // normalization; they don't affect the Volume Pressure card's own
-  // displayed "X.Xx RVOL" value (that has a separate, unrelated 20x cap
-  // used when averaging raw RVOL for the card itself). Momentum and
-  // Float Velocity are already naturally 0-100, no ceiling needed.
-  //
-  // Recalibrated lower (was 20x / 20 events) for low-float momentum
-  // trading, where hitting these ceilings should be common, not rare.
-  const VOLUME_SCORE_CEILING_X = 10;   // 10x RVOL now reads as 100% in the Health Score
-  const CATALYST_SCORE_CEILING = 10;   // 10 events in the 200-min window now reads as 100%
+  const VOLUME_SCORE_CEILING_X = 10;
+  const CATALYST_SCORE_CEILING = 10;
 
   function computeMarketHealthScore(m){
     const momentumScore = Math.min(100, Math.max(0, m.momentum));
@@ -2585,7 +2185,6 @@
     const m = computeMarketPulseMetrics();
     const now = Date.now();
     marketPulseHistory.push({ t: now, ...m });
-    // Keep enough history for the larger of the two trend windows below
     const maxWindow = Math.max(TREND_WINDOW_MS, MARKET_PULSE_WINDOW_MS);
     while(marketPulseHistory.length && now - marketPulseHistory[0].t > maxWindow * 2.2){
       marketPulseHistory.shift();
@@ -2593,12 +2192,6 @@
 
     renderMarketHealthBar(computeMarketHealthScore(m));
 
-    // Momentum / Volume Pressure / Float Velocity now compare against a
-    // 15-minute-ago snapshot — this widget reads as a general market
-    // temperature gauge, not a short-term scalping signal. Catalyst
-    // Pulse's own trend indicator is intentionally unchanged (still 5m —
-    // only its underlying COUNT window expanded to 200 minutes, a
-    // separate thing from this trend comparison).
     const prevSnap15m = findPrevSnapshot(now, TREND_WINDOW_MS);
     const prevSnap5m = findPrevSnapshot(now, MARKET_PULSE_WINDOW_MS);
 
@@ -2617,18 +2210,12 @@
     renderTrendEl("mpCatalystTrend", m.catalystPulseCount, prevSnap5m ? prevSnap5m.catalystPulseCount : null, "5m");
   }
 
-  // Recompute on a timer (so the rolling 5-minute window keeps advancing
-  // even with no new events — old events aging out should still move the
-  // numbers) — the push-triggered calls below keep it feeling immediate
-  // when something actually happens.
   setInterval(recomputeMarketPulse, 15 * 1000);
 
   function pushHaltEvent(rawMsg){
     const fields = flattenAlertFields(rawMsg);
     const row = matchHaltRow(fields);
 
-    // Same duplicate guard as Screening — matters now that the REST
-    // catch-up seed re-runs on every reconnect.
     const isDuplicate = haltsRows.some(r => r["Symbol"] === row["Symbol"] && r["Time"] === row["Time"]);
     if(isDuplicate) return;
 
@@ -2644,8 +2231,6 @@
       );
     }
 
-    // Diagnostics: show exactly what the server sent vs. what we resolved,
-    // so a mismatch can be identified precisely instead of guessed at.
     logLine(`Halts event raw keys: ${fields.map(f => `${f.key}="${f.value}"`).join(", ")}`, "good");
     const unmatched = HALTS_DISPLAY_ORDER.filter(label => row[label] === null || row[label] === undefined);
     if(unmatched.length){
@@ -2670,9 +2255,6 @@
     HALTS_DISPLAY_ORDER.forEach(label => { html += `<th>${escapeHtml(label)}</th>`; });
     html += `</tr></thead><tbody>`;
 
-    // Halts has no per-row "Strategy" field (unlike Screening/Running
-    // Up/HOD MOMO), so every row gets one flat, subtle tint matching this
-    // panel's own red icon theme instead of a per-value color.
     const HALTS_ROW_TINT = "rgba(255,68,104,0.05)";
 
     haltsRows.forEach(row => {
@@ -2704,14 +2286,6 @@
     renderCardPreview("halts", haltsRows, null, false);
   }
 
-  // ---------------------------------------------------------------
-  // 🥇 Screening table — same 9 standard columns as the Toplist tables,
-  // plus "Time" (التوقيت) as the leading column. Delivered via the Alert
-  // pipeline (@type: "Alert" / "NewAlert"), same as Halts, so columns are
-  // resolved per-event via hint matching rather than a column_desc.
-  // Reuses the exact same cell renderers (price/float/news/change/volume/
-  // country) as every Toplist table for identical styling and behavior.
-  // ---------------------------------------------------------------
   const SCREENING_COLUMN_DEFS = {
     "Time":                          { hints: ["time", "timestamp", "epoch", "date"] },
     "Symbol":                         { hints: ["symbol", "ticker"] },
@@ -2720,28 +2294,19 @@
     "% Change":                       { hints: ["changepercent", "pctchange", "change", "changefromcloseprz"] },
     "Float":                           { hints: ["float", "newfloatnooption"] },
     "Country":                         { hints: ["country", "countryinfo"] },
-    // TradeCountFilterMIN5 — note "min5" not "5min": our old "5min" hint
-    // checked the substring in the wrong order and silently never matched.
     "5 min trade count":              { hints: ["5mintradecount", "fiveminutetradecount", "tradecountfiltermin5", "min5"] },
-    // PrzVolumeFilterFD1 — a cryptic internal filter ID with zero semantic
-    // resemblance to "relative volume", confirmed via real payload data.
     "Relative Daily Volume (%)":     { hints: ["relativedailyvolume", "rvol", "przvolumefilterfd1"] },
     "Daily Volume":                   { hints: ["dailyvolume", "dvolume", "volume", "vol", "absvolumefilterday1"] },
     "Strategy":                        { hints: ["strategyname", "strategy"] }
   };
   const SCREENING_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Daily Volume", "Float", "Relative Daily Volume (%)", "Country", "5 min trade count", "Strategy"];
-  // Most specific/collision-prone columns matched first, Daily Volume last
-  // (broadest hints) — same defensive ordering approach as Halts.
   const SCREENING_MATCH_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Float", "Country", "5 min trade count", "Relative Daily Volume (%)", "Daily Volume", "Strategy"];
 
-  // Converts a raw Time value (epoch, ISO string, or "HH:MM:SS") into a
-  // comparable number for sorting newest-first, regardless of exact
-  // format. Unparseable values sort to the bottom rather than erroring.
   function timeSortKey(raw){
     if(raw === null || raw === undefined || raw === "") return -Infinity;
     const str = String(raw).trim();
     const num = Number(str);
-    if(!isNaN(num) && num > 1e8) return num; // epoch seconds/ms
+    if(!isNaN(num) && num > 1e8) return num;
     const m = str.match(/^(\d{1,2}):(\d{2})(:(\d{2}))?$/);
     if(m){
       const now = new Date();
@@ -2751,10 +2316,6 @@
     return isNaN(d.getTime()) ? -Infinity : d.getTime();
   }
 
-  // Pick the Hrs / News Icon field the same way Toplist mapping does:
-  // anything whose key/name contains "news", prefer "minute", skip SVG
-  // icon markup (DaySinceNewsIcon). Hours-named fields are converted to
-  // minutes so renderNewsCell (minutes → hours, 🔥 if < 7h) is identical.
   function pickNewsAlertField(fields, used){
     fields.forEach(f => {
       const looksNews = String(f.key).toLowerCase().includes("news") || normalizeLabel(f.key).includes("news");
@@ -2814,10 +2375,6 @@
     return result;
   }
 
-  // screeningState[cfgKey] = { rows: [] } — one entry per "screening-style"
-  // alert config (currently: Screening, Running Up). Sharing this one
-  // implementation keeps them structurally identical by construction,
-  // rather than risking drift between hand-duplicated copies.
   const screeningState = {};
   function getScreeningState(cfgKey){
     if(!screeningState[cfgKey]) screeningState[cfgKey] = { rows: [] };
@@ -2830,9 +2387,6 @@
     const fields = flattenAlertFields(rawMsg);
     const row = matchScreeningRow(fields);
 
-    // Guard against duplicates — matters now that the REST catch-up seed
-    // re-runs on every reconnect (see below), which could otherwise
-    // re-insert alerts already received live.
     const isDuplicate = state.rows.some(r => r["Symbol"] === row["Symbol"] && r["Time"] === row["Time"]);
     if(isDuplicate) return;
 
@@ -2841,9 +2395,6 @@
     renderScreeningTable(cfgKey);
     recomputeMarketPulse();
 
-    // Every Screening-style event is already a discrete occurrence (unlike
-    // a Toplist row, which re-broadcasts the same symbol repeatedly) — so
-    // it always triggers an alert.
     if(row["Symbol"]){
       sendPushAlert(
         `${cfg ? cfg.name : "Screening"}: ${row["Symbol"]}`,
@@ -2860,18 +2411,12 @@
     if(rawEl) rawEl.textContent = JSON.stringify(rawMsg, null, 2);
   }
 
-  // Subtle, semi-transparent row tints keyed by the Strategy field's
-  // actual text (e.g. "SUPER 7 - HOD", "SUPER 7 - Near HOD"). Checked
-  // most-specific-first ("Near HOD" before the plain "HOD" substring it
-  // contains) so they don't collide. Anything not recognized falls back
-  // to a deterministic hash-based hue, so every distinct strategy name
-  // still gets its own stable, low-opacity color rather than no tint.
   function getStrategyRowTint(strategyText){
     if(!strategyText) return "";
     const norm = String(strategyText).toLowerCase();
-    if(norm.includes("near hod")) return "rgba(56,189,248,0.07)";   // muted blue
-    if(norm.includes("running up")) return "rgba(74,222,128,0.07)"; // muted green
-    if(norm.includes("hod")) return "rgba(250,204,21,0.07)";        // muted gold
+    if(norm.includes("near hod")) return "rgba(56,189,248,0.07)";
+    if(norm.includes("running up")) return "rgba(74,222,128,0.07)";
+    if(norm.includes("hod")) return "rgba(250,204,21,0.07)";
     let hash = 0;
     for(let i = 0; i < norm.length; i++){ hash = (hash * 31 + norm.charCodeAt(i)) | 0; }
     const hue = Math.abs(hash) % 360;
@@ -2902,9 +2447,6 @@
     });
     html += `</tr></thead><tbody>`;
 
-    // Newest-first, sorted by the actual Time value rather than just
-    // insertion order — insertion order can drift from true chronological
-    // order (e.g. REST-seeded history mixed with live pushes).
     const sortedRows = [...state.rows].sort((a, b) => timeSortKey(b["Time"]) - timeSortKey(a["Time"]));
 
     sortedRows.forEach(row => {
@@ -2992,9 +2534,6 @@
 
   buildAlertPanels();
 
-  // Pre-seed each alert panel with recent history via the confirmed REST
-  // endpoint GET /data/v1/lastalerts, so panels show existing alerts
-  // immediately instead of staying empty until the next live push.
   function buildLastAlertsUrl(configId){
     const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY, config_id: configId });
     return `https://${BASE_URL}/data/v1/lastalerts?${params.toString()}`;
@@ -3010,7 +2549,6 @@
       if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
       const alerts = Array.isArray(json.alerts) ? json.alerts : [];
       logLine(`Seeded ${alerts.length} existing alert(s) for "${cfg.name}" via REST.`, "good");
-      // Reverse so the oldest is unshifted first, leaving newest-first order
       alerts.slice().reverse().forEach(a => {
         if(cfg.special === "halts") pushHaltEvent(a);
         else if(cfg.special === "screening") pushScreeningEvent(a, cfg.key);
@@ -3020,26 +2558,7 @@
       logLine(`Couldn't seed initial alerts for "${cfg.name}": ${e.message}`, "warn");
     }
   }
-  // (No standalone call here — seeding now happens inside ws.onopen,
-  // covering both the first connection and every reconnect after.)
 
-  // ---------------------------------------------------------------
-  // Stock detail modal
-  //
-  // IMPORTANT HONESTY NOTE: ChartsWatcher's documented API only gives us
-  // whatever columns each Toplist config is configured with — there is no
-  // separate "get full ticker detail" endpoint. Many of the requested
-  // metrics (Market Cap, Short Interest, Days since IPO, VWAP distance,
-  // etc.) are NOT part of our 9 standard columns. What we do here is
-  // search the FULL raw column_desc/columns the server sends for every
-  // table the symbol appears in (not just our matched 9), in case the
-  // underlying configs happen to include extra fields under different
-  // names. Anything we can't find a genuine match for is shown plainly
-  // as "Not available in connected feeds" — never fabricated.
-  // ---------------------------------------------------------------
-  // Column keys confirmed from a live ToplistUpdate payload
-  // (response_1787316694981.json, config Top Gainers). Modal lookup
-  // matches these keys exactly — not loose substrings like "high"/"low"/"float".
   const METRIC_GROUPS = [
     {
       title: "Float & Ownership",
@@ -3111,13 +2630,6 @@
     return s === "" || s === "—" || s === "-" || s.toLowerCase() === "n/a" || s.toLowerCase() === "na";
   }
 
-  // Search live ToplistUpdate row.columns keys first (the payload the
-  // server actually streams), then top-level row fields, then column_desc
-  // names. Exact token match only — no bidirectional substring matching.
-  //
-  // Empty strings (DaysSinceSplitNOOPTION: "") still count as "field exists".
-  // We prefer a non-empty value from any table (Split first when requested),
-  // and only show "—" when the key is present but blank — not "Not available".
   function findMetricAcrossTables(symbol, hints, preferTables){
     const reservedRowKeys = new Set(["symbol", "columns", "color"]);
     const tableOrder = [
@@ -3179,8 +2691,6 @@
     return emptyHit;
   }
 
-  // Also grab whichever row/table the symbol was clicked from, for the
-  // header (price, % change, company-level fields if present).
   function findAnyRow(symbol){
     for(const t of TABLES){
       const rows = displayed[t.key];
@@ -3200,15 +2710,7 @@
 
   let currentModalSymbol = null;
 
-  // ---------------------------------------------------------------
-  // Recent News — real REST endpoint: GET /data/v1/lastnews
-  // Confirmed via ChartsWatcher's API docs (Swagger), not guessed.
-  // ---------------------------------------------------------------
-  // Full symbol universe — GET /data/v1/symbols. Fetched once and cached
-  // client-side so search + company-name lookups work for ANY ticker,
-  // not just ones currently streaming in a loaded table/alert.
-  // ---------------------------------------------------------------
-  let allSymbolsMap = null;      // Map<symbol, name> once loaded; null until then
+  let allSymbolsMap = null;
   let allSymbolsLoading = false;
 
   function buildSymbolsUrl(){
@@ -3234,9 +2736,6 @@
       });
       logLine(`Loaded full symbol universe: ${allSymbolsMap.size} symbols via /data/v1/symbols.`, "good");
     }catch(e){
-      // Cache an empty (non-null) map so search still works via the loaded
-      // tables and the "open ticker regardless" fallback, without retrying
-      // this fetch on every keystroke.
       allSymbolsMap = new Map();
       logLine(`Couldn't load full symbol universe: ${e.message}`, "warn");
     }
@@ -3244,11 +2743,7 @@
   }
   loadAllSymbols();
 
-  // ---------------------------------------------------------------
-  // Recent News — real REST endpoint: GET /data/v1/lastnews
-  // Confirmed via ChartsWatcher's API docs (Swagger), not guessed.
-  // ---------------------------------------------------------------
-  const newsCache = {}; // symbol -> { articles, fetchedAt } | { error }
+  const newsCache = {};
 
   function buildNewsUrl(symbol){
     const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY, symbol });
@@ -3258,12 +2753,6 @@
   function formatNewsTime(epochSecond){
     if(!epochSecond) return "";
     const d = new Date(epochSecond * 1000);
-    // Forced to a fixed locale (not the device's default) — this is a
-    // compact technical timestamp, not translated content, and relying
-    // on the device's locale (e.g. Arabic on this phone) produced
-    // inconsistent digit/word ordering that then got visually reordered
-    // again by the surrounding RTL layout, exactly the jumbled output
-    // reported. A fixed English format is consistent everywhere.
     return d.toLocaleString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
   }
 
@@ -3289,23 +2778,11 @@
   }
 
   function updateNewsSectionDom(symbol){
-    if(currentModalSymbol !== symbol) return; // modal moved on to a different symbol
+    if(currentModalSymbol !== symbol) return;
     const listEl = document.getElementById("newsList");
     if(listEl) listEl.innerHTML = newsListHtml(symbol);
   }
 
-  // Free, no-key, documented translation API (mymemory.translated.net).
-  // Falls back to the original English text if translation fails for any
-  // reason (rate limit, network, empty response) rather than showing blank.
-  // Primary translator: Google Translate's public "gtx" client endpoint.
-  // This is NOT an official/supported Google API — it's the same
-  // unauthenticated endpoint the translate.google.com web page itself
-  // calls, widely relied on for exactly this no-backend use case. Unlike
-  // MyMemory (a translation-memory lookup), this is a real MT engine, so
-  // it actually translates novel text like stock headlines instead of
-  // just echoing back anything it doesn't recognize. Being unofficial,
-  // it could stop working without notice — that's why MyMemory stays in
-  // as a documented, stable fallback if this one fails.
   async function translateViaGoogle(text){
     try{
       const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURIComponent(text)}`;
@@ -3356,17 +2833,7 @@
     }
   }
 
-  // ---------------------------------------------------------------
-  // Sector / Industry Arabic translation — a static dictionary rather
-  // than a live translation API call, since this is a well-known, finite
-  // vocabulary (standard GICS-style sector/industry classifications).
-  // Terms not covered here honestly fall back to the original English
-  // rather than guessing a translation.
-  // ---------------------------------------------------------------
   const SECTOR_INDUSTRY_AR = {
-    // Yahoo-Finance-style top-level sectors — confirmed as the actual
-    // taxonomy in use (e.g. "Consumer Defensive", not GICS's "Consumer
-    // Staples") from real company data, not GICS.
     "technology": "التكنولوجيا",
     "information technology": "تكنولوجيا المعلومات",
     "healthcare": "الرعاية الصحية",
@@ -3384,8 +2851,6 @@
     "consumer staples": "السلع الاستهلاكية الأساسية",
     "consumer defensive": "السلع الاستهلاكية الأساسية",
     "communication services": "خدمات الاتصالات",
-
-    // Common industry / sub-sector terms
     "biotechnology": "التقنية الحيوية",
     "pharmaceuticals": "الأدوية",
     "drug manufacturers": "شركات تصنيع الأدوية",
@@ -3537,9 +3002,6 @@
     "electrical equipment & parts": "المعدات والأجزاء الكهربائية"
   };
 
-  // Translates a Sector/Industry string, including compound values like
-  // "Software - Infrastructure" (splits on " - ", translates each part,
-  // rejoins). Unrecognized terms are left in English rather than guessed.
   function translateSectorTerm(text){
     if(!text) return text;
     const raw = String(text).trim();
@@ -3549,11 +3011,9 @@
     if(raw.includes(" - ")){
       const parts = raw.split(" - ").map(p => p.trim());
       const translatedParts = parts.map(p => SECTOR_INDUSTRY_AR[p.toLowerCase()] || p);
-      // Only use the translated version if at least one segment matched —
-      // otherwise it's just the original text split and rejoined.
       if(translatedParts.some((p, i) => p !== parts[i])) return translatedParts.join(" - ");
     }
-    return raw; // honest fallback — term not in the dictionary
+    return raw;
   }
 
   async function translateToArabic(text){
@@ -3569,19 +3029,6 @@
     return { text, translated: false };
   }
 
-  // ---------------------------------------------------------------
-  // SEC EDGAR filings (S-1, S-3) — LINKS ONLY, no fetch.
-  //
-  // Both of SEC's programmatic APIs are confirmed unreachable from this
-  // client-side app: data.sec.gov explicitly doesn't support CORS per
-  // SEC's own docs, and efts.sec.gov (full-text search) was confirmed
-  // blocked by live testing. Rather than keep retrying a fetch that
-  // cannot succeed without a backend proxy, this opens the real EDGAR
-  // search UI in a new tab — a normal page navigation, not a JS fetch,
-  // so no CORS restriction applies at all. This means: no embedded list,
-  // and no way to auto-detect "has an S-3" for the header badge (that
-  // required fetched data we can no longer retrieve client-side).
-  // ---------------------------------------------------------------
   const SEC_FORMS = "S-1,S-3";
 
   function buildSecSearchLink(symbol){
@@ -3592,15 +3039,23 @@
   }
 
   function buildSecBrowseLink(symbol){
-    // SEC's classic browse-edgar tool also accepts a ticker directly in
-    // the CIK parameter — shows the full recent filing history, unfiltered.
     const params = new URLSearchParams({
       action: "getcompany", CIK: symbol.toUpperCase(), type: "", dateb: "", owner: "include", count: "40"
     });
     return `https://www.sec.gov/cgi-bin/browse-edgar?${params.toString()}`;
   }
 
+  function slugifyCompanyName(name){
+    return String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  function buildBamSecCompanyLink(symbol){
+    const ticker = encodeURIComponent(symbol.toUpperCase());
+    return `https://www.bamsec.com/search?q=${ticker}`;
+  }
+
   function secFilingsSectionHtml(symbol){
+    const bamSecLink = buildBamSecCompanyLink(symbol);
     return `
       <a class="sec-link-btn" href="${escapeHtml(buildSecSearchLink(symbol))}" target="_blank" rel="noopener noreferrer">
         Search EDGAR for S-1 / S-3 →
@@ -3608,27 +3063,16 @@
       <a class="sec-link-btn secondary" href="${escapeHtml(buildSecBrowseLink(symbol))}" target="_blank" rel="noopener noreferrer">
         Browse all EDGAR filings for ${escapeHtml(symbol)} →
       </a>
+      <a class="sec-link-btn secondary" href="${escapeHtml(bamSecLink)}" target="_blank" rel="noopener noreferrer">
+        Open ${escapeHtml(symbol)} on BamSEC →
+      </a>
     `;
   }
 
-  // shortablestocks.com's own site uses this exact URL convention for a
-  // symbol's page (confirmed directly from their own "Trending Tickers"
-  // links, e.g. "Borrow Data for ONDS" -> shortablestocks.com/?ONDS).
-  // This just opens it — no fetch, no scraping, no automation. You view
-  // it there with your own logged-in session, same as clicking it
-  // yourself, just one tap away from the symbol you're already looking at.
   function buildShortDataLink(symbol){
     return `https://www.shortablestocks.com/?${encodeURIComponent(symbol.toUpperCase())}`;
   }
 
-  // ChartExchange's borrow-fee page (confirmed via direct fetch — real,
-  // current borrow fee/shares-available data, publicly viewable with NO
-  // login wall). Its URL needs an exchange prefix (e.g. "nasdaq-juns"),
-  // confirmed from ChartExchange's own real links (nyse-gme, nyse-amc,
-  // nasdaq-api) — there's no confirmed bare-ticker fallback, so rather
-  // than guess and risk a broken link, this only builds the deep link
-  // when the exchange can be confidently normalized; otherwise it's
-  // omitted entirely (shortablestocks.com's link still covers you).
   function normalizeChartExchangeSlug(exchangeRaw){
     if(!exchangeRaw) return null;
     const norm = String(exchangeRaw).toLowerCase().replace(/[^a-z]/g, "");
@@ -3656,15 +3100,6 @@
     return links.join("\n");
   }
 
-  // =================================================================
-  // ECONOMIC CALENDAR (GENERAL section) — no fetch at all, by design.
-  // The previous version attempted a direct client-side fetch to a
-  // third-party feed (nfs.faireconomy.media), which is CORS-blocked in
-  // most environments, plus a "sample data" fallback for when it failed.
-  // Both are removed entirely per request — no network call, no console
-  // errors/warnings, no fabricated data ever shown. Just a static link
-  // out to the real calendar, same pattern as the IPO tab's fallback.
-  // =================================================================
   const ECONOMIC_CALENDAR_PAGE = "https://sa.investing.com/economic-calendar";
 
   function renderEconomicCalendarLink(){
@@ -3680,18 +3115,8 @@
     `;
   }
 
-  // =================================================================
-  // IPO CALENDAR (GENERAL section) — genuine direct client-side fetch,
-  // no backend. TradingView doesn't offer a public IPO calendar widget,
-  // so this tries Nasdaq's own (unofficial) IPO endpoint directly from
-  // the browser. This endpoint is known to often reject cross-origin
-  // browser requests — if that happens here, the error is surfaced
-  // honestly (debug panel + on-screen) and a guaranteed-working link to
-  // Nasdaq's real IPO calendar page is shown as a fallback, same pattern
-  // used for SEC filings earlier in this build.
-  // =================================================================
   let ipoLoaded = false;
-  let currentIpoView = "recent"; // "recent" | "upcoming"
+  let currentIpoView = "recent";
   const ipoCache = { recent: null, upcoming: null, error: null };
 
   const EXCHANGE_AR = {
@@ -3852,7 +3277,6 @@
     wrap.innerHTML = html;
   }
 
-  // Arabic day/month formatting shared by the IPO calendar
   const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
   const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
@@ -3875,7 +3299,6 @@
       catch(e){ throw new Error(`HTTP ${res.status} — response wasn't JSON: ${text.slice(0, 200)}`); }
       if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
 
-      // Only the 3 most recent stories, per request
       const latest = (Array.isArray(json.news) ? json.news : [])
         .slice()
         .sort((a, b) => (b.epochSecond || 0) - (a.epochSecond || 0))
@@ -3906,11 +3329,6 @@
       const viaMyMemory = articles.filter(a => a.headlineVia === "MyMemory").length;
       logLine(`Translated ${translatedCount}/${articles.length} headline(s) to Arabic (${viaGoogle} via Google, ${viaMyMemory} via MyMemory).`, "good");
     }catch(e){
-      // A bare TypeError with a short message like "Load failed" (Safari/
-      // WebKit) or "Failed to fetch" (Chrome) means the request never
-      // reached the server at all — almost always a CORS rejection or the
-      // browser blocking a request that originated from a local file
-      // rather than a real hosted URL, not a bug in the parsing logic.
       const isNetworkLevel = e instanceof TypeError;
       const hint = isNetworkLevel
         ? " (This is a network-level rejection — likely CORS or the browser blocking a request from a local file/edge://external-file origin, rather than a server error. Try hosting this file at a real https:// URL, or test on a different browser/device.)"
@@ -3922,8 +3340,38 @@
     updateNewsSectionDom(symbol);
   }
 
-  // ---------------------------------------------------------------
-  // Header badges: R:S when Days Since Split is strictly < 20.
+  async function fetchBorrowFeeLive(symbol){
+    const el = document.getElementById("borrowFeeLive");
+    if(!el) return;
+
+    const exchange = findMetricAcrossTables(symbol, ["sourceinfo", "exchange"]);
+    const url = buildChartExchangeBorrowLink(symbol, exchange?.value);
+    if(!url) return;
+
+    try{
+      const res = await fetch(url);
+      const text = await res.text();
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const m = text.match(/As of ([^,]+), there were ([\d,]+) shares available with a fee of ([\d.]+)%/i);
+      if(!m) throw new Error("Expected summary sentence not found in the page (wording may have changed)");
+
+      if(currentModalSymbol !== symbol) return;
+
+      const [, dateStr, availableStr, feeStr] = m;
+      el.innerHTML = `<div class="borrow-fee-live">
+        <div><span class="bf-label">As of</span><span class="bf-date">${escapeHtml(dateStr.trim())}</span></div>
+        <div><span class="bf-label">Fee</span><span class="bf-fee">${escapeHtml(feeStr)}%</span></div>
+        <div><span class="bf-label">Available</span><span class="bf-avail">${escapeHtml(availableStr)}</span></div>
+      </div>`;
+      logLine(`ChartExchange borrow-fee live data loaded for ${symbol}.`, "good");
+    }catch(e){
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel ? " (likely CORS — this page wasn't built for third-party fetching)" : "";
+      logLine(`ChartExchange borrow-fee fetch failed for ${symbol}: ${e.message}${hint} — link above still works.`, "warn");
+    }
+  }
+
   const RS_SPLIT_DAYS = 20;
 
   function parseDaysSinceSplitValue(raw){
@@ -3963,8 +3411,6 @@
     if(currentModalSymbol !== symbol) return;
     const el = document.getElementById("modalHeaderBadges");
     if(!el) return;
-    // R:S lives inline after the country on line 1 — keep this slot empty
-    // so the badge is not duplicated.
     el.innerHTML = "";
   }
 
@@ -3973,9 +3419,6 @@
 
     document.getElementById("modalSym").textContent = symbol;
 
-    // Company name: prefer the authoritative full-universe lookup (works
-    // for ANY symbol, not just ones with data in a loaded table) over the
-    // fuzzy table-column guess, which is kept only as a fallback.
     const universeName = allSymbolsMap ? allSymbolsMap.get(symbol.toUpperCase()) : null;
     const tableNameGuess = findMetricAcrossTables(symbol, ["companyname", "company"]);
     const companyNameVal = universeName || tableNameGuess?.value || null;
@@ -3986,7 +3429,6 @@
     const country = found ? findColumnKey(found.tableKey, "Country") : null;
     const countryVal = found && country ? (found.row.columns || []).find(c => c.key === country)?.value : null;
 
-    // Line 1: Company Name | Country
     const line1Parts = [companyNameVal, countryVal].filter(Boolean);
     const symbolIsRecognized = !allSymbolsMap || allSymbolsMap.size === 0 || allSymbolsMap.has(symbol.toUpperCase());
     const line1El = document.getElementById("modalLine1");
@@ -3999,7 +3441,6 @@
         : "Symbol not found in ChartsWatcher's universe";
     }
 
-    // Line 2: Exchange | Sector | Industry (Sector/Industry via Arabic dictionary)
     const line2Parts = [
       exchange?.value,
       sector?.value ? translateSectorTerm(sector.value) : null,
@@ -4030,14 +3471,15 @@
 
     bodyHtml += `<div class="modal-section">
       <h4>SEC Filings (S-1 / S-3)</h4>
-      <div class="news-translate-note">SEC's filing APIs don't allow direct browser access from this app (CORS) — these open the real EDGAR search on sec.gov in a new tab instead.</div>
+      <div class="news-translate-note">SEC's filing APIs don't allow direct browser access from this app (CORS) — the EDGAR links open a symbol-specific search on sec.gov directly. The BamSEC link opens the company's page directly on BamSEC.</div>
       <div class="sec-links">${secFilingsSectionHtml(symbol)}</div>
     </div>`;
 
     bodyHtml += `<div class="modal-section">
       <h4>Short / Borrow Data</h4>
-      <div class="news-translate-note">Fee, rebate, and shares-available data requires your own logged-in session on shortablestocks.com — this opens their page for ${escapeHtml(symbol)} directly in a new tab, rather than pulling the data through this app.</div>
+      <div class="news-translate-note">Fee, rebate, and shares-available data requires your own logged-in session on shortablestocks.com — this opens their page for ${escapeHtml(symbol)} directly in a new tab, rather than pulling the data through this app. ChartExchange's borrow-fee page is free/no-login — attempting to pull its latest reading directly below.</div>
       <div class="sec-links">${shortDataSectionHtml(symbol, exchange?.value)}</div>
+      <div id="borrowFeeLive"></div>
     </div>`;
 
     bodyHtml += `<div class="modal-section"><h4>Overview</h4><div class="modal-grid">
@@ -4062,6 +3504,7 @@
     renderStockModal(symbol);
     document.getElementById("stockModalOverlay").classList.remove("hidden");
     fetchNews(symbol);
+    fetchBorrowFeeLive(symbol);
   }
 
   function closeStockModal(){
@@ -4073,8 +3516,6 @@
     if(currentModalSymbol) renderStockModal(currentModalSymbol);
   }
 
-  // Capture-phase: preview-row clicks open the stock modal and never
-  // reach the panel-head [data-fold] expand/collapse handler.
   document.addEventListener("click", (e) => {
     const previewRow = e.target.closest(".card-preview-row-toplist");
     if(!previewRow) return;
@@ -4083,8 +3524,6 @@
     if(symbol && symbol !== "—") openStockModal(symbol);
   }, true);
 
-  // Event delegation: symbol cells are regenerated on every render, so we
-  // bind one listener on the document rather than re-binding per row.
   document.addEventListener("click", (e) => {
     const link = e.target.closest(".sym-link");
     if(link && link.dataset.symbol){
@@ -4104,9 +3543,6 @@
     if(e.key === "Escape") closeStockModal();
   });
 
-  // ---------------------------------------------------------------
-  // WebSocket connection
-  // ---------------------------------------------------------------
   function connect(){
     clearTimeout(reconnectTimer);
     setConnStatus("connecting", "Connecting…");
@@ -4131,16 +3567,13 @@
           ws.send(JSON.stringify({ "@type": "Toplist", "config_id": t.configId, "action": "subscribe" }));
           logLine(`Subscribing to "${t.name}" (config ${t.configId})`);
 
-          // Watchdog: if no ToplistConfirm arrives for this config within
-          // 8s, surface it clearly instead of leaving the table stuck on
-          // "Waiting for data…" with no explanation.
           clearTimeout(confirmTimers[t.key]);
           confirmTimers[t.key] = setTimeout(() => {
             if(!columnMapping[t.key]){
               logLine(`No confirmation received yet for "${t.name}" (config ${t.configId}) after 8s — the config ID, a per-account subscription limit, or a slow server response could be the cause.`, "warn");
             }
           }, 8000);
-        }, i * 250); // stagger sends so a burst of subscribes can't race/overwhelm the connection
+        }, i * 250);
       });
 
       ALERT_CONFIGS.forEach((a, i) => {
@@ -4158,15 +3591,6 @@
         }, (TABLES.length + i) * 250);
       });
 
-      // Re-run the REST catch-up on every fresh connection, not just
-      // page load. The live WebSocket subscription only streams events
-      // going forward from the moment it opens — it never backfills
-      // anything that happened while disconnected (e.g. a backgrounded
-      // mobile tab silently pausing for several minutes). Without this,
-      // a reconnect would resume live streaming but permanently miss
-      // whatever fired during the gap. The duplicate guards added to
-      // pushHaltEvent/pushScreeningEvent keep this from re-inserting
-      // alerts already received.
       ALERT_CONFIGS.forEach(seedInitialAlerts);
     };
 
@@ -4211,11 +3635,10 @@
         }
         const rows = Array.isArray(msg.rows) ? msg.rows : [];
 
-        // Apply immediately — fully real-time, no manual step required
         displayed[key] = rows;
         renderTable(TABLES.find(t => t.key === key));
         refreshModalIfOpen();
-        if(key === "table1") recomputeMarketPulse(); // Momentum/Volume Pressure/Float Velocity depend on this table specifically
+        if(key === "table1") recomputeMarketPulse();
 
         const updateEl = document.getElementById("raw" + key.replace("table","") + "update");
         if(updateEl) updateEl.textContent = JSON.stringify(msg, null, 2).slice(0, 4000);
@@ -4246,11 +3669,6 @@
         return;
       }
 
-      // Confirmed real message type: individual alert events arrive as
-      // {"@type":"NewAlert", ...}. Resolve which config(s) it belongs to
-      // via config_id — more than one panel can share the same config_id
-      // (e.g. Screening and 🟩 HOD MOMO), so every matching key gets the
-      // event, not just the first one registered.
       if(msg["@type"] === "NewAlert" || msg["@type"] === "AlertUpdate"){
         let keys = configToAlertKeys[msg.config_id];
         if((!keys || keys.length === 0) && ALERT_CONFIGS.length === 1) keys = [ALERT_CONFIGS[0].key];
@@ -4261,11 +3679,10 @@
 
         keys.forEach(key => {
           clearTimeout(confirmTimers[key]);
-          alertConfirmed[key] = true; // receiving an alert implies the subscription is working
+          alertConfirmed[key] = true;
           const alertCfg = ALERT_CONFIGS.find(a => a.key === key);
           const alertName = alertCfg.name;
 
-          // AlertUpdate might carry a batch; NewAlert is a single event.
           const items = Array.isArray(msg.alerts) ? msg.alerts
                        : Array.isArray(msg.data) ? msg.data
                        : Array.isArray(msg.rows) ? msg.rows
@@ -4282,9 +3699,6 @@
         return;
       }
 
-      // Anything else — log it plainly. We no longer guess unknown types
-      // are alerts by default now that "NewAlert" is confirmed real; an
-      // unrecognized type just gets logged for visibility.
       logLine(`Received unrecognized message type "${msg["@type"] || "Unknown"}".`, "warn");
     };
 
@@ -4296,9 +3710,6 @@
     ws.onclose = (event) => {
       logLine(`Closed — code ${event.code}${event.reason ? `, reason: "${event.reason}"` : " (no reason given)"}`, "bad");
       if(unloading) return;
-      // Always auto-reconnect on any drop — including ones caused by the
-      // manual Refresh button — so the stream never needs a person to
-      // babysit it back to life.
       setConnStatus("connecting", "Reconnecting…");
       scheduleReconnect();
     };
@@ -4313,9 +3724,6 @@
     }, reconnectDelay);
   }
 
-  // ---------------------------------------------------------------
-  // Events
-  // ---------------------------------------------------------------
   refreshBtn.addEventListener("click", () => {
     refreshBtn.classList.add("spinning");
     logLine("Manual refresh requested — forcing reconnect…");
@@ -4326,14 +3734,6 @@
     setTimeout(() => refreshBtn.classList.remove("spinning"), 500);
   });
 
-  // Fold / collapse toggles — delegated so it also works for alert panels
-  // that are created dynamically after this listener is attached.
-  //
-  // Expanding a table/alert panel (.panel) now goes full-screen rather
-  // than expanding inline, so only one can be open at a time — opening
-  // one auto-collapses whichever other panel was already open. The
-  // Debug Panel is excluded (it stays as a normal inline expand/collapse,
-  // it never needs full-screen).
   document.addEventListener("click", (e) => {
     if(e.target.closest("#notifToggleBtn")){
       toggleBrowserNotifications();
@@ -4381,7 +3781,6 @@
 
     const isOpening = panel.classList.contains("collapsed");
     if(isOpening){
-      // Only one full-screen panel at a time — collapse any other open one
       document.querySelectorAll(".panel:not(.collapsed)").forEach(p => {
         if(p !== panel) p.classList.add("collapsed");
       });
