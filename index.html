@@ -3611,6 +3611,51 @@
     `;
   }
 
+  // shortablestocks.com's own site uses this exact URL convention for a
+  // symbol's page (confirmed directly from their own "Trending Tickers"
+  // links, e.g. "Borrow Data for ONDS" -> shortablestocks.com/?ONDS).
+  // This just opens it — no fetch, no scraping, no automation. You view
+  // it there with your own logged-in session, same as clicking it
+  // yourself, just one tap away from the symbol you're already looking at.
+  function buildShortDataLink(symbol){
+    return `https://www.shortablestocks.com/?${encodeURIComponent(symbol.toUpperCase())}`;
+  }
+
+  // ChartExchange's borrow-fee page (confirmed via direct fetch — real,
+  // current borrow fee/shares-available data, publicly viewable with NO
+  // login wall). Its URL needs an exchange prefix (e.g. "nasdaq-juns"),
+  // confirmed from ChartExchange's own real links (nyse-gme, nyse-amc,
+  // nasdaq-api) — there's no confirmed bare-ticker fallback, so rather
+  // than guess and risk a broken link, this only builds the deep link
+  // when the exchange can be confidently normalized; otherwise it's
+  // omitted entirely (shortablestocks.com's link still covers you).
+  function normalizeChartExchangeSlug(exchangeRaw){
+    if(!exchangeRaw) return null;
+    const norm = String(exchangeRaw).toLowerCase().replace(/[^a-z]/g, "");
+    if(norm.includes("nasdaq")) return "nasdaq";
+    if(norm.includes("nyseamerican") || norm.includes("amex")) return "nyseamerican";
+    if(norm.includes("nyse")) return "nyse";
+    if(norm.includes("otc")) return "otc";
+    if(norm.includes("cboe") || norm.includes("bats")) return "cboe";
+    return null;
+  }
+
+  function buildChartExchangeBorrowLink(symbol, exchangeRaw){
+    const slug = normalizeChartExchangeSlug(exchangeRaw);
+    if(!slug) return null;
+    return `https://chartexchange.com/symbol/${slug}-${symbol.toLowerCase()}/borrow-fee/`;
+  }
+
+  function shortDataSectionHtml(symbol, exchangeRaw){
+    const ceLink = buildChartExchangeBorrowLink(symbol, exchangeRaw);
+    const links = [];
+    if(ceLink){
+      links.push(`<a class="sec-link-btn" href="${escapeHtml(ceLink)}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(symbol)} Borrow Fee on ChartExchange (free, no login) →</a>`);
+    }
+    links.push(`<a class="sec-link-btn${ceLink ? " secondary" : ""}" href="${escapeHtml(buildShortDataLink(symbol))}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(symbol)} on Shortable Stocks →</a>`);
+    return links.join("\n");
+  }
+
   // =================================================================
   // ECONOMIC CALENDAR (GENERAL section) — no fetch at all, by design.
   // The previous version attempted a direct client-side fetch to a
@@ -3987,6 +4032,12 @@
       <h4>SEC Filings (S-1 / S-3)</h4>
       <div class="news-translate-note">SEC's filing APIs don't allow direct browser access from this app (CORS) — these open the real EDGAR search on sec.gov in a new tab instead.</div>
       <div class="sec-links">${secFilingsSectionHtml(symbol)}</div>
+    </div>`;
+
+    bodyHtml += `<div class="modal-section">
+      <h4>Short / Borrow Data</h4>
+      <div class="news-translate-note">Fee, rebate, and shares-available data requires your own logged-in session on shortablestocks.com — this opens their page for ${escapeHtml(symbol)} directly in a new tab, rather than pulling the data through this app.</div>
+      <div class="sec-links">${shortDataSectionHtml(symbol, exchange?.value)}</div>
     </div>`;
 
     bodyHtml += `<div class="modal-section"><h4>Overview</h4><div class="modal-grid">
