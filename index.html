@@ -99,12 +99,92 @@
   .cp-change{ text-align:right; font-weight:700; min-width:56px; }
   .card-preview-empty{ padding:6px 0; font-size:11px; color: var(--muted); text-align:center; }
 
-  /* Top Lists preview only: [Ticker+Flag] | [Price] | [Change%] | [Float] —
+  /* Top Lists preview only: [Ticker+Flag] | [Price] | [Change%] | [Float] | [5M#] —
+     Strict 5-column grid for pixel-perfect vertical alignment across rows.
      Alerts keep the original 3-column layout above, untouched. */
-  .card-preview-row-toplist{ grid-template-columns: 1fr auto auto auto; gap:8px; }
-  .cp-ticker-group{ display:inline-flex; align-items:center; gap:5px; min-width:0; }
-  .cp-flag{ display:inline-block; border-radius:2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); flex-shrink:0; }
-  .cp-float-badge{ display:inline-block; padding:1px 7px; border-radius:10px; font-size:9.5px; font-weight:700; font-family:'IBM Plex Mono', ui-monospace, monospace; white-space:nowrap; background: rgba(255,255,255,0.06); color: var(--text); }
+  .card-preview-row-toplist{
+    grid-template-columns: minmax(110px, 1.4fr) minmax(50px, 0.8fr) minmax(60px, 0.9fr) minmax(55px, 0.9fr) minmax(45px, 0.8fr);
+    gap: 0;
+    align-items: stretch;
+    min-height: 24px;
+    padding: 3px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background .12s ease;
+  }
+  .card-preview-row-toplist:hover{
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .card-preview-row-toplist > *{
+    display: flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    box-sizing: border-box;
+    min-width: 0;
+  }
+  .card-preview-row-toplist > *:last-child{ border-right: none; }
+  .card-preview-row-toplist > :nth-child(1){ justify-content: flex-start; text-align: left; }
+  .card-preview-row-toplist > :nth-child(n+2){ justify-content: flex-end; text-align: right; }
+  .card-preview-row-toplist .cp-ticker-group{
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    overflow: visible;
+    white-space: nowrap;
+    width: 100%;
+  }
+  .card-preview-row-toplist .cp-symbol{
+    overflow: visible;
+    white-space: nowrap;
+    color: var(--header-text);
+    font-weight: 700;
+  }
+  .card-preview-row-toplist .cp-flag{
+    display: inline-block;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+  .card-preview-row-toplist .cp-news-indicator{
+    font-size: 11px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .card-preview-row-toplist .split-badge-rs{
+    margin-left: 0;
+    font-size: 9px;
+    padding: 0 3px;
+  }
+  .card-preview-row-toplist .cp-price{
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--text);
+  }
+  .card-preview-row-toplist .cp-change{
+    min-width: 0;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .card-preview-row-toplist .cp-float-badge,
+  .card-preview-row-toplist .cp-trade-badge{
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 9.5px;
+    font-weight: 700;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    white-space: nowrap;
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+  }
+  .cp-trade-badge.cptc-white{ color:#ffffff; }
+  .cp-trade-badge.cptc-green{ color:#22c55e; background: rgba(34,197,94,0.12); }
+  .cp-trade-badge.cptc-darkgreen{ color:#86efac; background: rgba(22,101,52,0.22); }
+  .cp-trade-badge.cptc-orange{ color:#fb923c; background: rgba(251,146,60,0.14); }
   .cp-float-badge.cpflt-lightgreen{ background: linear-gradient(90deg, #4ade80, #86efac); color:#052e16; }
   .cp-float-badge.cpflt-green{ background: linear-gradient(90deg, #16a34a, #22c55e); color:#fff; }
   .cp-float-badge.cpflt-darkgreen{ background: linear-gradient(90deg, #14532d, #16a34a); color:#fff; }
@@ -498,7 +578,23 @@
   .modal-head-line1{ font-size:13px; font-weight:600; color: var(--header-text); line-height:1.4; overflow-wrap:break-word; }
   .modal-header-badges{ display:inline-flex; align-items:center; gap:5px; }
   .header-badge{ display:inline-block; padding:2px 7px; border-radius:5px; font-size:10px; font-weight:800; letter-spacing:0.02em; line-height:1.5; flex-shrink:0; }
-  .header-badge.badge-rs{ background:#ea580c; color:#ffffff; box-shadow: 0 0 6px rgba(234,88,12,0.45); }
+  .header-badge.badge-rs,
+  .split-badge-rs{
+    background-color: rgba(251, 191, 36, 0.2);
+    color: #FFFFFF;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    box-shadow: none;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    margin-left: 4px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
   .modal-head-line2{ font-size:11.5px; color: var(--muted); margin-top:4px; line-height:1.4; overflow-wrap:break-word; }
   .modal-close{ background:transparent; border:1px solid var(--border); border-radius:7px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color: var(--muted); cursor:pointer; flex-shrink:0; }
   .modal-close:hover{ background:#20242c; color: var(--header-text); }
@@ -645,21 +741,21 @@
     </div>
   </div>
 
-  <!-- ===== Section 3: After Market ===== -->
-  <div class="panel collapsed" id="panel-table3">
-    <div class="panel-head" data-fold="table3">
+  <!-- ===== Section 2: Most Active ===== -->
+  <div class="panel collapsed" id="panel-table2">
+    <div class="panel-head" data-fold="table2">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse After Market" tabindex="-1">
+        <button class="fold-btn" aria-label="Collapse Most Active" tabindex="-1">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <span class="panel-head-icon icon-green">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+        <span class="panel-head-icon icon-blue">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         </span>
-        <h2>After Market</h2>
+        <h2>Most Active</h2>
       </div>
-      <span class="count" id="count3"></span>
+      <span class="count" id="count2"></span>
     </div>
-    <div id="table3Wrap" class="table-scroll">
+    <div id="table2Wrap" class="table-scroll">
       <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
     </div>
   </div>
@@ -683,21 +779,21 @@
     </div>
   </div>
 
-  <!-- ===== Section 2: Most Active ===== -->
-  <div class="panel collapsed" id="panel-table2">
-    <div class="panel-head" data-fold="table2">
+  <!-- ===== Section 3: After Market ===== -->
+  <div class="panel collapsed" id="panel-table3">
+    <div class="panel-head" data-fold="table3">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Most Active" tabindex="-1">
+        <button class="fold-btn" aria-label="Collapse After Market" tabindex="-1">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <span class="panel-head-icon icon-blue">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span class="panel-head-icon icon-green">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
         </span>
-        <h2>Most Active</h2>
+        <h2>After Market</h2>
       </div>
-      <span class="count" id="count2"></span>
+      <span class="count" id="count3"></span>
     </div>
-    <div id="table2Wrap" class="table-scroll">
+    <div id="table3Wrap" class="table-scroll">
       <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
     </div>
   </div>
@@ -977,9 +1073,9 @@
   const TABLES = [
     { key: "table1", name: "Top Gainers",  configId: "6a1c66d57518438c9c7190c1", wrapId: "table1Wrap", countId: "count1", columns: STANDARD_COLUMNS },
     { key: "table2", name: "Most Active",  configId: "69af3449174bfc7ca6ffc56d", wrapId: "table2Wrap", countId: "count2", columns: STANDARD_COLUMNS },
+    { key: "table5", name: "Low Float Top Gainers", configId: "6a1c66d57518438c9c7190c2", wrapId: "table5Wrap", countId: "count5", columns: STANDARD_COLUMNS },
     { key: "table3", name: "After Market", configId: "69a986c3433cbf6f690c212b", wrapId: "table3Wrap", countId: "count3", columns: STANDARD_COLUMNS },
     { key: "table4", name: "5 Pillars",    configId: "69d56d187f6e8e20dfce5c82", wrapId: "table4Wrap", countId: "count4", columns: STANDARD_COLUMNS },
-    { key: "table5", name: "Low Float Top Gainers", configId: "6a1c66d57518438c9c7190c2", wrapId: "table5Wrap", countId: "count5", columns: STANDARD_COLUMNS },
     { key: "table6", name: "Split", configId: "69ae338c433cbf6f69e76619", wrapId: "table6Wrap", countId: "count6", columns: SPLIT_COLUMNS }
   ];
 
@@ -1143,6 +1239,51 @@
   // (Toplist rows use row.columns[] resolved via column_desc; Screening/
   // Halts rows are already flat label-keyed objects — Halts happens to
   // label its change field "Change %" instead of "% Change").
+  // Resolves "hours since news" from row props or the News Icon column
+  // (raw minutes in Toplist rows — same source as renderNewsCell).
+  function resolveHoursSinceNews(row, tableKey){
+    if(row.hoursSinceNews != null && row.hoursSinceNews !== ""){
+      const h = parseFloat(String(row.hoursSinceNews).replace(/,/g, ""));
+      if(!isNaN(h)) return h;
+    }
+    if(row.newsHours != null && row.newsHours !== ""){
+      const h = parseFloat(String(row.newsHours).replace(/,/g, ""));
+      if(!isNaN(h)) return h;
+    }
+    if(row.newsMinutes != null && row.newsMinutes !== ""){
+      const m = parseFloat(String(row.newsMinutes).replace(/,/g, ""));
+      if(!isNaN(m)) return m / 60;
+    }
+
+    const colMap = {};
+    (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+    const newsKey = findColumnKey(tableKey, "News Icon");
+    const raw = newsKey ? colMap[newsKey] : null;
+    if(raw === null || raw === undefined || raw === "") return null;
+
+    const strVal = String(raw).trim();
+    const lower = strVal.toLowerCase();
+    if(["false", "no", "none", "—", "n/a", "na"].includes(lower)) return null;
+    if(["true", "yes", "fresh", "hot", "new"].includes(lower)) return 0;
+
+    const cleaned = strVal.replace(/,/g, "");
+    const m = cleaned.match(/-?\d+(\.\d+)?/);
+    if(!m) return null;
+    const minutes = parseFloat(m[0]);
+    if(isNaN(minutes)) return null;
+    return minutes / 60;
+  }
+
+  function previewNewsIndicator(hours){
+    if(hours === null || hours === undefined || isNaN(hours) || hours >= 7) return "";
+    return `<span class="cp-news-indicator" title="News within 7h">📰</span>`;
+  }
+
+  function previewRsBadge(days){
+    if(days === null || days === undefined || isNaN(days) || days >= RS_SPLIT_DAYS) return "";
+    return splitRsBadgeHtml();
+  }
+
   function extractPreviewFields(tableKey, row, isToplist){
     if(isToplist){
       const colMap = {};
@@ -1153,7 +1294,10 @@
         price: get("Price ($)"),
         change: get("% Change"),
         country: get("Country"),
-        float: get("Float")
+        float: get("Float"),
+        tradeCount: get("5 min trade count"),
+        hoursSinceNews: resolveHoursSinceNews(row, tableKey),
+        daysSinceSplit: resolveDaysSinceSplit(row.symbol, row)
       };
     }
     return {
@@ -1182,6 +1326,20 @@
     return `<span class="cp-float-badge ${cls}">${escapeHtml(value)}</span>`;
   }
 
+  // Compact 5M# badge — same tier thresholds as the main table's trade-count column.
+  function previewTradeCountBadge(value){
+    if(value === null || value === undefined || value === "") return `<span class="cp-trade-badge">—</span>`;
+    const n = parseFloat(String(value).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
+    let tierCls = "cptc-white";
+    if(!isNaN(n)){
+      if(n < 500) tierCls = "cptc-white";
+      else if(n <= 2000) tierCls = "cptc-green";
+      else if(n <= 5000) tierCls = "cptc-darkgreen";
+      else tierCls = "cptc-orange";
+    }
+    return `<span class="cp-trade-badge ${tierCls}">${escapeHtml(value)}</span>`;
+  }
+
   function renderCardPreview(dataKey, rows, tableKeyForLookup, isToplist){
     const el = document.getElementById("cardPreview-" + dataKey);
     if(!el) return;
@@ -1194,12 +1352,13 @@
     sample.forEach(row => {
       const f = extractPreviewFields(tableKeyForLookup, row, isToplist);
       if(isToplist){
-        // [Ticker][Flag] | [Price] | [Change %] | [Float]
-        html += `<div class="card-preview-row card-preview-row-toplist">
-          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}</span>
+        // [Ticker][Flag][📰 if <7h] | [Price] | [Change %] | [Float] | [5M#]
+        html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
+          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
+          ${previewTradeCountBadge(f.tradeCount)}
         </div>`;
       } else {
         html += `<div class="card-preview-row">
@@ -2557,7 +2716,7 @@
     "Time":                          { hints: ["time", "timestamp", "epoch", "date"] },
     "Symbol":                         { hints: ["symbol", "ticker"] },
     "Price ($)":                     { hints: ["price", "pricenooption"] },
-    "News Icon":                     { hints: ["news"] },
+    "News Icon":                     { hints: ["minutessincenews", "hourssincenews", "newsicon", "news"] },
     "% Change":                       { hints: ["changepercent", "pctchange", "change", "changefromcloseprz"] },
     "Float":                           { hints: ["float", "newfloatnooption"] },
     "Country":                         { hints: ["country", "countryinfo"] },
@@ -2592,12 +2751,52 @@
     return isNaN(d.getTime()) ? -Infinity : d.getTime();
   }
 
+  // Pick the Hrs / News Icon field the same way Toplist mapping does:
+  // anything whose key/name contains "news", prefer "minute", skip SVG
+  // icon markup (DaySinceNewsIcon). Hours-named fields are converted to
+  // minutes so renderNewsCell (minutes → hours, 🔥 if < 7h) is identical.
+  function pickNewsAlertField(fields, used){
+    fields.forEach(f => {
+      const looksNews = String(f.key).toLowerCase().includes("news") || normalizeLabel(f.key).includes("news");
+      if(looksNews && /<svg/i.test(String(f.value))) used.add(f.key);
+    });
+    const candidates = fields.filter(f =>
+      !used.has(f.key) &&
+      (String(f.key).toLowerCase().includes("news") || normalizeLabel(f.key).includes("news"))
+    );
+    return candidates.find(f => normalizeLabel(f.key).includes("minute"))
+        || candidates.find(f => String(f.key).toLowerCase().includes("news"))
+        || candidates[0]
+        || null;
+  }
+
+  function newsFieldValueAsMinutes(field){
+    if(!field || field.value === null || field.value === undefined || field.value === "") return null;
+    const strVal = String(field.value).trim();
+    const lower = strVal.toLowerCase();
+    if(["true","yes","fresh","hot","new","false","no","none","—","n/a","na"].includes(lower)) return field.value;
+    const m = strVal.replace(/,/g, "").match(/-?\d+(\.\d+)?/);
+    if(!m) return field.value;
+    const n = parseFloat(m[0]);
+    if(isNaN(n)) return field.value;
+    const keyNorm = normalizeLabel(field.key);
+    if(keyNorm.includes("hour") && !keyNorm.includes("minute")) return n * 60;
+    return n;
+  }
+
   function matchScreeningRow(fields){
     const used = new Set();
     const result = {};
     SCREENING_MATCH_ORDER.forEach(label => {
+      let match = null;
+      if(label === "News Icon"){
+        match = pickNewsAlertField(fields, used);
+        if(match) used.add(match.key);
+        result[label] = match ? newsFieldValueAsMinutes(match) : null;
+        return;
+      }
       const hints = SCREENING_COLUMN_DEFS[label].hints;
-      let match = fields.find(f => !used.has(f.key) && hints.some(h => normalizeLabel(f.key) === h));
+      match = fields.find(f => !used.has(f.key) && hints.some(h => normalizeLabel(f.key) === h));
       if(!match){
         match = fields.find(f => {
           if(used.has(f.key)) return false;
@@ -2605,13 +2804,8 @@
           return hints.some(h => norm.includes(h) || h.includes(norm));
         });
       }
-      // Some ChartsWatcher fields (e.g. DaySinceNewsIcon) send raw SVG
-      // markup instead of a usable value. Rendering that as data would
-      // mean accidentally parsing a stray number out of the markup (e.g.
-      // "height: 20px" → a fabricated "20m" news badge) — reject it and
-      // honestly show "no data" instead.
       if(match && /<svg/i.test(String(match.value))){
-        used.add(match.key); // still consumed, so nothing else claims it
+        used.add(match.key);
         match = null;
       }
       if(match) used.add(match.key);
@@ -2843,101 +3037,146 @@
   // names. Anything we can't find a genuine match for is shown plainly
   // as "Not available in connected feeds" — never fabricated.
   // ---------------------------------------------------------------
+  // Column keys confirmed from a live ToplistUpdate payload
+  // (response_1787316694981.json, config Top Gainers). Modal lookup
+  // matches these keys exactly — not loose substrings like "high"/"low"/"float".
   const METRIC_GROUPS = [
     {
       title: "Float & Ownership",
       metrics: [
         { label: "Shares Outstanding", hints: ["sharesoutstanding", "outstandingshares", "sharesout"] },
-        { label: "Market Cap",          hints: ["marketcap", "mcap", "marketcapnooption"] },
+        { label: "Market Cap",          hints: ["marketcapnooption", "marketcap"] },
         { label: "Float Rotation",       hints: ["floatrotation"] },
-        { label: "Float",                 hints: ["float"] }
+        { label: "Float",                 hints: ["newfloatnooption", "newfloat"] },
+        { label: "Institutional Ownership", hints: ["institutionalownershipnooption", "institutionalownership"] }
       ]
     },
     {
       title: "Short Interest",
       metrics: [
-        { label: "Shares Short",       hints: ["sharesshort", "shortshares", "sharesshortcolumn"] },
-        { label: "Short Ratio",         hints: ["shortratio", "daystocover", "shortrationooption"] },
-        { label: "Short Interest (%)", hints: ["shortinterest", "shortinterestnooption"] }
+        { label: "Shares Short",       hints: ["sharesshortcolumn", "sharesshort"] },
+        { label: "Short Ratio",         hints: ["shortrationooption", "shortratio"] },
+        { label: "Short Interest (%)", hints: ["shortinterestnooption", "shortinterest"] }
       ]
     },
     {
       title: "Trading Activity",
       metrics: [
-        // Confirmed against a real ChartsWatcher payload — these cryptic
-        // internal filter names have zero resemblance to what they mean,
-        // same pattern as the Screening/Halts field-name fixes earlier.
-        { label: "5 Min Volume",                    hints: ["5minvolume", "fiveminutevolume", "absvolumefiltermin5"] },
-        { label: "5 Min Trade Count",               hints: ["5mintradecount", "fiveminutetradecount", "tradecountfiltermin5"] },
-        { label: "Relative 5 Min Trade Count (%)", hints: ["relative5mintradecount"] },
-        { label: "Relative Daily Volume (%)",      hints: ["relativedailyvolume", "przvolumefilterfd1"] }
+        { label: "5 Min Volume",                    hints: ["absvolumefiltermin5"] },
+        { label: "5 Min Trade Count",               hints: ["tradecountfiltermin5"] },
+        { label: "Relative 5 Min Trade Count (%)", hints: ["przvolumefilterfm5"] },
+        { label: "Relative Daily Volume (%)",      hints: ["przvolumefilterfd1"] }
       ]
     },
     {
       title: "Corporate Actions",
       metrics: [
-        { label: "Days Since IPO",   hints: ["dayssinceipo", "ipoage", "dayssinceiponooption"] },
-        { label: "Days Since Split", hints: ["dayssincesplit", "splitage", "dayssincesplitnooption"] },
-        { label: "Split Ratio",       hints: ["splitratio", "splitrationooption"] }
+        { label: "Days Since IPO",   hints: ["dayssinceiponooption", "dayssinceipo"] },
+        { label: "Days Since Split", hints: ["dayssincesplitnooption", "dayssincesplit"], preferTables: ["table6"] },
+        { label: "Split Ratio",       hints: ["splitrationooption", "splitratio"], preferTables: ["table6"] }
       ]
     },
     {
       title: "Price Levels",
       metrics: [
-        { label: "High of Day",                          hints: ["dayhigh", "highoftheday", "highcolumn", "high"] },
-        { label: "Low of Day",                             hints: ["daylow", "lowoftheday", "lowcolumn", "low"] },
-        { label: "Previous Day's Close ($)",              hints: ["previousclose", "prevclose", "previousdayclose", "previousdaysclosenooption"] },
-        { label: "Distance from VWAP ($)",                hints: ["distancefromvwap", "vwapdistance", "vwap"] },
-        { label: "Distance from EMA(200) Daily (%)",     hints: ["distancefromema200", "ema200distance", "ema200", "distancefrommovingaverageema200d"] }
+        { label: "High of Day",                          hints: ["highcolumn"] },
+        { label: "Low of Day",                             hints: ["lowcolumn"] },
+        { label: "Previous Day's Close ($)",              hints: ["previousdaysclosenooption", "previousdaysclose"] },
+        { label: "Distance from VWAP ($)",                hints: ["distancefromvwap", "vwapdistance"] },
+        { label: "Distance from EMA(200) Daily (%)",     hints: ["distancefrommovingaverageema200d"] }
       ]
     },
     {
       title: "Alerts",
       metrics: [
-        { label: "Alert Counter", hints: ["alertcounter", "alertcount", "alerts"] }
+        { label: "Alert Counter", hints: ["alertcounter", "alertcount"] }
       ]
     }
   ];
 
-  // Search every subscribed table's raw column_desc + the clicked symbol's
-  // row in that table for a value matching any of the given hints.
-  function findMetricAcrossTables(symbol, hints){
+  function metricLookupTokens(raw){
+    const full = normalizeLabel(raw);
+    const stripped = full.replace(/(nooption|column|info)$/g, "");
+    return [full, stripped];
+  }
+
+  function metricKeyMatches(rawKey, hints){
+    const tokens = new Set(metricLookupTokens(rawKey));
+    return hints.some(h => metricLookupTokens(h).some(t => t && tokens.has(t)));
+  }
+
+  function isBlankMetricValue(val){
+    if(val === null || val === undefined) return true;
+    const s = String(val).trim();
+    return s === "" || s === "—" || s === "-" || s.toLowerCase() === "n/a" || s.toLowerCase() === "na";
+  }
+
+  // Search live ToplistUpdate row.columns keys first (the payload the
+  // server actually streams), then top-level row fields, then column_desc
+  // names. Exact token match only — no bidirectional substring matching.
+  //
+  // Empty strings (DaysSinceSplitNOOPTION: "") still count as "field exists".
+  // We prefer a non-empty value from any table (Split first when requested),
+  // and only show "—" when the key is present but blank — not "Not available".
+  function findMetricAcrossTables(symbol, hints, preferTables){
     const reservedRowKeys = new Set(["symbol", "columns", "color"]);
-    for(const t of TABLES){
+    const tableOrder = [
+      ...(preferTables || []).map(k => TABLES.find(t => t.key === k)).filter(Boolean),
+      ...TABLES.filter(t => !(preferTables || []).includes(t.key))
+    ];
+
+    let emptyHit = null;
+
+    function consider(rawVal, source, keyExists){
+      if(!keyExists) return null;
+      if(/<svg/i.test(String(rawVal))) return "skip";
+      if(isBlankMetricValue(rawVal)){
+        if(!emptyHit) emptyHit = { value: "—", source, empty: true };
+        return "empty";
+      }
+      return { value: rawVal, source };
+    }
+
+    for(const t of tableOrder){
       const rows = displayed[t.key];
       if(!rows) continue;
       const row = rows.find(r => r.symbol === symbol);
       if(!row) continue;
 
-      // 1) Some ChartsWatcher fields (Sector, Industry, MarketCap, etc.)
-      // arrive as direct top-level properties on the row object itself,
-      // the same way "symbol" already does, rather than inside the
-      // generic "columns" array. Check those first.
-      for(const key of Object.keys(row)){
-        if(reservedRowKeys.has(key)) continue;
-        const val = row[key];
-        if(val === null || val === undefined || val === "") continue;
-        const normKey = normalizeLabel(key);
-        if(hints.some(h => normKey === h || normKey.includes(h) || h.includes(normKey))){
-          return { value: val, source: t.name };
-        }
+      for(const c of (row.columns || [])){
+        if(!c || !metricKeyMatches(c.key, hints)) continue;
+        const hit = consider(c.value, t.name, true);
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
       }
 
-      // 2) Fall back to the generic column_desc-matched columns array.
+      for(const key of Object.keys(row)){
+        if(reservedRowKeys.has(key)) continue;
+        if(!metricKeyMatches(key, hints)) continue;
+        const hit = consider(row[key], t.name, true);
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
+      }
+
+      const daysKey = (hints.some(h => h.includes("dayssincesplit")) || hints.some(h => h.includes("splitratio")))
+        ? findColumnKey(t.key, hints.some(h => h.includes("splitratio")) ? "Split Ratio" : "Days Since Split")
+        : null;
+      if(daysKey){
+        const col = (row.columns || []).find(c => c.key === daysKey);
+        const hit = consider(col ? col.value : "", t.name, true);
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
+      }
+
       const descs = rawColumnDescs[t.key];
       if(!descs) continue;
       const colMap = {};
       (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
       for(const desc of descs){
-        const normName = normalizeLabel(desc.name);
-        if(!hints.some(h => normName === h || normName.includes(h) || h.includes(normName))) continue;
         if(desc.key === "SymbolColumn") continue;
-        if(colMap.hasOwnProperty(desc.key) && colMap[desc.key] !== undefined && colMap[desc.key] !== null && colMap[desc.key] !== ""){
-          return { value: colMap[desc.key], source: t.name };
-        }
+        if(!metricKeyMatches(desc.key, hints) && !metricKeyMatches(desc.name, hints)) continue;
+        const hit = consider(colMap[desc.key], t.name, Object.prototype.hasOwnProperty.call(colMap, desc.key));
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
       }
     }
-    return null;
+    return emptyHit;
   }
 
   // Also grab whichever row/table the symbol was clicked from, for the
@@ -3633,35 +3872,49 @@
   }
 
   // ---------------------------------------------------------------
-  // Header badges: S-3 (recent SEC S-3 filing) and RS (Split table shows
-  // Days Since Split <= 10 — "RS" is the user's own label, driven purely
-  // by recency, not a distinction between forward/reverse splits).
-  // ---------------------------------------------------------------
+  // Header badges: R:S when Days Since Split is strictly < 20.
+  const RS_SPLIT_DAYS = 20;
+
+  function parseDaysSinceSplitValue(raw){
+    if(raw === null || raw === undefined || raw === "") return null;
+    const n = parseFloat(String(raw).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
+    return isNaN(n) ? null : n;
+  }
+
+  function resolveDaysSinceSplit(symbol, row){
+    if(row){
+      const direct = parseDaysSinceSplitValue(row.daysSinceSplit);
+      if(direct !== null) return direct;
+      const col = (row.columns || []).find(c => metricKeyMatches(c.key, ["dayssincesplitnooption", "dayssincesplit"]));
+      const fromRow = parseDaysSinceSplitValue(col ? col.value : null);
+      if(fromRow !== null) return fromRow;
+    }
+    if(!symbol) return null;
+    const found = findMetricAcrossTables(symbol, ["dayssincesplitnooption", "dayssincesplit"], ["table6"]);
+    if(!found || found.empty) return null;
+    return parseDaysSinceSplitValue(found.value);
+  }
+
+  function isRecentReverseSplit(symbol, row){
+    const days = resolveDaysSinceSplit(symbol, row);
+    return days !== null && days < RS_SPLIT_DAYS;
+  }
+
+  function splitRsBadgeHtml(){
+    return `<span class="split-badge-rs" title="Days since split &lt; ${RS_SPLIT_DAYS}">R:S</span>`;
+  }
 
   function hasRecentReverseSplit(symbol){
-    const rows = displayed.table6;
-    const mapping = columnMapping.table6;
-    if(!rows || !mapping) return false;
-    const row = rows.find(r => r.symbol === symbol);
-    if(!row) return false;
-    const daysKey = findColumnKey("table6", "Days Since Split");
-    if(!daysKey) return false;
-    const colMap = {};
-    (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
-    const days = parseFloat(String(colMap[daysKey]).replace(/[^0-9.\-]/g, ""));
-    return !isNaN(days) && days <= 10;
+    return isRecentReverseSplit(symbol, null);
   }
 
   function updateModalHeaderBadges(symbol){
     if(currentModalSymbol !== symbol) return;
     const el = document.getElementById("modalHeaderBadges");
     if(!el) return;
-    const badges = [];
-    // S-3 badge removed: it required fetching SEC filing data, which is
-    // confirmed unreachable from this client-side app (CORS). The "SEC
-    // Filings" section's links are the way to check S-3 status manually.
-    if(hasRecentReverseSplit(symbol)) badges.push(`<span class="header-badge badge-rs" title="Split occurred within the last 10 days (Days Since Split)">RS</span>`);
-    el.innerHTML = badges.join("");
+    // R:S lives inline after the country on line 1 — keep this slot empty
+    // so the badge is not duplicated.
+    el.innerHTML = "";
   }
 
   function renderStockModal(symbol){
@@ -3676,20 +3929,24 @@
     const tableNameGuess = findMetricAcrossTables(symbol, ["companyname", "company"]);
     const companyNameVal = universeName || tableNameGuess?.value || null;
 
-    const exchange = findMetricAcrossTables(symbol, ["exchange", "source"]);
-    const sector = findMetricAcrossTables(symbol, ["sector"]);
-    const industry = findMetricAcrossTables(symbol, ["industry"]);
+    const exchange = findMetricAcrossTables(symbol, ["sourceinfo", "exchange"]);
+    const sector = findMetricAcrossTables(symbol, ["sectorinfo", "sector"]);
+    const industry = findMetricAcrossTables(symbol, ["industryinfo", "industry"]);
     const country = found ? findColumnKey(found.tableKey, "Country") : null;
     const countryVal = found && country ? (found.row.columns || []).find(c => c.key === country)?.value : null;
 
     // Line 1: Company Name | Country
     const line1Parts = [companyNameVal, countryVal].filter(Boolean);
     const symbolIsRecognized = !allSymbolsMap || allSymbolsMap.size === 0 || allSymbolsMap.has(symbol.toUpperCase());
-    document.getElementById("modalLine1").textContent = line1Parts.length
-      ? line1Parts.join(" | ")
-      : symbolIsRecognized
+    const line1El = document.getElementById("modalLine1");
+    const rsBadge = isRecentReverseSplit(symbol, found?.row) ? splitRsBadgeHtml() : "";
+    if(line1Parts.length){
+      line1El.innerHTML = `${line1Parts.map(p => escapeHtml(p)).join(" | ")}${rsBadge}`;
+    } else {
+      line1El.textContent = symbolIsRecognized
         ? "Company info not available in connected feeds"
         : "Symbol not found in ChartsWatcher's universe";
+    }
 
     // Line 2: Exchange | Sector | Industry (Sector/Industry via Arabic dictionary)
     const line2Parts = [
@@ -3707,7 +3964,7 @@
     const changeKey = found ? findColumnKey(found.tableKey, "% Change") : null;
     const changeVal = found && changeKey ? (found.row.columns || []).find(c => c.key === changeKey)?.value : null;
 
-    const hoursSinceNews = findMetricAcrossTables(symbol, ["hourssincenews"]);
+    const hoursSinceNews = findMetricAcrossTables(symbol, ["hourssincenewsnooption", "hourssincenews"]);
 
     let bodyHtml = `<div class="modal-section">
       <div class="modal-section-head">
@@ -3734,7 +3991,7 @@
     METRIC_GROUPS.forEach(group => {
       bodyHtml += `<div class="modal-section"><h4>${escapeHtml(group.title)}</h4><div class="modal-grid">`;
       group.metrics.forEach(metric => {
-        const result = findMetricAcrossTables(symbol, metric.hints);
+        const result = findMetricAcrossTables(symbol, metric.hints, metric.preferTables);
         bodyHtml += `<div class="modal-metric"><div class="modal-metric-label">${escapeHtml(metric.label)}</div>${metricValueHtml(result)}</div>`;
       });
       bodyHtml += `</div></div>`;
@@ -3758,6 +4015,16 @@
   function refreshModalIfOpen(){
     if(currentModalSymbol) renderStockModal(currentModalSymbol);
   }
+
+  // Capture-phase: preview-row clicks open the stock modal and never
+  // reach the panel-head [data-fold] expand/collapse handler.
+  document.addEventListener("click", (e) => {
+    const previewRow = e.target.closest(".card-preview-row-toplist");
+    if(!previewRow) return;
+    e.stopPropagation();
+    const symbol = previewRow.dataset.symbol || previewRow.querySelector(".cp-symbol")?.textContent?.trim();
+    if(symbol && symbol !== "—") openStockModal(symbol);
+  }, true);
 
   // Event delegation: symbol cells are regenerated on every render, so we
   // bind one listener on the document rather than re-binding per row.
