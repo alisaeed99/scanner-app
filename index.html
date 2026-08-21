@@ -3258,7 +3258,13 @@
   function formatNewsTime(epochSecond){
     if(!epochSecond) return "";
     const d = new Date(epochSecond * 1000);
-    return d.toLocaleString([], { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    // Forced to a fixed locale (not the device's default) — this is a
+    // compact technical timestamp, not translated content, and relying
+    // on the device's locale (e.g. Arabic on this phone) produced
+    // inconsistent digit/word ordering that then got visually reordered
+    // again by the surrounding RTL layout, exactly the jumbled output
+    // reported. A fixed English format is consistent everywhere.
+    return d.toLocaleString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
   }
 
   function newsListHtml(symbol){
@@ -3274,7 +3280,7 @@
     }
     return cache.articles.map(a => `
       <div class="news-card">
-        <div class="news-meta mono">${escapeHtml(formatNewsTime(a.epochSecond))}${a.source ? " · " + escapeHtml(a.source) : ""}</div>
+        <div class="news-meta mono" dir="ltr">${escapeHtml(formatNewsTime(a.epochSecond))}${a.source ? " · " + escapeHtml(a.source) : ""}</div>
         <div class="news-headline" dir="rtl">${escapeHtml(a.headline || "(untitled)")}</div>
         ${a.summary ? `<div class="news-summary" dir="rtl">${escapeHtml(a.summary)}</div>` : ""}
         ${a.headlineTranslated && a.headlineOriginal ? `<div class="news-original">${escapeHtml(a.headlineOriginal)}</div>` : ""}
