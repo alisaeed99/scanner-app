@@ -517,6 +517,7 @@
   .modal-section-head{ display:flex; align-items:center; justify-content:space-between; margin:0 0 8px; border-bottom:1px solid var(--border-soft); padding-bottom:6px; }
   .modal-section-head h4{ margin:0; border:none; padding:0; }
   .hours-since-news-badge{ display:inline-block; padding:1px 7px; margin-left:5px; border-radius:20px; background: rgba(255,255,255,0.06); color: var(--muted); font-size:9.5px; font-weight:600; vertical-align:middle; text-transform:none; letter-spacing:normal; }
+  .hours-since-news-badge.hot{ background: rgba(255,138,0,0.14); color:#ff9f43; border:1px solid rgba(255,159,67,0.35); }
   .news-translate-note{ font-size:10px; color: var(--muted); margin:-2px 0 8px; line-height:1.4; }
   .news-refresh-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; color: var(--muted); cursor:pointer; flex-shrink:0; }
   .news-refresh-btn:hover{ background:#20242c; color: var(--header-text); }
@@ -960,7 +961,7 @@
   const HEADER_META = {
     "Symbol":                    { icon: "🏷️", abbr: "SYM" },
     "Price ($)":                 { icon: "$",   abbr: "PRICE" },
-    "News Icon":                 { icon: "📄",  abbr: "Min", title: "Minutes since news" },
+    "News Icon":                 { icon: "📄",  abbr: "Hrs", title: "Hours since news" },
     "% Change":                   { icon: "Δ",   abbr: "CHG%", title: "% Change" },
     "Daily Volume":               { icon: "📊",  abbr: "VOL" },
     "Float":                       { icon: "🔄",  abbr: "FLT" },
@@ -1022,6 +1023,21 @@
   }
 
   function applyViewMode(){
+    // Reset first, every time this runs (initial load AND every switch
+    // between Desktop/Mobile): collapse every Top List/Alert panel and
+    // clear any fullscreen state. Without this, a panel left expanded in
+    // one mode stays ":not(.collapsed)" after switching — and since the
+    // app's global fullscreen CSS isn't scoped to view mode, it would
+    // immediately re-trigger fullscreen in the NEW mode too (e.g. a
+    // table left open on Mobile would snap straight to fullscreen the
+    // moment you switched back to Desktop, instead of landing on the
+    // grid overview).
+    document.querySelectorAll("#topListsContainer .panel, #alertsContainer .panel").forEach(p => {
+      p.classList.add("collapsed");
+      p.classList.remove("mobile-tab-active");
+    });
+    document.body.classList.remove("panel-fullscreen-active");
+
     document.body.classList.toggle("view-desktop", viewMode === "desktop");
     document.body.classList.toggle("view-mobile", viewMode === "mobile");
 
@@ -1480,7 +1496,7 @@
     return (negative ? "-" : "") + withCommas;
   }
   // window counting as "fresh" enough to show the flame badge
-  const NEWS_FRESH_MINUTES = 90;
+  const NEWS_FRESH_HOURS = 7;
   const MAX_ROWS = 15; // cap each Toplist table (Top Gainers, After Market, etc.) to the top 15 rows — unrelated to the alert sections below, left as-is
   // Alert-driven tables (Halts, Screening, Running Up, HOD MOMO) get a
   // much higher cap — these are event logs that should keep accumulating
@@ -1670,17 +1686,27 @@
     // Strip thousands-separator commas before parsing — the server sends
     // values above 1000 pre-formatted as e.g. "1,664", and a plain \d+
     // match would otherwise stop at the comma and read it as just "1".
+    // Raw value arrives in MINUTES — converted to hours for display.
     const cleaned = strVal.replace(/,/g, "");
     const m = cleaned.match(/-?\d+(\.\d+)?/);
-    const n = m ? parseFloat(m[0]) : null;
+    const minutes = m ? parseFloat(m[0]) : null;
 
-    if(n !== null && n <= NEWS_FRESH_MINUTES){
-      return `<td><span class="news-badge hot">🔥 ${formatNumberEN(n)}m</span></td>`;
-    }
-    if(n !== null){
-      return `<td><span class="news-badge num">${formatNumberEN(n)}m</span></td>`;
+    if(minutes !== null){
+      const hoursText = formatHoursSinceNews(minutes / 60);
+      if((minutes / 60) < NEWS_FRESH_HOURS){
+        return `<td><span class="news-badge hot">🔥 ${hoursText}</span></td>`;
+      }
+      return `<td><span class="news-badge num">${hoursText}</span></td>`;
     }
     return `<td><span class="news-badge">${escapeHtml(strVal)}</span></td>`;
+  }
+
+  // Shared formatting for "hours since news" everywhere it's shown (main
+  // tables, Screening-family tables, and the modal) — whole hours show
+  // as "2h", fractional hours show one decimal as "5.5h".
+  function formatHoursSinceNews(hours){
+    const rounded = Math.round(hours * 10) / 10;
+    return (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + "h";
   }
 
   // Fixed Float (FLT) bar-width thresholds, independent of the rest of the dataset
@@ -3685,7 +3711,7 @@
 
     let bodyHtml = `<div class="modal-section">
       <div class="modal-section-head">
-        <h4>Recent News (آخر 3 أخبار)${hoursSinceNews?.value ? ` <span class="hours-since-news-badge">${escapeHtml(hoursSinceNews.value)}h ago</span>` : ""}</h4>
+        <h4>Recent News (آخر 3 أخبار)${hoursSinceNews?.value ? ` <span class="hours-since-news-badge${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? " hot" : ""}">${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? "🔥 " : ""}${escapeHtml(hoursSinceNews.value)}h ago</span>` : ""}</h4>
         <button class="news-refresh-btn" data-refresh-news="1" title="Refresh news" aria-label="Refresh news">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         </button>
