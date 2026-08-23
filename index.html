@@ -630,6 +630,11 @@
         <span class="iw-price mono" id="spyPrice">—</span>
         <span class="iw-change" id="spyChange">—</span>
       </div>
+      <div class="index-widget" id="widgetQqq">
+        <span class="iw-symbol">QQQ</span>
+        <span class="iw-price mono" id="qqqPrice">—</span>
+        <span class="iw-change" id="qqqChange">—</span>
+      </div>
       <div class="index-widget" id="widgetBtc">
         <span class="iw-symbol">BTC</span>
         <span class="iw-price mono" id="btcPrice">—</span>
@@ -1132,6 +1137,55 @@
     configToAlertKeys[a.configId].push(a.key);
   });
 
+  // SPY: a dedicated single-symbol Toplist config the user built specifically
+  // for this (filtered to just SPY on ChartsWatcher's side), subscribed to
+  // the same way as everything else — but handled separately from the
+  // TABLES pipeline below, since it only feeds the compact header widget
+  // (Price/% Change), not a full scrollable table with its own panel.
+  const SPY_TOPLIST_CONFIG_ID = "69a986c3433cbf6f690c212a";
+  let spyPriceKey = null;
+  let spyChangeKey = null;
+
+  function resolveSpyColumns(descList){
+    const available = descList.filter(d => !isSymbolDesc(d));
+
+    let match = available.find(d => normalizeLabel(d.name) === normalizeLabel("Price ($)"));
+    if(!match) match = available.find(d => normalizeLabel(d.name).includes("price"));
+    spyPriceKey = match ? match.key : null;
+
+    // Same "% Change" special-case matching used for every other table —
+    // prefer a candidate whose name/key explicitly signals percent, to
+    // avoid accidentally matching a raw dollar-change or rank column.
+    const changeCandidates = available.filter(d =>
+      !/rank/i.test(d.name) &&
+      (normalizeLabel(d.name).includes("change") || String(d.key).toLowerCase().includes("chg") || String(d.key).toLowerCase().includes("change"))
+    );
+    match = changeCandidates.find(d => /%|percent|pct/i.test(d.name) || /pct|percent/i.test(d.key)) || changeCandidates[0] || null;
+    spyChangeKey = match ? match.key : null;
+
+    logLine(`SPY/QQQ Toplist columns resolved — Price: ${spyPriceKey || "NOT FOUND"}, % Change: ${spyChangeKey || "NOT FOUND"}`, (spyPriceKey && spyChangeKey) ? "good" : "warn");
+  }
+
+  function updateIndexWidgetFromChartsWatcher(row, widgetKey){
+    if(!row){
+      logLine(`${widgetKey.toUpperCase()} Toplist update had no row data.`, "warn");
+      return;
+    }
+    const colMap = {};
+    (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+    // Reuses the same resolved column keys for every symbol in this config
+    // (SPY, QQQ) — they all come from the same Toplist / same column schema.
+    const priceRaw = spyPriceKey ? colMap[spyPriceKey] : null;
+    const changeRaw = spyChangeKey ? colMap[spyChangeKey] : null;
+    const price = parseFloat(String(priceRaw ?? "").replace(/[^0-9.\-]/g, ""));
+    const changePct = parseFloat(String(changeRaw ?? "").replace(/[^0-9.\-]/g, ""));
+    if(isNaN(price) || isNaN(changePct)){
+      logLine(`${widgetKey.toUpperCase()} row arrived but Price/% Change couldn't be parsed (Price key: ${spyPriceKey}, raw: ${priceRaw}; Change key: ${spyChangeKey}, raw: ${changeRaw}).`, "warn");
+      return;
+    }
+    renderIndexWidget(widgetKey, price, changePct);
+  }
+
   const PREVIEW_TARGETS = [
     ...TABLES.map(t => ({ panelId: "panel-" + t.key, dataKey: t.key, isToplist: true })),
     { panelId: "panel-halts", dataKey: "halts", isToplist: false },
@@ -1550,49 +1604,15 @@
     }
   }
 
-  const ALPHA_VANTAGE_API_KEY = "WOZM0I2QMGRSKCYM";
-
-  async function fetchSpyPrice(){
-    try{
-      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPY&apikey=${ALPHA_VANTAGE_API_KEY}`;
-      const res = await fetch(url);
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-
-      // Alpha Vantage returns HTTP 200 even when rate-limited or erroring —
-      // the actual problem shows up as "Note" (rate limit) or
-      // "Information" (other API-level issue) instead of "Global Quote".
-      if(json["Note"]) throw new Error(`Alpha Vantage rate limit hit: ${json["Note"]}`);
-      if(json["Information"]) throw new Error(`Alpha Vantage: ${json["Information"]}`);
-
-      const quote = json["Global Quote"];
-      const price = quote ? parseFloat(quote["05. price"]) : NaN;
-      const changePctStr = quote ? quote["10. change percent"] : null;
-      const changePct = changePctStr ? parseFloat(String(changePctStr).replace("%", "")) : NaN;
-      if(isNaN(price) || isNaN(changePct)) throw new Error("Unexpected response shape from Alpha Vantage");
-
-      renderIndexWidget("spy", price, changePct);
-    }catch(e){
-      const isNetworkLevel = e instanceof TypeError;
-      const hint = isNetworkLevel ? " (likely CORS or network block)" : "";
-      logLine(`SPY price fetch failed: ${e.message}${hint}`, "warn");
-      renderIndexWidgetError("spy");
-    }
-  }
-
   function fetchIndexWidgets(){
     fetchBtcPrice();
-    fetchSpyPrice();
   }
   fetchIndexWidgets();
   setInterval(fetchBtcPrice, 60 * 1000);
-  // SPY: Alpha Vantage's free tier caps at 25 requests/day. To guarantee
-  // staying under that even if this tab is left open for a full 24
-  // hours, the interval needs to be >= 24*60/25 = 57.6 minutes — 60
-  // minutes leaves a small margin for the initial load and any manual
-  // Refresh clicks. This is the real, calculated reason the price only
-  // updates hourly, not an arbitrary choice.
-  setInterval(fetchSpyPrice, 60 * 60 * 1000);
+  // SPY no longer needs a fetch/interval at all — it now arrives live via
+  // ChartsWatcher's own WebSocket (see SPY_TOPLIST_CONFIG_ID below),
+  // pushed the same way as every other table in this app. No rate limit,
+  // no CORS risk, updates the instant ChartsWatcher sends a new row.
 
   function formatNumberEN(num){
     const rounded = Math.round(num);
@@ -3729,6 +3749,12 @@
       });
 
       ALERT_CONFIGS.forEach(seedInitialAlerts);
+
+      setTimeout(() => {
+        if(ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({ "@type": "Toplist", "config_id": SPY_TOPLIST_CONFIG_ID, "action": "subscribe" }));
+        logLine(`Subscribing to SPY/QQQ Toplist (config ${SPY_TOPLIST_CONFIG_ID})`);
+      }, (TABLES.length + ALERT_CONFIGS.length) * 250);
     };
 
     ws.onmessage = (evt) => {
@@ -3737,6 +3763,24 @@
       catch(e){ logLine("Received a message that wasn't valid JSON.", "warn"); return; }
 
       if(msg["@type"] === "KeepAlive"){
+        return;
+      }
+
+      if(msg.config_id === SPY_TOPLIST_CONFIG_ID){
+        if(msg["@type"] === "ToplistConfirm" && msg.action === "subscribe"){
+          if(msg.success === false){
+            logLine(`SPY/QQQ Toplist subscription failed: ${msg.msg || "unknown reason"}`, "bad");
+          } else if(Array.isArray(msg.column_desc)){
+            resolveSpyColumns(msg.column_desc);
+          }
+        } else if(msg["@type"] === "ToplistUpdate"){
+          const rows = Array.isArray(msg.rows) ? msg.rows : [];
+          const spyRow = rows.find(r => r.symbol === "SPY");
+          const qqqRow = rows.find(r => r.symbol === "QQQ");
+          if(spyRow) updateIndexWidgetFromChartsWatcher(spyRow, "spy");
+          if(qqqRow) updateIndexWidgetFromChartsWatcher(qqqRow, "qqq");
+          if(!spyRow && !qqqRow) logLine("SPY/QQQ Toplist update arrived but neither symbol was found in its rows.", "warn");
+        }
         return;
       }
 
