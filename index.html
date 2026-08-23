@@ -44,7 +44,7 @@
     -webkit-font-smoothing: antialiased;
   }
   .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
-  .app{ max-width: 100%; margin: 0 auto; padding: 20px 16px 40px; }
+  .app{ max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
 
   .section-heading{ margin: 26px 0 10px; }
   .section-heading h3{ margin:0; font-size:15px; font-weight:700; color: var(--header-text); }
@@ -60,7 +60,7 @@
   .view-desktop #alertsContainer{
     display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:16px; align-items:start;
   }
-  @media (max-width: 100%){
+  @media (max-width: 1200px){
     .view-desktop #topListsContainer, .view-desktop #alertsContainer{ grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 700px){
@@ -270,6 +270,15 @@
   .market-status-label{ font-weight:700; color: var(--header-text); letter-spacing:0.01em; }
   .market-status-sep{ color: var(--border); }
   .market-status-countdown{ color: var(--text); }
+
+  .index-widgets{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .index-widget{ display:flex; align-items:center; gap:6px; background: rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; white-space:nowrap; }
+  .iw-symbol{ font-weight:700; color: var(--header-text); letter-spacing:0.02em; }
+  .iw-price{ color: var(--text); }
+  .iw-change{ font-weight:700; padding:1px 7px; border-radius:12px; font-size:11px; }
+  .iw-change.pos{ background: rgba(110,219,143,0.15); color: var(--up); }
+  .iw-change.neg{ background: rgba(255,68,104,0.15); color: var(--down); }
+  .iw-change.flat{ color: var(--muted); background: rgba(255,255,255,0.05); }
   .brand{ display:flex; align-items:center; gap:10px; }
   .brand .mark{ width:34px;height:34px;border-radius:9px; background: linear-gradient(135deg, var(--accent), var(--accent-orange)); display:flex; align-items:center; justify-content:center; box-shadow: 0 0 16px rgba(76,158,255,0.35); flex-shrink:0; }
   .brand .mark svg{ width:18px;height:18px; }
@@ -614,6 +623,18 @@
       <span class="market-status-label" id="marketStatusLabel">—</span>
       <span class="market-status-sep">·</span>
       <span class="market-status-countdown mono" id="marketStatusCountdown">—</span>
+    </div>
+    <div class="index-widgets" id="indexWidgets">
+      <div class="index-widget" id="widgetSpy">
+        <span class="iw-symbol">SPY</span>
+        <span class="iw-price mono" id="spyPrice">—</span>
+        <span class="iw-change" id="spyChange">—</span>
+      </div>
+      <div class="index-widget" id="widgetBtc">
+        <span class="iw-symbol">BTC</span>
+        <span class="iw-price mono" id="btcPrice">—</span>
+        <span class="iw-change" id="btcChange">—</span>
+      </div>
     </div>
     <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -1481,6 +1502,97 @@
   }
   updateMarketStatusBar();
   setInterval(updateMarketStatusBar, 1000);
+
+  // ---- Header index widgets: SPY / BTC ----
+  // BTC via CoinGecko's public API — well-established to allow direct
+  // browser fetches (CORS), so this should work reliably.
+  // SPY via Stooq's free CSV endpoint (no API key needed) — the best of
+  // the three sources requested, but its CORS policy for arbitrary
+  // browser origins isn't officially documented. Yahoo Finance's
+  // unofficial endpoints are widely known to BLOCK direct browser CORS
+  // requests entirely (this trips up nearly every client-side attempt),
+  // and Alpha Vantage requires a personal API key this app doesn't have
+  // — so Stooq was the only genuinely triable option without a key.
+  // If it fails, this logs the real reason and shows "—" / "N/A" rather
+  // than fabricating a price.
+  function renderIndexWidget(key, price, changePct){
+    const priceEl = document.getElementById(key + "Price");
+    const changeEl = document.getElementById(key + "Change");
+    if(priceEl) priceEl.textContent = "$" + price.toFixed(2);
+    if(changeEl){
+      const sign = changePct > 0 ? "+" : "";
+      changeEl.textContent = `${sign}${changePct.toFixed(2)}%`;
+      changeEl.className = "iw-change " + (changePct > 0.05 ? "pos" : changePct < -0.05 ? "neg" : "flat");
+    }
+  }
+
+  function renderIndexWidgetError(key){
+    const priceEl = document.getElementById(key + "Price");
+    const changeEl = document.getElementById(key + "Change");
+    if(priceEl) priceEl.textContent = "—";
+    if(changeEl){ changeEl.textContent = "N/A"; changeEl.className = "iw-change flat"; }
+  }
+
+  async function fetchBtcPrice(){
+    try{
+      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true");
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const price = json?.bitcoin?.usd;
+      const change = json?.bitcoin?.usd_24h_change;
+      if(typeof price !== "number" || typeof change !== "number") throw new Error("Unexpected response shape from CoinGecko");
+      renderIndexWidget("btc", price, change);
+    }catch(e){
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel ? " (likely CORS or network block)" : "";
+      logLine(`BTC price fetch failed: ${e.message}${hint}`, "warn");
+      renderIndexWidgetError("btc");
+    }
+  }
+
+  const ALPHA_VANTAGE_API_KEY = "WOZM0I2QMGRSKCYM";
+
+  async function fetchSpyPrice(){
+    try{
+      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPY&apikey=${ALPHA_VANTAGE_API_KEY}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+
+      // Alpha Vantage returns HTTP 200 even when rate-limited or erroring —
+      // the actual problem shows up as "Note" (rate limit) or
+      // "Information" (other API-level issue) instead of "Global Quote".
+      if(json["Note"]) throw new Error(`Alpha Vantage rate limit hit: ${json["Note"]}`);
+      if(json["Information"]) throw new Error(`Alpha Vantage: ${json["Information"]}`);
+
+      const quote = json["Global Quote"];
+      const price = quote ? parseFloat(quote["05. price"]) : NaN;
+      const changePctStr = quote ? quote["10. change percent"] : null;
+      const changePct = changePctStr ? parseFloat(String(changePctStr).replace("%", "")) : NaN;
+      if(isNaN(price) || isNaN(changePct)) throw new Error("Unexpected response shape from Alpha Vantage");
+
+      renderIndexWidget("spy", price, changePct);
+    }catch(e){
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel ? " (likely CORS or network block)" : "";
+      logLine(`SPY price fetch failed: ${e.message}${hint}`, "warn");
+      renderIndexWidgetError("spy");
+    }
+  }
+
+  function fetchIndexWidgets(){
+    fetchBtcPrice();
+    fetchSpyPrice();
+  }
+  fetchIndexWidgets();
+  setInterval(fetchBtcPrice, 60 * 1000);
+  // SPY: Alpha Vantage's free tier caps at 25 requests/day. To guarantee
+  // staying under that even if this tab is left open for a full 24
+  // hours, the interval needs to be >= 24*60/25 = 57.6 minutes — 60
+  // minutes leaves a small margin for the initial load and any manual
+  // Refresh clicks. This is the real, calculated reason the price only
+  // updates hourly, not an arbitrary choice.
+  setInterval(fetchSpyPrice, 60 * 60 * 1000);
 
   function formatNumberEN(num){
     const rounded = Math.round(num);
@@ -3374,6 +3486,25 @@
 
   const RS_SPLIT_DAYS = 20;
 
+  // Fast index: symbol -> days since split, built ONLY from the Split
+  // table's own rows. Rebuilt only when the Split table itself updates
+  // (see the table6 branch in the ToplistUpdate handler below), not on
+  // every render — resolveDaysSinceSplit() checks this first (an O(1)
+  // lookup) before ever falling back to the expensive cross-table scan.
+  let recentSplitsMap = new Map();
+
+  function rebuildRecentSplitsMap(){
+    recentSplitsMap = new Map();
+    const rows = displayed["table6"] || [];
+    const key = findColumnKey("table6", "Days Since Split");
+    if(!key) return;
+    rows.forEach(row => {
+      const col = (row.columns || []).find(c => c.key === key);
+      const days = parseDaysSinceSplitValue(col ? col.value : null);
+      if(days !== null && row.symbol) recentSplitsMap.set(row.symbol, days);
+    });
+  }
+
   function parseDaysSinceSplitValue(raw){
     if(raw === null || raw === undefined || raw === "") return null;
     const n = parseFloat(String(raw).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
@@ -3381,6 +3512,10 @@
   }
 
   function resolveDaysSinceSplit(symbol, row){
+    // Fast path: pre-built index from the Split table
+    if(symbol && recentSplitsMap.has(symbol)) return recentSplitsMap.get(symbol);
+
+    // Covers the case where `row` itself IS a Split-table row
     if(row){
       const direct = parseDaysSinceSplitValue(row.daysSinceSplit);
       if(direct !== null) return direct;
@@ -3388,6 +3523,8 @@
       const fromRow = parseDaysSinceSplitValue(col ? col.value : null);
       if(fromRow !== null) return fromRow;
     }
+
+    // Rare fallback only — e.g. before the Split table has loaded at all
     if(!symbol) return null;
     const found = findMetricAcrossTables(symbol, ["dayssincesplitnooption", "dayssincesplit"], ["table6"]);
     if(!found || found.empty) return null;
@@ -3639,6 +3776,7 @@
         renderTable(TABLES.find(t => t.key === key));
         refreshModalIfOpen();
         if(key === "table1") recomputeMarketPulse();
+        if(key === "table6") rebuildRecentSplitsMap();
 
         const updateEl = document.getElementById("raw" + key.replace("table","") + "update");
         if(updateEl) updateEl.textContent = JSON.stringify(msg, null, 2).slice(0, 4000);
@@ -3731,6 +3869,7 @@
     reconnectDelay = 1000;
     if(ws){ try{ ws.close(); }catch(e){} }
     connect();
+    fetchIndexWidgets();
     setTimeout(() => refreshBtn.classList.remove("spinning"), 500);
   });
 
