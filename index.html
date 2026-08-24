@@ -622,6 +622,36 @@
   [dir="rtl"] .split-badge-rs,
   [dir="rtl"] .header-badge.badge-rs{ margin-left: 0; margin-right: 4px; }
   [dir="rtl"] .hours-since-news-badge{ margin-left: 0; margin-right: 5px; }
+
+  /* Per explicit request: tables and card previews stay LTR even when
+     the page is in Arabic — only the panel-head title bar (icon, name,
+     count) keeps translating and flowing RTL normally, right where it
+     belongs. Scoped directly to .table-scroll/.card-preview (the actual
+     data, not the header) rather than the whole panel — an earlier
+     version of this rule was applied to the whole panel container,
+     which incorrectly also flipped the title bar itself; fixed here to
+     target only the data portions. .always-ltr is still used directly
+     for Market Pulse and the ticker widgets, which don't have a
+     separate header row to worry about. This needs !important to win
+     over the [dir="rtl"] ancestor rules above, since those match based
+     on the <html> element's dir regardless of any closer override. */
+  .table-scroll,
+  .card-preview,
+  .always-ltr{ direction: ltr !important; }
+  .table-scroll thead th,
+  .always-ltr thead th{ text-align: left !important; }
+  .table-scroll thead th:first-child,
+  .table-scroll tbody td:first-child,
+  .always-ltr thead th:first-child,
+  .always-ltr tbody td:first-child{ left: 0 !important; right: auto !important; }
+  .table-scroll thead th .th-abbr,
+  .always-ltr thead th .th-abbr{ margin-left: 3px !important; margin-right: 0 !important; }
+  .table-scroll .split-badge-rs,
+  .table-scroll .header-badge.badge-rs,
+  .always-ltr .split-badge-rs,
+  .always-ltr .header-badge.badge-rs{ margin-left: 4px !important; margin-right: 0 !important; }
+  .table-scroll .hours-since-news-badge,
+  .always-ltr .hours-since-news-badge{ margin-left: 5px !important; margin-right: 0 !important; }
 </style>
 </head>
 <body>
@@ -647,7 +677,7 @@
       <span class="market-status-sep">·</span>
       <span class="market-status-countdown mono" id="marketStatusCountdown">—</span>
     </div>
-    <div class="index-widgets" id="indexWidgets">
+    <div class="index-widgets always-ltr" id="indexWidgets">
       <div class="index-widget" id="widgetSpy">
         <span class="iw-symbol">SPY</span>
         <span class="iw-price mono" id="spyPrice">—</span>
@@ -689,7 +719,7 @@
     </div>
     <div class="mp-health-label" id="mpHealthLabel">—</div>
   </div>
-  <div class="market-pulse-grid">
+  <div class="market-pulse-grid always-ltr">
     <div class="mp-card">
       <div class="mp-label" data-i18n="momentum">Momentum</div>
       <div class="mp-value" id="mpMomentumValue">—</div>
