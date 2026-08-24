@@ -54,6 +54,8 @@
   .header-live-status{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:12px; text-transform:none; letter-spacing:normal; }
 
   .view-toggle-btn{ display:flex; align-items:center; gap:6px; background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--text); font-family:inherit; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:20px; cursor:pointer; transition: all .15s ease; }
+  .lang-toggle-btn{ display:flex; align-items:center; background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--text); font-family:inherit; font-size:12px; font-weight:700; padding:8px 14px; border-radius:8px; cursor:pointer; transition: all .15s ease; flex-shrink:0; }
+  .lang-toggle-btn:hover{ background: rgba(255,255,255,0.08); border-color: var(--accent); }
   .view-toggle-btn:hover{ background: rgba(255,255,255,0.08); }
 
   .view-desktop #topListsContainer,
@@ -599,6 +601,27 @@
     thead th, tbody td{ padding: 5px 7px; }
     .panel-head{ padding: 10px 12px; }
   }
+
+  /* ===================== RTL (Arabic) overrides =====================
+     Most layouts here (flexbox rows, CSS Grid) already respect the
+     document's dir automatically — no extra work needed. These are the
+     specific hardcoded-LTR rules (fixed `left`, `text-align:left`,
+     `margin-left`) that do NOT auto-flip and would otherwise look wrong
+     once dir="rtl" is applied. This targets the clearest, highest-
+     confidence cases (the sticky first table column and header text
+     alignment) rather than attempting an exhaustive rule-by-rule audit
+     of the whole stylesheet — some finer visual polish may still
+     benefit from live testing in a browser. Calendar-related rules
+     (.cal-title, .ipo-exchange, etc.) already hardcode RTL deliberately
+     for their Arabic content regardless of page direction, so those are
+     left untouched here. */
+  [dir="rtl"] thead th{ text-align: right; }
+  [dir="rtl"] thead th:first-child,
+  [dir="rtl"] tbody td:first-child{ left: auto; right: 0; }
+  [dir="rtl"] thead th .th-abbr{ margin-left: 0; margin-right: 3px; }
+  [dir="rtl"] .split-badge-rs,
+  [dir="rtl"] .header-badge.badge-rs{ margin-left: 0; margin-right: 4px; }
+  [dir="rtl"] .hours-since-news-badge{ margin-left: 0; margin-right: 5px; }
 </style>
 </head>
 <body>
@@ -635,22 +658,30 @@
         <span class="iw-price mono" id="qqqPrice">—</span>
         <span class="iw-change" id="qqqChange">—</span>
       </div>
+      <div class="index-widget" id="widgetDia">
+        <span class="iw-symbol">DIA</span>
+        <span class="iw-price mono" id="diaPrice">—</span>
+        <span class="iw-change" id="diaChange">—</span>
+      </div>
       <div class="index-widget" id="widgetBtc">
         <span class="iw-symbol">BTC</span>
         <span class="iw-price mono" id="btcPrice">—</span>
         <span class="iw-change" id="btcChange">—</span>
       </div>
     </div>
+    <button class="lang-toggle-btn" id="langToggleBtn" title="Switch language / تبديل اللغة">
+      <span id="langToggleLabel">العربية</span>
+    </button>
     <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      Refresh
+      <span data-i18n="refresh">Refresh</span>
     </button>
   </div>
 
 
   <!-- ===================== MARKET PULSE ===================== -->
   <div class="section-heading main-section-heading">
-    <h3>Market Pulse</h3>
+    <h3 data-i18n="marketPulse">Market Pulse</h3>
   </div>
   <div class="mp-health-bar-wrap">
     <div class="mp-health-bar-track">
@@ -660,22 +691,22 @@
   </div>
   <div class="market-pulse-grid">
     <div class="mp-card">
-      <div class="mp-label">Momentum</div>
+      <div class="mp-label" data-i18n="momentum">Momentum</div>
       <div class="mp-value" id="mpMomentumValue">—</div>
       <div class="mp-trend" id="mpMomentumTrend">—</div>
     </div>
     <div class="mp-card">
-      <div class="mp-label">Volume Pressure</div>
+      <div class="mp-label" data-i18n="volumePressure">Volume Pressure</div>
       <div class="mp-value" id="mpVolumeValue">—</div>
       <div class="mp-trend" id="mpVolumeTrend">—</div>
     </div>
     <div class="mp-card">
-      <div class="mp-label">Float Velocity</div>
+      <div class="mp-label" data-i18n="floatVelocity">Float Velocity</div>
       <div class="mp-value" id="mpFloatValue">—</div>
       <div class="mp-trend" id="mpFloatTrend">—</div>
     </div>
     <div class="mp-card">
-      <div class="mp-label">Catalyst Pulse</div>
+      <div class="mp-label" data-i18n="catalystPulse">Catalyst Pulse</div>
       <div class="mp-value" id="mpCatalystValue">—</div>
       <div class="mp-trend" id="mpCatalystTrend">—</div>
     </div>
@@ -683,7 +714,7 @@
 
   <!-- ===================== TOP LISTS ===================== -->
   <div class="section-heading main-section-heading">
-    <h3>Top Lists</h3>
+    <h3 data-i18n="topLists">Top Lists</h3>
     <div class="header-live-status">
       <button class="view-toggle-btn" id="viewToggleBtn" title="Switch between Desktop grid and Mobile tab view">
         <span id="viewToggleIcon">🖥️</span>
@@ -705,7 +736,7 @@
         <span class="panel-head-icon icon-orange">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
         </span>
-        <h2>Top Gainers</h2>
+        <h2 data-i18n="topGainers">Top Gainers</h2>
       </div>
       <span class="count" id="count1"></span>
     </div>
@@ -724,7 +755,7 @@
         <span class="panel-head-icon icon-blue">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         </span>
-        <h2>Most Active</h2>
+        <h2 data-i18n="mostActive">Most Active</h2>
       </div>
       <span class="count" id="count2"></span>
     </div>
@@ -743,7 +774,7 @@
         <span class="panel-head-icon icon-blue">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2s7 8.5 7 13a7 7 0 0 1-14 0c0-4.5 7-13 7-13z"/></svg>
         </span>
-        <h2>Low Float Top Gainers</h2>
+        <h2 data-i18n="lowFloatTopGainers">Low Float Top Gainers</h2>
       </div>
       <span class="count" id="count5"></span>
     </div>
@@ -762,7 +793,7 @@
         <span class="panel-head-icon icon-green">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
         </span>
-        <h2>After Market</h2>
+        <h2 data-i18n="afterMarket">After Market</h2>
       </div>
       <span class="count" id="count3"></span>
     </div>
@@ -781,7 +812,7 @@
         <span class="panel-head-icon icon-green">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
         </span>
-        <h2>5 Pillars</h2>
+        <h2 data-i18n="fivePillars">5 Pillars</h2>
       </div>
       <span class="count" id="count4"></span>
     </div>
@@ -800,7 +831,7 @@
         <span class="panel-head-icon icon-orange">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
         </span>
-        <h2>Split</h2>
+        <h2 data-i18n="split">Split</h2>
       </div>
       <span class="count" id="count6"></span>
     </div>
@@ -812,7 +843,7 @@
 
   <!-- ===================== ALERTS ===================== -->
   <div class="section-heading main-section-heading">
-    <h3>Alerts</h3>
+    <h3 data-i18n="alerts">Alerts</h3>
     <button class="notif-toggle-btn" id="notifToggleBtn" title="Enable notifications for new alerts (works while this tab is open)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span id="notifToggleLabel">Enable Notifications</span>
@@ -829,7 +860,7 @@
         <span class="panel-head-icon icon-green">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
         </span>
-        <h2>🟩 Small Cap - High of Day Momentum</h2>
+        <h2 data-i18n="smallCapHodMomentum">🟩 Small Cap - High of Day Momentum</h2>
       </div>
       <span class="count" id="hodMomoCount">0 events</span>
     </div>
@@ -848,7 +879,7 @@
         <span class="panel-head-icon icon-orange">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
         </span>
-        <h2>🌅 Pre-Market Bounce</h2>
+        <h2 data-i18n="preMarketBounce">🌅 Pre-Market Bounce</h2>
       </div>
       <span class="count" id="preMarketBounceCount">0 events</span>
     </div>
@@ -867,7 +898,7 @@
         <span class="panel-head-icon icon-red">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
         </span>
-        <h2>🚦 | HALTS - RESUMPTIONS</h2>
+        <h2 data-i18n="haltsResumptions">🚦 | HALTS - RESUMPTIONS</h2>
       </div>
       <span class="count" id="haltsCount">0 events</span>
     </div>
@@ -879,7 +910,7 @@
 
   <!-- ===================== GENERAL ===================== -->
   <div class="section-heading main-section-heading">
-    <h3>General</h3>
+    <h3 data-i18n="general">General</h3>
   </div>
   <div class="panel collapsed" id="panel-general">
     <div class="panel-head" data-fold="general">
@@ -890,20 +921,20 @@
         <span class="panel-head-icon icon-blue">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </span>
-        <h2>Economic &amp; IPO Calendars</h2>
+        <h2 data-i18n="economicIpoCalendars">Economic &amp; IPO Calendars</h2>
       </div>
     </div>
 
     <div class="general-body">
       <div class="sub-tab-bar">
-        <button class="sub-tab-btn active" data-subtab="econ">Economic Calendar</button>
-        <button class="sub-tab-btn" data-subtab="ipo">IPO Calendar</button>
+        <button class="sub-tab-btn active" data-subtab="econ" data-i18n="economicCalendar">Economic Calendar</button>
+        <button class="sub-tab-btn" data-subtab="ipo" data-i18n="ipoCalendar">IPO Calendar</button>
       </div>
 
       <!-- ===== Sub-tab: Economic Calendar ===== -->
       <div class="subtab-pane active" id="econPane">
         <div class="pane-toolbar">
-          <span class="pane-title">Economic Calendar</span>
+          <span class="pane-title" data-i18n="economicCalendar">Economic Calendar</span>
         </div>
         <div id="calendarWrap" class="cal-wrap">
           <div class="cal-empty">Loading…</div>
@@ -1037,6 +1068,137 @@
     "Strategy":                       { icon: "🧭",  abbr: "STRAT", title: "Strategy" }
   };
 
+  // =================================================================
+  // LANGUAGE TOGGLE (EN / AR) + RTL
+  // Scope note: this covers the static section/panel headings and
+  // header controls explicitly listed in the request — not every string
+  // in the app. Dynamically-built content (table column headers, alert
+  // card field labels, modal metric labels, the debug panel) stays
+  // English-only in this pass; translating those would mean touching
+  // dozens of separate string-building functions throughout the file,
+  // a much larger undertaking than the header/panel-heading scope asked
+  // for here. Flagging this now rather than silently leaving gaps.
+  // =================================================================
+  const TRANSLATIONS = {
+    en: {
+      refresh: "Refresh",
+      viewDesktop: "Desktop View",
+      viewMobile: "Mobile View",
+      notifEnable: "Enable Notifications",
+      notifOn: "Notifications On",
+      notifBlocked: "Notifications Blocked",
+      notifUnsupported: "Notifications Unsupported",
+      marketPulse: "Market Pulse",
+      topLists: "Top Lists",
+      alerts: "Alerts",
+      general: "General",
+      topGainers: "Top Gainers",
+      momentum: "Momentum",
+      volumePressure: "Volume Pressure",
+      floatVelocity: "Float Velocity",
+      catalystPulse: "Catalyst Pulse",
+      session_closedWeekend: "Closed (Weekend)",
+      session_closed: "Closed",
+      session_preMarket: "Pre-Market",
+      session_marketOpen: "Market Open",
+      session_afterHours: "After Hours",
+      countdownToOpen: "To Open",
+      countdownToClose: "To Close",
+      countdownToAhEnd: "To AH End",
+      countdownToPreMarket: "To Pre-Market",
+      countdownTimeLeft: "Time left",
+      marketClosedWeekendMsg: "Market closed for the weekend",
+      mostActive: "Most Active",
+      lowFloatTopGainers: "Low Float Top Gainers",
+      afterMarket: "After Market",
+      fivePillars: "5 Pillars",
+      split: "Split",
+      preMarketBounce: "🌅 Pre-Market Bounce",
+      smallCapHodMomentum: "🟩 Small Cap - High of Day Momentum",
+      haltsResumptions: "🚦 | HALTS - RESUMPTIONS",
+      economicIpoCalendars: "Economic & IPO Calendars",
+      economicCalendar: "Economic Calendar",
+      ipoCalendar: "IPO Calendar",
+      langToggleLabel: "العربية"
+    },
+    ar: {
+      refresh: "تحديث",
+      viewDesktop: "عرض المكتبي",
+      viewMobile: "عرض الجوال",
+      notifEnable: "تفعيل الإشعارات",
+      notifOn: "الإشعارات مفعّلة",
+      notifBlocked: "الإشعارات محظورة",
+      notifUnsupported: "الإشعارات غير مدعومة",
+      marketPulse: "نبض السوق",
+      topLists: "القوائم الأكثر حركة",
+      alerts: "التنبيهات",
+      general: "عام",
+      topGainers: "الأكثر ارتفاعاً",
+      momentum: "الزخم",
+      volumePressure: "ضغط الحجم",
+      floatVelocity: "سرعة دوران الفلوت",
+      catalystPulse: "نبض المحفزات",
+      session_closedWeekend: "مغلق (نهاية الأسبوع)",
+      session_closed: "مغلق",
+      session_preMarket: "ما قبل الافتتاح",
+      session_marketOpen: "السوق مفتوح",
+      session_afterHours: "ما بعد الإغلاق",
+      countdownToOpen: "للافتتاح",
+      countdownToClose: "للإغلاق",
+      countdownToAhEnd: "لنهاية ما بعد الإغلاق",
+      countdownToPreMarket: "لبداية ما قبل الافتتاح",
+      countdownTimeLeft: "الوقت المتبقي",
+      marketClosedWeekendMsg: "السوق مغلق لعطلة نهاية الأسبوع",
+      mostActive: "الأكثر نشاطاً",
+      lowFloatTopGainers: "أسهم اللوفلوت الأكثر ارتفاعاً",
+      afterMarket: "تداولات ما بعد الإغلاق",
+      fivePillars: "مطابقة للمعايير",
+      split: "تقسيم الأسهم",
+      preMarketBounce: "🌅 ارتداد ما قبل الافتتاح",
+      smallCapHodMomentum: "🟩 الزخم اللحظي للأسهم صغيرة القيمة",
+      haltsResumptions: "🚦 | إيقاف وتدفق التداول",
+      economicIpoCalendars: "التقويم الاقتصادي والاكتتابات",
+      economicCalendar: "التقويم الاقتصادي",
+      ipoCalendar: "تقويم الاكتتابات (IPO)",
+      langToggleLabel: "EN"
+    }
+  };
+
+  let currentLanguage = localStorage.getItem("dashboardLanguage") || "en";
+
+  function tr(key){
+    return (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage][key]) || TRANSLATIONS.en[key] || key;
+  }
+
+  function applyLanguage(){
+    document.documentElement.setAttribute("dir", currentLanguage === "ar" ? "rtl" : "ltr");
+    document.documentElement.setAttribute("lang", currentLanguage);
+    document.body.classList.toggle("lang-ar", currentLanguage === "ar");
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      el.textContent = tr(key);
+    });
+
+    const langLabelEl = document.getElementById("langToggleLabel");
+    if(langLabelEl) langLabelEl.textContent = tr("langToggleLabel");
+
+    // These two labels are state-dependent (set dynamically elsewhere,
+    // not static markup), so they need their own refresh here rather
+    // than the generic [data-i18n] sweep above.
+    if(typeof updateNotifToggleUI === "function") updateNotifToggleUI();
+    if(typeof refreshViewToggleLabel === "function") refreshViewToggleLabel();
+    if(typeof buildMobileTabBar === "function" && viewMode === "mobile") buildMobileTabBar();
+    if(typeof recomputeMarketPulse === "function") recomputeMarketPulse();
+    if(typeof updateMarketStatusBar === "function") updateMarketStatusBar();
+  }
+
+  document.getElementById("langToggleBtn").addEventListener("click", () => {
+    currentLanguage = currentLanguage === "en" ? "ar" : "en";
+    localStorage.setItem("dashboardLanguage", currentLanguage);
+    applyLanguage();
+  });
+
   const TABLES = [
     { key: "table1", name: "Top Gainers",  configId: "6a1c66d57518438c9c7190c1", wrapId: "table1Wrap", countId: "count1", columns: STANDARD_COLUMNS },
     { key: "table2", name: "Most Active",  configId: "69af3449174bfc7ca6ffc56d", wrapId: "table2Wrap", countId: "count2", columns: STANDARD_COLUMNS },
@@ -1052,11 +1214,16 @@
   let viewMode = localStorage.getItem("viewMode") || getDefaultViewMode();
   let mobileActiveTableKey = TABLES[0].key;
 
+  const TABLE_KEY_TO_I18N = {
+    table1: "topGainers", table2: "mostActive", table5: "lowFloatTopGainers",
+    table3: "afterMarket", table4: "fivePillars", table6: "split"
+  };
+
   function buildMobileTabBar(){
     const bar = document.getElementById("topListsTabBar");
     if(!bar) return;
     bar.innerHTML = TABLES.map(t =>
-      `<button class="toplist-tab-btn${t.key === mobileActiveTableKey ? " active" : ""}" data-tab-key="${t.key}">${escapeHtml(t.name)}</button>`
+      `<button class="toplist-tab-btn${t.key === mobileActiveTableKey ? " active" : ""}" data-tab-key="${t.key}">${escapeHtml(TABLE_KEY_TO_I18N[t.key] ? tr(TABLE_KEY_TO_I18N[t.key]) : t.name)}</button>`
     ).join("");
   }
 
@@ -1073,6 +1240,11 @@
     });
   }
 
+  function refreshViewToggleLabel(){
+    const label = document.getElementById("viewToggleLabel");
+    if(label) label.textContent = viewMode === "desktop" ? tr("viewDesktop") : tr("viewMobile");
+  }
+
   function applyViewMode(){
     document.querySelectorAll("#topListsContainer .panel, #alertsContainer .panel").forEach(p => {
       p.classList.add("collapsed");
@@ -1084,12 +1256,10 @@
     document.body.classList.toggle("view-mobile", viewMode === "mobile");
 
     const icon = document.getElementById("viewToggleIcon");
-    const label = document.getElementById("viewToggleLabel");
     const tabBar = document.getElementById("topListsTabBar");
 
     if(viewMode === "desktop"){
       if(icon) icon.textContent = "🖥️";
-      if(label) label.textContent = "Desktop View";
       if(tabBar) tabBar.style.display = "none";
       TABLES.forEach(t => {
         const panel = document.getElementById("panel-" + t.key);
@@ -1097,11 +1267,11 @@
       });
     } else {
       if(icon) icon.textContent = "📱";
-      if(label) label.textContent = "Mobile View";
       if(tabBar) tabBar.style.display = "";
       buildMobileTabBar();
       setMobileActiveTable(mobileActiveTableKey);
     }
+    refreshViewToggleLabel();
   }
 
   document.getElementById("viewToggleBtn").addEventListener("click", () => {
@@ -1516,43 +1686,43 @@
     const OPEN_END = 16 * 3600;
     const AH_END = 20 * 3600;
 
-    let session, sessionClass, secondsToEnd;
+    let sessionKey, sessionClass, secondsToEnd;
 
     if(isWeekend){
-      session = "Closed (Weekend)";
+      sessionKey = "closedWeekend";
       sessionClass = "session-closed";
       secondsToEnd = null;
     } else if(nowSec >= AH_END || nowSec < PRE_START){
-      session = "Closed";
+      sessionKey = "closed";
       sessionClass = "session-closed";
       secondsToEnd = nowSec < PRE_START ? (PRE_START - nowSec) : ((86400 - nowSec) + PRE_START);
     } else if(nowSec < OPEN_START){
-      session = "Pre-Market";
+      sessionKey = "preMarket";
       sessionClass = "session-pre";
       secondsToEnd = OPEN_START - nowSec;
     } else if(nowSec < OPEN_END){
-      session = "Market Open";
+      sessionKey = "marketOpen";
       sessionClass = "session-open";
       secondsToEnd = OPEN_END - nowSec;
     } else {
-      session = "After Hours";
+      sessionKey = "afterHours";
       sessionClass = "session-after";
       secondsToEnd = AH_END - nowSec;
     }
 
     barEl.className = "market-status-bar " + sessionClass;
-    labelEl.textContent = session;
+    labelEl.textContent = tr("session_" + sessionKey);
 
-    const labelMap = {
-      "Pre-Market": "To Open",
-      "Market Open": "To Close",
-      "After Hours": "To AH End",
-      "Closed": "To Pre-Market",
-      "Closed (Weekend)": "To Pre-Market"
+    const countdownLabelKeyMap = {
+      preMarket: "countdownToOpen",
+      marketOpen: "countdownToClose",
+      afterHours: "countdownToAhEnd",
+      closed: "countdownToPreMarket",
+      closedWeekend: "countdownToPreMarket"
     };
     countdownEl.textContent = secondsToEnd !== null
-      ? `${labelMap[session] || "Time left"}: ${formatCountdown(secondsToEnd)}`
-      : "Market closed for the weekend";
+      ? `${tr(countdownLabelKeyMap[sessionKey] || "countdownTimeLeft")}: ${formatCountdown(secondsToEnd)}`
+      : tr("marketClosedWeekendMsg");
   }
   updateMarketStatusBar();
   setInterval(updateMarketStatusBar, 1000);
@@ -2079,20 +2249,20 @@
     const supported = "Notification" in window;
     if(!supported){
       btn.classList.add("denied");
-      label.textContent = "Notifications Unsupported";
+      label.textContent = tr("notifUnsupported");
       return;
     }
     if(Notification.permission === "denied"){
       btn.classList.remove("enabled");
       btn.classList.add("denied");
-      label.textContent = "Notifications Blocked";
+      label.textContent = tr("notifBlocked");
     } else if(browserNotifsEnabled && Notification.permission === "granted"){
       btn.classList.remove("denied");
       btn.classList.add("enabled");
-      label.textContent = "Notifications On";
+      label.textContent = tr("notifOn");
     } else {
       btn.classList.remove("enabled", "denied");
-      label.textContent = "Enable Notifications";
+      label.textContent = tr("notifEnable");
     }
   }
 
@@ -2269,7 +2439,6 @@
     return prevSnap;
   }
 
-  let currentLocale = "en";
   const MARKET_HEALTH_LABELS = {
     en: {
       burst: "🔥 MOMENTUM BURST",
@@ -2277,6 +2446,13 @@
       consolidation: "⏳ CONSOLIDATION",
       weak: "⚠️ WEAK MARKET",
       dead: "🧊 DEAD MARKET"
+    },
+    ar: {
+      burst: "🔥 اندفاع زخمي",
+      bull: "📈 صعود صحي",
+      consolidation: "⏳ تماسك",
+      weak: "⚠️ سوق ضعيف",
+      dead: "🧊 سوق راكد"
     }
   };
 
@@ -2305,7 +2481,7 @@
     const labelEl = document.getElementById("mpHealthLabel");
     if(!fillEl || !labelEl) return;
     const band = getMarketHealthBand(score);
-    const label = (MARKET_HEALTH_LABELS[currentLocale] || MARKET_HEALTH_LABELS.en)[band];
+    const label = (MARKET_HEALTH_LABELS[currentLanguage] || MARKET_HEALTH_LABELS.en)[band];
 
     fillEl.style.width = `${Math.max(0, Math.min(100, score))}%`;
     fillEl.className = "mp-health-bar-fill mh-" + band;
@@ -3777,9 +3953,11 @@
           const rows = Array.isArray(msg.rows) ? msg.rows : [];
           const spyRow = rows.find(r => r.symbol === "SPY");
           const qqqRow = rows.find(r => r.symbol === "QQQ");
+          const diaRow = rows.find(r => r.symbol === "DIA");
           if(spyRow) updateIndexWidgetFromChartsWatcher(spyRow, "spy");
           if(qqqRow) updateIndexWidgetFromChartsWatcher(qqqRow, "qqq");
-          if(!spyRow && !qqqRow) logLine("SPY/QQQ Toplist update arrived but neither symbol was found in its rows.", "warn");
+          if(diaRow) updateIndexWidgetFromChartsWatcher(diaRow, "dia");
+          if(!spyRow && !qqqRow && !diaRow) logLine("SPY/QQQ/DIA Toplist update arrived but none of the three symbols were found in its rows.", "warn");
         }
         return;
       }
@@ -3977,6 +4155,7 @@
     if(ws) ws.close();
   });
 
+  applyLanguage();
   connect();
 
 })();
