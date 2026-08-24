@@ -98,6 +98,23 @@
   .card-preview-row-toplist:hover{
     background: rgba(255, 255, 255, 0.08);
   }
+  .card-preview-row-toplist.card-preview-header{
+    cursor: default;
+    min-height: 0;
+    padding: 0 0 4px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .card-preview-row-toplist.card-preview-header:hover{
+    background: transparent;
+  }
+  .card-preview-row-toplist .cp-h{
+    font-size: 8.5px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
   .card-preview-row-toplist > *{
     display: flex;
     align-items: center;
@@ -1503,6 +1520,17 @@
     return `<span class="cp-trade-badge ${tierCls}">${escapeHtml(value)}</span>`;
   }
 
+  function cardPreviewHeaderHtml(){
+    return `<div class="card-preview-row card-preview-row-toplist card-preview-header">
+      <span class="cp-h">SYM</span>
+      <span class="cp-h">PRICE</span>
+      <span class="cp-h">CHG%</span>
+      <span class="cp-h">FLT</span>
+      <span class="cp-h">15M%</span>
+      <span class="cp-h">5M#</span>
+    </div>`;
+  }
+
   function renderCardPreview(dataKey, rows, tableKeyForLookup, isToplist){
     const el = document.getElementById("cardPreview-" + dataKey);
     if(!el) return;
@@ -1511,7 +1539,7 @@
       return;
     }
     const sample = rows.slice(0, 5);
-    let html = "";
+    let html = isToplist ? cardPreviewHeaderHtml() : "";
     sample.forEach(row => {
       const f = extractPreviewFields(tableKeyForLookup, row, isToplist);
       if(isToplist){
