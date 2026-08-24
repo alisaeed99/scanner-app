@@ -86,7 +86,7 @@
   .card-preview-empty{ padding:6px 0; font-size:11px; color: var(--muted); text-align:center; }
 
   .card-preview-row-toplist{
-    grid-template-columns: minmax(110px, 1.4fr) minmax(50px, 0.8fr) minmax(60px, 0.9fr) minmax(55px, 0.9fr) minmax(45px, 0.8fr);
+    grid-template-columns: minmax(95px, 1.3fr) minmax(48px, 0.75fr) minmax(55px, 0.85fr) minmax(50px, 0.8fr) minmax(48px, 0.8fr) minmax(42px, 0.75fr);
     gap: 0;
     align-items: stretch;
     min-height: 24px;
@@ -153,7 +153,8 @@
     white-space: nowrap;
   }
   .card-preview-row-toplist .cp-float-badge,
-  .card-preview-row-toplist .cp-trade-badge{
+  .card-preview-row-toplist .cp-trade-badge,
+  .card-preview-row-toplist .cp-15m-badge{
     display: inline-block;
     padding: 1px 6px;
     border-radius: 10px;
@@ -164,6 +165,8 @@
     background: rgba(255,255,255,0.06);
     color: var(--text);
   }
+  .card-preview-row-toplist .cp-15m-badge.num-up{ background: rgba(110,219,143,0.15); color: var(--up); }
+  .card-preview-row-toplist .cp-15m-badge.num-down{ background: rgba(255,68,104,0.15); color: var(--down); }
   .cp-trade-badge.cptc-white{ color:#ffffff; }
   .cp-trade-badge.cptc-green{ color:#22c55e; background: rgba(34,197,94,0.12); }
   .cp-trade-badge.cptc-darkgreen{ color:#86efac; background: rgba(22,101,52,0.22); }
@@ -1070,6 +1073,7 @@
     { display: "News Icon",                  render: "news-icon" },
     { display: "% Change",                   render: "change-tier" },
     { display: "Daily Volume",               render: "volume-tier" },
+    { display: "15 Min Chg",                 render: "change-tier" },
     { display: "Float",                      render: "float-tier" },
     { display: "Relative Daily Volume (%)",  render: "rvol-tier" },
     { display: "Country",                    render: "country-flag" },
@@ -1088,6 +1092,7 @@
     "News Icon":                 { icon: "📄",  abbr: "Hrs", title: "Hours since news" },
     "% Change":                   { icon: "Δ",   abbr: "CHG%", title: "% Change" },
     "Daily Volume":               { icon: "📊",  abbr: "VOL" },
+    "15 Min Chg":                  { icon: "⏱️",  abbr: "15M%", title: "15 Minute Change %" },
     "Float":                       { icon: "🔄",  abbr: "FLT" },
     "Relative Daily Volume (%)": { icon: "📈",  abbr: "RVOL%" },
     "Country":                    { icon: "🌍",  abbr: "" },
@@ -1453,6 +1458,7 @@
         change: get("% Change"),
         country: get("Country"),
         float: get("Float"),
+        fifteenMinChg: get("15 Min Chg"),
         tradeCount: get("5 min trade count"),
         hoursSinceNews: resolveHoursSinceNews(row, tableKey),
         daysSinceSplit: resolveDaysSinceSplit(row.symbol, row)
@@ -1477,6 +1483,11 @@
     const tier = floatColorTier(n);
     const cls = tier.cssClass ? "cpflt-" + tier.cssClass.replace("flt-", "") : "";
     return `<span class="cp-float-badge ${cls}">${escapeHtml(value)}</span>`;
+  }
+
+  function previewChangeBadge(value){
+    if(value === null || value === undefined || value === "") return `<span class="cp-15m-badge">—</span>`;
+    return `<span class="cp-15m-badge ${directionClass(value)}">${escapeHtml(value)}</span>`;
   }
 
   function previewTradeCountBadge(value){
@@ -1509,6 +1520,7 @@
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
+          ${previewChangeBadge(f.fifteenMinChg)}
           ${previewTradeCountBadge(f.tradeCount)}
         </div>`;
       } else {
@@ -1612,6 +1624,15 @@
         );
         match = changeCandidates.find(d => /%|percent|pct/i.test(d.name) || /pct|percent/i.test(d.key))
              || changeCandidates[0]
+             || null;
+      }
+
+      if(col.display === "15 Min Chg"){
+        // Confirmed real field key from a live payload — exact match
+        // first (most reliable), fuzzy fallback only if that specific
+        // key isn't present in this particular table's config.
+        match = available.find(d => !used.has(d.key) && d.key === "PrzChangeFilterMIN15")
+             || available.find(d => !used.has(d.key) && /min15|15min/.test(normalizeLabel(d.key)) && normalizeLabel(d.name).includes("change"))
              || null;
       }
 
