@@ -378,6 +378,10 @@
   }
   .panel-head{ display:flex; align-items:center; justify-content:space-between; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--card-2); cursor:pointer; user-select:none; }
   .panel-head-left{ display:flex; align-items:center; gap:9px; }
+  .panel-head-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .sound-toggle-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; line-height:1; padding:0; transition: background .15s ease; flex-shrink:0; }
+  .sound-toggle-btn:hover{ background: rgba(255,255,255,0.08); }
+  .sound-toggle-btn.muted{ opacity:0.55; }
   .panel-head h2{ font-size: 13.5px; margin:0; font-weight:700; color: var(--header-text); letter-spacing:-0.005em; }
   .panel-head .count{ color:var(--muted); font-size:11px; font-weight:500; }
   .fold-btn{ background:transparent; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; color: var(--muted); transition: transform .25s ease, background .15s ease; flex-shrink:0; }
@@ -927,7 +931,10 @@
         </span>
         <h2 data-i18n="smallCapHodMomentum">🟩 Small Cap - High of Day Momentum</h2>
       </div>
-      <span class="count" id="hodMomoCount">0 events</span>
+      <div class="panel-head-right">
+        <button class="sound-toggle-btn" data-sound-key="alert5" aria-label="Toggle sound for this alert" title="Toggle sound for this alert">🔊</button>
+        <span class="count" id="hodMomoCount">0 events</span>
+      </div>
     </div>
     <div id="hodMomoTableWrap" class="table-scroll">
       <div class="loading"><span class="dot-pulse"></span>Waiting for screening events…</div>
@@ -946,7 +953,10 @@
         </span>
         <h2 data-i18n="preMarketBounce">🌅 Pre-Market Bounce</h2>
       </div>
-      <span class="count" id="preMarketBounceCount">0 events</span>
+      <div class="panel-head-right">
+        <button class="sound-toggle-btn" data-sound-key="alert6" aria-label="Toggle sound for this alert" title="Toggle sound for this alert">🔊</button>
+        <span class="count" id="preMarketBounceCount">0 events</span>
+      </div>
     </div>
     <div id="preMarketBounceTableWrap" class="table-scroll">
       <div class="loading"><span class="dot-pulse"></span>Waiting for screening events…</div>
@@ -2500,8 +2510,39 @@
     document.addEventListener(evt, unlockAudioContext, { once: true });
   });
 
-  function playAlertChime(){
+  // Per-card sound mute — layered UNDER the global "Enable Notifications"
+  // toggle: if that global toggle is off, nothing plays for any card
+  // regardless of this setting. If it's on, each card's own toggle here
+  // decides whether THAT specific card's chime plays. Defaults to
+  // enabled (true) when nothing has been saved yet.
+  function getCardSoundEnabled(cardKey){
+    const v = localStorage.getItem("cardSound_" + cardKey);
+    return v === null ? true : v === "true";
+  }
+  function setCardSoundEnabled(cardKey, enabled){
+    localStorage.setItem("cardSound_" + cardKey, enabled ? "true" : "false");
+  }
+  function updateSoundToggleIcon(cardKey){
+    const btn = document.querySelector(`[data-sound-key="${cardKey}"]`);
+    if(!btn) return;
+    const enabled = getCardSoundEnabled(cardKey);
+    btn.textContent = enabled ? "🔊" : "🔇";
+    btn.classList.toggle("muted", !enabled);
+  }
+  ["alert5", "alert6"].forEach(updateSoundToggleIcon);
+
+  document.addEventListener("click", (e) => {
+    const soundBtn = e.target.closest("[data-sound-key]");
+    if(!soundBtn) return;
+    e.stopPropagation();
+    const cardKey = soundBtn.dataset.soundKey;
+    setCardSoundEnabled(cardKey, !getCardSoundEnabled(cardKey));
+    updateSoundToggleIcon(cardKey);
+  }, true);
+
+  function playAlertChime(cardKey){
     if(!browserNotifsEnabled) return;
+    if(cardKey && !getCardSoundEnabled(cardKey)) return;
     if(!audioContext) return; // no user interaction yet — nothing we can do until there is one
     try{
       const ctx = audioContext;
@@ -2929,7 +2970,7 @@
       );
     }
     if(cfgKey === "alert5" || cfgKey === "alert6"){
-      playAlertChime();
+      playAlertChime(cfgKey);
     }
 
     logLine(`${cfg ? cfg.name : cfgKey} event raw keys: ${fields.map(f => `${f.key}="${f.value}"`).join(", ")}`, "good");
