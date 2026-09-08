@@ -127,6 +127,21 @@
   .card-preview-row-toplist > *:last-child{ border-right: none; }
   .card-preview-row-toplist > :nth-child(1){ justify-content: flex-start; text-align: left; }
   .card-preview-row-toplist > :nth-child(n+2){ justify-content: flex-end; text-align: right; }
+
+  /* Rich alert preview (Small Cap - HOD Momentum, Pre-Market Bounce):
+     same 6-column layout as Top Lists, plus a TIME column prepended —
+     needs its own grid-template-columns and positional overrides since
+     the ticker group shifts from 1st to 2nd child here specifically. */
+  .card-preview-row-toplist.card-preview-row-richalert{
+    grid-template-columns: minmax(46px, 0.65fr) minmax(80px, 1.15fr) minmax(46px, 0.7fr) minmax(52px, 0.8fr) minmax(48px, 0.75fr) minmax(46px, 0.75fr) minmax(40px, 0.7fr);
+  }
+  .card-preview-row-richalert > :nth-child(1){ justify-content: flex-end; text-align: right; }
+  .card-preview-row-richalert > :nth-child(2){ justify-content: flex-start; text-align: left; }
+  .card-preview-row-richalert .cp-time{
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
   .card-preview-row-toplist .cp-ticker-group{
     display: inline-flex;
     align-items: center;
@@ -1510,8 +1525,30 @@
   // This reuses the same rich-preview visual language as Top Lists.
   // No "15 Min Chg" or Split data exists for these tables, so those
   // badges honestly show "—" rather than fabricating a value.
+  // Same date/epoch parsing as formatFlexibleTimestamp, but shows just
+  // the time (matches how compact this preview needs to stay) — falls
+  // through to the raw string if it's already a plain time like
+  // "09:45:12" (the common shape for Screening rows' Time field).
+  function formatCompactTime(v){
+    if(v === null || v === undefined || v === "") return null;
+    const n = Number(v);
+    let d = null;
+    if(!isNaN(n) && n > 0){
+      const ms = String(Math.trunc(n)).length >= 13 ? n : n * 1000;
+      const candidate = new Date(ms);
+      if(!isNaN(candidate.getTime())) d = candidate;
+    }
+    if(!d){
+      const parsed = Date.parse(v);
+      if(!isNaN(parsed)) d = new Date(parsed);
+    }
+    if(d) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return String(v);
+  }
+
   function extractRichAlertPreviewFields(row){
     return {
+      time: formatCompactTime(row["Time"]),
       symbol: row["Symbol"],
       price: row["Price ($)"],
       change: row["% Change"],
@@ -1556,8 +1593,10 @@
     return `<span class="cp-trade-badge ${tierCls}">${escapeHtml(value)}</span>`;
   }
 
-  function cardPreviewHeaderHtml(){
-    return `<div class="card-preview-row card-preview-row-toplist card-preview-header">
+  function cardPreviewHeaderHtml(includeTime){
+    const gridClass = includeTime ? "card-preview-row-toplist card-preview-row-richalert" : "card-preview-row-toplist";
+    return `<div class="card-preview-row ${gridClass} card-preview-header">
+      ${includeTime ? '<span class="cp-h">TIME</span>' : ""}
       <span class="cp-h">SYM</span>
       <span class="cp-h">PRICE</span>
       <span class="cp-h">CHG%</span>
@@ -1579,7 +1618,7 @@
     }
     const mode = PREVIEW_MODE_BY_KEY[dataKey] || (isToplist ? "toplist" : "simple");
     const sample = rows.slice(0, 5);
-    let html = (mode === "toplist" || mode === "richAlert") ? cardPreviewHeaderHtml() : "";
+    let html = mode === "toplist" ? cardPreviewHeaderHtml(false) : mode === "richAlert" ? cardPreviewHeaderHtml(true) : "";
     sample.forEach(row => {
       if(mode === "toplist"){
         const f = extractPreviewFields(tableKeyForLookup, row, true);
@@ -1593,7 +1632,8 @@
         </div>`;
       } else if(mode === "richAlert"){
         const f = extractRichAlertPreviewFields(row);
-        html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
+        html += `<div class="card-preview-row card-preview-row-toplist card-preview-row-richalert" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
+          <span class="cp-time mono">${f.time ? escapeHtml(f.time) : "—"}</span>
           <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewNewsIndicator(f.hoursSinceNews)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
