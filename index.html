@@ -1409,9 +1409,9 @@
   }
 
   const PREVIEW_TARGETS = [
-    ...TABLES.map(t => ({ panelId: "panel-" + t.key, dataKey: t.key, isToplist: true })),
-    { panelId: "panel-halts", dataKey: "halts", isToplist: false },
-    ...ALERT_CONFIGS.filter(a => a.special === "screening").map(a => ({ panelId: "panel-" + a.key, dataKey: a.key, isToplist: false }))
+    ...TABLES.map(t => ({ panelId: "panel-" + t.key, dataKey: t.key, isToplist: true, previewMode: "toplist" })),
+    { panelId: "panel-halts", dataKey: "halts", isToplist: false, previewMode: "simple" },
+    ...ALERT_CONFIGS.filter(a => a.special === "screening").map(a => ({ panelId: "panel-" + a.wrapId.replace(/TableWrap$/, "").toLowerCase(), dataKey: a.key, isToplist: false, previewMode: "richAlert" }))
   ];
 
   PREVIEW_TARGETS.forEach(target => {
@@ -1464,6 +1464,22 @@
     return splitRsBadgeHtml();
   }
 
+  // Same conversion logic as resolveHoursSinceNews's fallback path, but
+  // for flat-keyed Screening rows (no row.columns to resolve from —
+  // the raw minutes value is already sitting directly on the row).
+  function minutesToHours(rawMinutes){
+    if(rawMinutes === null || rawMinutes === undefined || rawMinutes === "") return null;
+    const strVal = String(rawMinutes).trim();
+    const lower = strVal.toLowerCase();
+    if(["false", "no", "none", "—", "n/a", "na"].includes(lower)) return null;
+    if(["true", "yes", "fresh", "hot", "new"].includes(lower)) return 0;
+    const cleaned = strVal.replace(/,/g, "");
+    const m = cleaned.match(/-?\d+(\.\d+)?/);
+    if(!m) return null;
+    const minutes = parseFloat(m[0]);
+    return isNaN(minutes) ? null : minutes / 60;
+  }
+
   function extractPreviewFields(tableKey, row, isToplist){
     if(isToplist){
       const colMap = {};
@@ -1485,6 +1501,26 @@
       symbol: row["Symbol"],
       price: row["Price ($)"],
       change: row["% Change"] || row["Change %"]
+    };
+  }
+
+  // Small Cap - High of Day Momentum and Pre-Market Bounce carry the
+  // same kind of fields as a Toplist row (Float, Country, 5 min trade
+  // count, News) — just stored flat on the row instead of row.columns[].
+  // This reuses the same rich-preview visual language as Top Lists.
+  // No "15 Min Chg" or Split data exists for these tables, so those
+  // badges honestly show "—" rather than fabricating a value.
+  function extractRichAlertPreviewFields(row){
+    return {
+      symbol: row["Symbol"],
+      price: row["Price ($)"],
+      change: row["% Change"],
+      country: row["Country"],
+      float: row["Float"],
+      fifteenMinChg: null,
+      tradeCount: row["5 min trade count"],
+      hoursSinceNews: minutesToHours(row["News Icon"]),
+      daysSinceSplit: null
     };
   }
 
@@ -1531,6 +1567,9 @@
     </div>`;
   }
 
+  const PREVIEW_MODE_BY_KEY = {};
+  PREVIEW_TARGETS.forEach(target => { PREVIEW_MODE_BY_KEY[target.dataKey] = target.previewMode; });
+
   function renderCardPreview(dataKey, rows, tableKeyForLookup, isToplist){
     const el = document.getElementById("cardPreview-" + dataKey);
     if(!el) return;
@@ -1538,11 +1577,12 @@
       el.innerHTML = `<div class="card-preview-empty">No data yet</div>`;
       return;
     }
+    const mode = PREVIEW_MODE_BY_KEY[dataKey] || (isToplist ? "toplist" : "simple");
     const sample = rows.slice(0, 5);
-    let html = isToplist ? cardPreviewHeaderHtml() : "";
+    let html = (mode === "toplist" || mode === "richAlert") ? cardPreviewHeaderHtml() : "";
     sample.forEach(row => {
-      const f = extractPreviewFields(tableKeyForLookup, row, isToplist);
-      if(isToplist){
+      if(mode === "toplist"){
+        const f = extractPreviewFields(tableKeyForLookup, row, true);
         html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
           <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
@@ -1551,7 +1591,18 @@
           ${previewChangeBadge(f.fifteenMinChg)}
           ${previewTradeCountBadge(f.tradeCount)}
         </div>`;
+      } else if(mode === "richAlert"){
+        const f = extractRichAlertPreviewFields(row);
+        html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
+          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewNewsIndicator(f.hoursSinceNews)}</span>
+          <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
+          <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
+          ${previewFloatBadge(f.float)}
+          ${previewChangeBadge(f.fifteenMinChg)}
+          ${previewTradeCountBadge(f.tradeCount)}
+        </div>`;
       } else {
+        const f = extractPreviewFields(tableKeyForLookup, row, false);
         html += `<div class="card-preview-row">
           <span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
