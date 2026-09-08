@@ -1365,7 +1365,7 @@
 
   const ALERT_CONFIGS = [
     { key: "alert2", name: "🚦 | HALTS - RESUMPTIONS", configId: "6a1c66d57518438c9c719050", special: "halts" },
-    { key: "alert5", name: "🟩 Small Cap - High of Day Momentum", configId: "69a986c3433cbf6f690c210e", special: "screening", wrapId: "hodMomoTableWrap", countId: "hodMomoCount" },
+    { key: "alert5", name: "🟩 Small Cap - High of Day Momentum", configId: "69a986c3433cbf6f690c210a", special: "screening", wrapId: "hodMomoTableWrap", countId: "hodMomoCount" },
     { key: "alert6", name: "🌅 Pre-Market Bounce", configId: "69b1b25780ca4d8e3b6e3245", special: "screening", wrapId: "preMarketBounceTableWrap", countId: "preMarketBounceCount" }
   ];
   const configToAlertKeys = {};
@@ -2478,6 +2478,55 @@
     }
   }
 
+  // Audio chime for new alerts — replaces/supplements the popup
+  // notification with a short sound, sharing the SAME on/off toggle
+  // (browserNotifsEnabled) so muting one mutes both. Browsers block
+  // audio playback until the page has had a real user interaction
+  // (click/touch/keypress), so the AudioContext is created lazily on
+  // the very first such interaction, rather than at page load — trying
+  // to play before that would silently fail or throw in most browsers.
+  let audioContext = null;
+
+  function unlockAudioContext(){
+    if(audioContext) return;
+    try{
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioContext.state === "suspended") audioContext.resume();
+    }catch(e){
+      logLine(`Couldn't initialize audio for alert chimes: ${e.message}`, "warn");
+    }
+  }
+  ["click", "touchstart", "keydown"].forEach(evt => {
+    document.addEventListener(evt, unlockAudioContext, { once: true });
+  });
+
+  function playAlertChime(){
+    if(!browserNotifsEnabled) return;
+    if(!audioContext) return; // no user interaction yet — nothing we can do until there is one
+    try{
+      const ctx = audioContext;
+      const now = ctx.currentTime;
+      // Short two-note ascending chime (~200ms total), gain-enveloped
+      // on both ends to avoid audible clicks — clean and unobtrusive.
+      [880, 1320].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        const startAt = now + i * 0.09;
+        gain.gain.setValueAtTime(0, startAt);
+        gain.gain.linearRampToValueAtTime(0.2, startAt + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.18);
+        osc.start(startAt);
+        osc.stop(startAt + 0.2);
+      });
+    }catch(e){
+      logLine(`Alert chime playback failed: ${e.message}`, "warn");
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", updateNotifToggleUI);
   updateNotifToggleUI();
 
@@ -2878,6 +2927,9 @@
         `${cfg ? cfg.name : "Screening"}: ${row["Symbol"]}`,
         `$${row["Price ($)"] || "?"} · ${row["% Change"] || ""}`
       );
+    }
+    if(cfgKey === "alert5" || cfgKey === "alert6"){
+      playAlertChime();
     }
 
     logLine(`${cfg ? cfg.name : cfgKey} event raw keys: ${fields.map(f => `${f.key}="${f.value}"`).join(", ")}`, "good");
