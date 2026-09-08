@@ -168,6 +168,30 @@
     line-height: 1;
     flex-shrink: 0;
   }
+  .card-preview-row-toplist .cp-rank-chg{
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    font-size: 8.5px;
+    font-weight: 700;
+    padding: 0 3px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  .card-preview-row-toplist .cp-rank-up{ color: var(--up); background: rgba(110,219,143,0.14); }
+  .card-preview-row-toplist .cp-rank-down{ color: var(--down); background: rgba(255,68,104,0.14); }
+  .card-preview-row-toplist .cp-rank-new{
+    color: #22d3ee;
+    background: rgba(34,211,238,0.16);
+    animation: rankNewFlash 0.9s ease-out 2;
+  }
+  @keyframes rankNewFlash{
+    0%{ opacity: 0.3; transform: scale(0.85); }
+    40%{ opacity: 1; transform: scale(1.08); }
+    100%{ opacity: 1; transform: scale(1); }
+  }
   .card-preview-row-toplist .split-badge-rs{
     margin-left: 0;
     font-size: 9px;
@@ -1521,6 +1545,85 @@
     return isNaN(minutes) ? null : minutes / 60;
   }
 
+  // Rank Chg tracking (Top Lists preview only) — this is a REAL computed
+  // value, not a field ChartsWatcher provides: we track each symbol's
+  // own position (index) in the full ranked list across consecutive
+  // snapshots, and the change is the raw position delta (e.g. moved
+  // from 8th to 3rd = +5). Per explicit confirmation, this is shown as
+  // a plain position count, not a percentage — a percentage has no
+  // clean, unambiguous meaning for "rank" the way it does for price.
+  const RANK_CHG_DISPLAY_MS = 60000; // was 10s for new-symbol only — now 60s, applying equally to the arrow+position-delta case too
+  const previousRankMap = {};      // tableKey -> { symbol: previousIndex }
+  const rankChgDisplayInfo = {};   // tableKey -> { symbol: { rankChange, isNew, shownAt } } — shownAt resets every time a fresh change is detected
+  const rankFlashExpiryTimers = {}; // tableKey -> { symbol: timeoutId }
+
+  function computeRankChangeForPreview(tableKey, allRows){
+    if(!previousRankMap[tableKey]) previousRankMap[tableKey] = {};
+    if(!rankChgDisplayInfo[tableKey]) rankChgDisplayInfo[tableKey] = {};
+    if(!rankFlashExpiryTimers[tableKey]) rankFlashExpiryTimers[tableKey] = {};
+
+    const prevMap = previousRankMap[tableKey];
+    const displayMap = rankChgDisplayInfo[tableKey];
+    const timerMap = rankFlashExpiryTimers[tableKey];
+    const now = Date.now();
+    const newIndexMap = {};
+
+    // Our rendering replaces the whole preview's HTML on every update (no
+    // incremental DOM patching), so a per-element setTimeout can't reach
+    // into stale markup — instead this forces a fresh render at the
+    // exact expiry moment so the indicator disappears on schedule even
+    // if no new data arrives in the meantime.
+    function scheduleExpiry(sym){
+      clearTimeout(timerMap[sym]);
+      timerMap[sym] = setTimeout(() => {
+        renderCardPreview(tableKey, displayed[tableKey] || [], tableKey, true);
+      }, RANK_CHG_DISPLAY_MS + 50);
+    }
+
+    allRows.forEach((row, idx) => {
+      const sym = row.symbol;
+      if(!sym) return;
+      newIndexMap[sym] = idx;
+
+      if(!Object.prototype.hasOwnProperty.call(prevMap, sym)){
+        // Brand new to this ranked list — starts its own 60s window
+        if(!displayMap[sym] || !displayMap[sym].isNew){
+          displayMap[sym] = { rankChange: null, isNew: true, shownAt: now };
+          scheduleExpiry(sym);
+        }
+      } else {
+        const rankChange = prevMap[sym] - idx; // positive = moved up (better rank)
+        if(rankChange !== 0){
+          // A genuinely fresh movement — (re)starts the 60s window from now
+          displayMap[sym] = { rankChange, isNew: false, shownAt: now };
+          scheduleExpiry(sym);
+        }
+        // rankChange === 0 this update: leave displayMap[sym] untouched —
+        // it keeps counting down from whenever it last actually moved
+      }
+    });
+
+    previousRankMap[tableKey] = newIndexMap;
+
+    const result = {};
+    Object.keys(displayMap).forEach(sym => {
+      const info = displayMap[sym];
+      result[sym] = { rankChange: info.rankChange, isNew: info.isNew, stillFlashing: (now - info.shownAt) < RANK_CHG_DISPLAY_MS };
+    });
+    return result;
+  }
+
+  function previewRankChgBadge(info){
+    if(!info || !info.stillFlashing) return "";
+    if(info.isNew){
+      return `<span class="cp-rank-chg cp-rank-new" title="New to this list">NEW</span>`;
+    }
+    if(info.rankChange === null || info.rankChange === 0) return "";
+    const isUp = info.rankChange > 0;
+    const sign = isUp ? "+" : "";
+    return `<span class="cp-rank-chg ${isUp ? "cp-rank-up" : "cp-rank-down"}" title="Rank changed by ${sign}${info.rankChange} position(s) since the last update">${isUp ? "▲" : "▼"} ${sign}${info.rankChange}</span>`;
+  }
+
   function extractPreviewFields(tableKey, row, isToplist){
     if(isToplist){
       const colMap = {};
@@ -1657,13 +1760,15 @@
       return;
     }
     const mode = PREVIEW_MODE_BY_KEY[dataKey] || (isToplist ? "toplist" : "simple");
+    const rankInfoBySymbol = mode === "toplist" ? computeRankChangeForPreview(tableKeyForLookup, rows) : null;
     const sample = rows.slice(0, 5);
     let html = mode === "toplist" ? cardPreviewHeaderHtml(false) : mode === "richAlert" ? cardPreviewHeaderHtml(true) : "";
     sample.forEach(row => {
       if(mode === "toplist"){
         const f = extractPreviewFields(tableKeyForLookup, row, true);
+        const rankBadge = previewRankChgBadge(rankInfoBySymbol ? rankInfoBySymbol[f.symbol] : null);
         html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
-          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}</span>
+          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}${rankBadge}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
