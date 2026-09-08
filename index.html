@@ -972,7 +972,7 @@
         <h2 data-i18n="smallCapHodMomentum">🟩 Small Cap - High of Day Momentum</h2>
       </div>
       <div class="panel-head-right">
-        <button class="sound-toggle-btn" data-sound-key="alert5" aria-label="Toggle sound for this alert" title="Toggle sound for this alert">🔊</button>
+        <button class="sound-toggle-btn" data-sound-key="alert5" aria-label="Toggle sound for this alert" title="Click to mute/unmute — Shift+Click to preview the sound">🔊</button>
         <span class="count" id="hodMomoCount">0 events</span>
       </div>
     </div>
@@ -994,7 +994,7 @@
         <h2 data-i18n="preMarketBounce">🌅 Pre-Market Bounce</h2>
       </div>
       <div class="panel-head-right">
-        <button class="sound-toggle-btn" data-sound-key="alert6" aria-label="Toggle sound for this alert" title="Toggle sound for this alert">🔊</button>
+        <button class="sound-toggle-btn" data-sound-key="alert6" aria-label="Toggle sound for this alert" title="Click to mute/unmute — Shift+Click to preview the sound">🔊</button>
         <span class="count" id="preMarketBounceCount">0 events</span>
       </div>
     </div>
@@ -2671,33 +2671,69 @@
     if(!soundBtn) return;
     e.stopPropagation();
     const cardKey = soundBtn.dataset.soundKey;
+    if(e.shiftKey){
+      // Preview: play the sound regardless of current mute state, so you
+      // can hear it even to decide whether to unmute. Unlocking the
+      // audio context explicitly here (not just relying on the separate
+      // global unlock listener) matters because that listener runs in
+      // bubble phase while this one runs in capture phase — on someone's
+      // very first click ever, bubble-phase unlock would fire AFTER this
+      // handler, too late for this specific playback attempt.
+      unlockAudioContext();
+      playAlertChime(cardKey, true);
+      return;
+    }
     setCardSoundEnabled(cardKey, !getCardSoundEnabled(cardKey));
     updateSoundToggleIcon(cardKey);
   }, true);
 
-  function playAlertChime(cardKey){
-    if(!browserNotifsEnabled) return;
-    if(cardKey && !getCardSoundEnabled(cardKey)) return;
+  function playAlertChime(cardKey, forcePreview){
+    if(!forcePreview){
+      if(!browserNotifsEnabled) return;
+      if(cardKey && !getCardSoundEnabled(cardKey)) return;
+    }
     if(!audioContext) return; // no user interaction yet — nothing we can do until there is one
     try{
       const ctx = audioContext;
       const now = ctx.currentTime;
-      // Short two-note ascending chime (~200ms total), gain-enveloped
-      // on both ends to avoid audible clicks — clean and unobtrusive.
-      [880, 1320].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        const startAt = now + i * 0.09;
-        gain.gain.setValueAtTime(0, startAt);
-        gain.gain.linearRampToValueAtTime(0.2, startAt + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.18);
-        osc.start(startAt);
-        osc.stop(startAt + 0.2);
-      });
+      if(cardKey === "alert5"){
+        // HOD Momentum's own signature: crisp, high-pitched double-beep —
+        // square wave (sharper harmonic content than a smooth sine) at a
+        // higher pitch than the default chime, two short identical beeps
+        // instead of a soft ascending tone, matching the fast/urgent
+        // character requested for high-momentum alerts specifically.
+        [0, 0.13].forEach(offset => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.value = 1568; // notably higher-pitched than the 880/1320Hz default chime
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          const startAt = now + offset;
+          gain.gain.setValueAtTime(0, startAt);
+          gain.gain.linearRampToValueAtTime(0.12, startAt + 0.006);
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.08);
+          osc.start(startAt);
+          osc.stop(startAt + 0.09);
+        });
+      } else {
+        // Default: short two-note ascending chime (~200ms total),
+        // gain-enveloped on both ends to avoid audible clicks.
+        [880, 1320].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          const startAt = now + i * 0.09;
+          gain.gain.setValueAtTime(0, startAt);
+          gain.gain.linearRampToValueAtTime(0.2, startAt + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.18);
+          osc.start(startAt);
+          osc.stop(startAt + 0.2);
+        });
+      }
     }catch(e){
       logLine(`Alert chime playback failed: ${e.message}`, "warn");
     }
