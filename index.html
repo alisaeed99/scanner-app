@@ -887,17 +887,17 @@
     </div>
   </div>
 
-  <!-- ===== Section 4: 5 Pillars ===== -->
+  <!-- ===== Section 4: Top 15-Min Gainers ===== -->
   <div class="panel collapsed" id="panel-table4">
     <div class="panel-head" data-fold="table4">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse 5 Pillars" tabindex="-1">
+        <button class="fold-btn" aria-label="Collapse Top 15-Min Gainers" tabindex="-1">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <span class="panel-head-icon icon-green">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
         </span>
-        <h2 data-i18n="fivePillars">5 Pillars</h2>
+        <h2 data-i18n="top15MinGainers">Top 15-Min Gainers</h2>
       </div>
       <span class="count" id="count4"></span>
     </div>
@@ -1074,8 +1074,8 @@
         <details class="raw"><summary>Most Active — Latest ToplistUpdate</summary><pre id="raw2update">—</pre></details>
         <details class="raw"><summary>After Market — ToplistConfirm</summary><pre id="raw3confirm">—</pre></details>
         <details class="raw"><summary>After Market — Latest ToplistUpdate</summary><pre id="raw3update">—</pre></details>
-        <details class="raw"><summary>5 Pillars — ToplistConfirm</summary><pre id="raw4confirm">—</pre></details>
-        <details class="raw"><summary>5 Pillars — Latest ToplistUpdate</summary><pre id="raw4update">—</pre></details>
+        <details class="raw"><summary>Top 15-Min Gainers — ToplistConfirm</summary><pre id="raw4confirm">—</pre></details>
+        <details class="raw"><summary>Top 15-Min Gainers — Latest ToplistUpdate</summary><pre id="raw4update">—</pre></details>
         <details class="raw"><summary>Low Float Top Gainers — ToplistConfirm</summary><pre id="raw5confirm">—</pre></details>
         <details class="raw"><summary>Low Float Top Gainers — Latest ToplistUpdate</summary><pre id="raw5update">—</pre></details>
         <details class="raw"><summary>Split — ToplistConfirm</summary><pre id="raw6confirm">—</pre></details>
@@ -1204,7 +1204,7 @@
       mostActive: "Most Active",
       lowFloatTopGainers: "Low Float Top Gainers",
       afterMarket: "After Market",
-      fivePillars: "5 Pillars",
+      top15MinGainers: "Top 15-Min Gainers",
       split: "Split",
       preMarketBounce: "🌅 Pre-Market Bounce",
       smallCapHodMomentum: "🟩 Small Cap - High of Day Momentum",
@@ -1245,7 +1245,7 @@
       mostActive: "الأكثر نشاطاً",
       lowFloatTopGainers: "أسهم الفلوت المنخفض",
       afterMarket: "تداولات ما بعد الإغلاق",
-      fivePillars: "مطابقة للمعايير",
+      top15MinGainers: "الأعلى ارتفاعاً خلال 15 دقيقة",
       split: "تقسيم الأسهم",
       preMarketBounce: "🌅 ارتداد",
       smallCapHodMomentum: "🟩 الزخم اللحظي",
@@ -1297,7 +1297,7 @@
     { key: "table2", name: "Most Active",  configId: "69af3449174bfc7ca6ffc56d", wrapId: "table2Wrap", countId: "count2", columns: STANDARD_COLUMNS },
     { key: "table5", name: "Low Float Top Gainers", configId: "6a1c66d57518438c9c7190c2", wrapId: "table5Wrap", countId: "count5", columns: STANDARD_COLUMNS },
     { key: "table3", name: "After Market", configId: "69a986c3433cbf6f690c212b", wrapId: "table3Wrap", countId: "count3", columns: STANDARD_COLUMNS },
-    { key: "table4", name: "5 Pillars",    configId: "69d56d187f6e8e20dfce5c82", wrapId: "table4Wrap", countId: "count4", columns: STANDARD_COLUMNS },
+    { key: "table4", name: "Top 15-Min Gainers",    configId: "69bad1395930dbb934d4de6a", wrapId: "table4Wrap", countId: "count4", columns: STANDARD_COLUMNS },
     { key: "table6", name: "Split", configId: "69ae338c433cbf6f69e76619", wrapId: "table6Wrap", countId: "count6", columns: SPLIT_COLUMNS }
   ];
 
@@ -1309,7 +1309,7 @@
 
   const TABLE_KEY_TO_I18N = {
     table1: "topGainers", table2: "mostActive", table5: "lowFloatTopGainers",
-    table3: "afterMarket", table4: "fivePillars", table6: "split"
+    table3: "afterMarket", table4: "top15MinGainers", table6: "split"
   };
 
   function buildMobileTabBar(){
