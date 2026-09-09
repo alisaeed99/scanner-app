@@ -3189,10 +3189,18 @@
     recomputeMarketPulse();
 
     if(row["Symbol"]){
-      sendPushAlert(
-        `${cfg ? cfg.name : "Screening"}: ${row["Symbol"]}`,
-        `$${row["Price ($)"] || "?"} · ${row["% Change"] || ""}`
-      );
+      // The popup Notification carries its own OS/browser-level sound
+      // that we can't silence directly — so for the two cards with a
+      // per-card mute toggle, skip the popup entirely when muted,
+      // rather than just muting our own chime and leaving the
+      // browser's own notification sound still audible underneath.
+      const isMutableCard = cfgKey === "alert5" || cfgKey === "alert6";
+      if(!isMutableCard || getCardSoundEnabled(cfgKey)){
+        sendPushAlert(
+          `${cfg ? cfg.name : "Screening"}: ${row["Symbol"]}`,
+          `$${row["Price ($)"] || "?"} · ${row["% Change"] || ""}`
+        );
+      }
     }
     if(cfgKey === "alert5" || cfgKey === "alert6"){
       playAlertChime(cfgKey);
