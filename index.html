@@ -579,6 +579,14 @@
 
   .sym-link{ cursor:pointer; border-bottom:1px dashed rgba(59,130,246,0.4); transition: color .15s ease; }
   .sym-link:hover{ color: var(--accent); border-bottom-color: var(--accent); }
+  .chart-icon-link{
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+    font-size:11px; margin-left:5px; opacity:0.75; transition: opacity .15s ease, transform .15s ease;
+    vertical-align:middle;
+  }
+  .chart-icon-link:hover{ opacity:1; transform:scale(1.15); }
+  .cp-ticker-group .chart-icon-link{ font-size:9px; margin-left:3px; flex-shrink:0; }
+  .alert-sym-badge + .chart-icon-link{ margin-left:6px; }
 
   .modal-overlay{
     position: fixed; inset:0; z-index:200; background: rgba(3,5,8,0.72);
@@ -638,6 +646,56 @@
   .modal-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
   .modal-metric{ background: var(--card-2); border:1px solid var(--border-soft); border-radius:8px; padding:8px 10px; }
   .modal-metric-label{ font-size:10px; color: var(--muted); margin-bottom:3px; }
+
+  /* ===================== CHART PAGE ===================== */
+  .modal-chart-btn{
+    background: var(--accent-dim); border:1px solid rgba(76,158,255,0.35); border-radius:7px;
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    color: var(--accent); cursor:pointer; flex-shrink:0; font-size:14px;
+  }
+  .modal-chart-btn:hover{ background: rgba(76,158,255,0.28); }
+
+  .chart-page-overlay{
+    position: fixed; inset:0; z-index:300; background: var(--bg);
+    display:flex; flex-direction:column;
+  }
+  .chart-page-overlay.hidden{ display:none; }
+
+  .chart-page-head{
+    flex-shrink:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px 14px; background: var(--card-2); border-bottom:1px solid var(--border);
+  }
+  .chart-page-back{
+    background:transparent; border:1px solid var(--border); border-radius:7px; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center; color: var(--text); cursor:pointer; flex-shrink:0;
+  }
+  .chart-page-back:hover{ background:#20242c; color: var(--header-text); }
+  .chart-page-symbol-form{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .chart-page-symbol-input{
+    background: var(--card); border:1px solid var(--border); color: var(--header-text);
+    font-family:'IBM Plex Mono', ui-monospace, monospace; font-weight:700; font-size:14px;
+    text-transform:uppercase; padding:7px 10px; border-radius:7px; width:110px; letter-spacing:0.03em;
+  }
+  .chart-page-symbol-input:focus{ outline:none; border-color: var(--accent); }
+  .chart-page-go-btn{
+    background: var(--accent); border:none; color:#06111f; font-weight:700; font-size:12.5px;
+    padding:8px 14px; border-radius:7px; cursor:pointer; white-space:nowrap;
+  }
+  .chart-page-go-btn:hover{ filter:brightness(1.08); }
+  .chart-page-timeframes{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-inline-start:auto; }
+  .chart-tf-btn{
+    background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--text);
+    font-family:inherit; font-size:11.5px; font-weight:700; padding:7px 11px; border-radius:7px;
+    cursor:pointer; transition: all .15s ease;
+  }
+  .chart-tf-btn:hover{ background: rgba(255,255,255,0.08); }
+  .chart-tf-btn.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .chart-page-body{ flex:1; min-height:0; position:relative; }
+  #chartPageWidgetContainer{ position:absolute; inset:0; }
+  .chart-page-empty{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color: var(--muted); font-size:13px; text-align:center; padding:0 20px;
+  }
   .modal-metric-value{ font-size:13.5px; font-weight:600; color: var(--header-text); }
   .modal-metric-value.na{ color:#3a3f47; font-weight:500; }
   .modal-metric-source{ font-size:9px; color:#4b5563; margin-top:2px; }
@@ -843,6 +901,10 @@
     </div>
     <button class="lang-toggle-btn" id="langToggleBtn" title="Switch language / تبديل اللغة">
       <span id="langToggleLabel">العربية</span>
+    </button>
+    <button class="refresh" id="openChartPageBtn" title="Open full chart page">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
+      <span data-i18n="chartNav">Chart</span>
     </button>
     <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -1181,6 +1243,9 @@
         </div>
         <div class="modal-head-line2" id="modalLine2" dir="auto">—</div>
       </div>
+      <button class="modal-chart-btn" id="modalChartBtn" title="Open full chart" aria-label="Open full chart">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
+      </button>
       <button class="modal-close" id="modalCloseBtn" aria-label="Close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -1188,6 +1253,37 @@
     <div class="modal-body" id="modalBody"></div>
   </div>
 </div>
+
+<!-- ===================== FULL CHART PAGE ===================== -->
+<div class="chart-page-overlay hidden" id="chartPageOverlay">
+  <div class="chart-page-head">
+    <button class="chart-page-back" id="chartPageBackBtn" aria-label="Back" title="Back to dashboard">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <form class="chart-page-symbol-form" id="chartPageSymbolForm">
+      <input class="chart-page-symbol-input mono" id="chartPageSymbolInput" type="text" placeholder="SYMBOL" autocomplete="off" spellcheck="false" />
+      <button class="chart-page-go-btn" type="submit">Go</button>
+    </form>
+    <!-- Timeframe buttons: add/remove entries in the CHART_TIMEFRAMES array in the script below
+         to change which frames appear here. -->
+    <div class="chart-page-timeframes" id="chartPageTimeframes"></div>
+  </div>
+  <div class="chart-page-body">
+    <div id="chartPageWidgetContainer"></div>
+    <div class="chart-page-empty" id="chartPageEmpty">Enter a symbol above to load its chart.</div>
+  </div>
+</div>
+
+<script>
+  // TradingView's free embeddable charting widget — no API key needed, renders
+  // client-side in the visitor's browser. Loaded once, reused for every symbol.
+  (function(){
+    const s = document.createElement("script");
+    s.src = "https://s3.tradingview.com/tv.js";
+    s.async = true;
+    document.head.appendChild(s);
+  })();
+</script>
 
 <script>
 (function(){
@@ -1247,6 +1343,7 @@
   const TRANSLATIONS = {
     en: {
       refresh: "Refresh",
+      chartNav: "Chart",
       viewDesktop: "Desktop View",
       viewMobile: "Mobile View",
       notifEnable: "Enable Notifications",
@@ -1331,7 +1428,8 @@
       openEarningsCalendar: "افتح تقويم إعلانات هذا الأسبوع ←",
       economicCalendar: "التقويم الاقتصادي",
       ipoCalendar: "الاكتتابات",
-      langToggleLabel: "EN"
+      langToggleLabel: "EN",
+      chartNav: "الشارت"
     }
   };
 
@@ -1835,7 +1933,7 @@
         const f = extractPreviewFields(tableKeyForLookup, row, true);
         const rankBadge = previewRankChgBadge(rankInfoBySymbol ? rankInfoBySymbol[f.symbol] : null);
         html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
-          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}${rankBadge}</span>
+          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}${rankBadge}${chartIconHtml(f.symbol)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
@@ -1846,7 +1944,7 @@
         const f = extractRichAlertPreviewFields(row);
         html += `<div class="card-preview-row card-preview-row-toplist card-preview-row-richalert" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
           <span class="cp-time mono">${f.time ? escapeHtml(f.time) : "—"}</span>
-          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewNewsIndicator(f.hoursSinceNews)}</span>
+          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewNewsIndicator(f.hoursSinceNews)}${chartIconHtml(f.symbol)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
@@ -1856,7 +1954,7 @@
       } else {
         const f = extractPreviewFields(tableKeyForLookup, row, false);
         html += `<div class="card-preview-row">
-          <span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>
+          <span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${chartIconHtml(f.symbol)}
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
         </div>`;
@@ -1910,6 +2008,12 @@
 
   function escapeHtml(str){
     return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function chartIconHtml(symbol){
+    const s = escapeHtml(symbol || "");
+    if(!s) return "";
+    return `<span class="chart-icon-link" data-chart-symbol="${s}" role="button" title="Open chart for ${s}" aria-label="Open chart for ${s}">📈</span>`;
   }
 
   const ALIASES = { chg:"change", pct:"percent", rel:"relative", vol:"volume", min:"minute", mins:"minute", cty:"country", shs:"shares", shrs:"shares", cnt:"count" };
@@ -2427,7 +2531,7 @@
       html += "<tr>";
       mapping.forEach((m, idx) => {
         if(m.render === "symbol"){
-          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span></td>`;
+          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${chartIconHtml(row.symbol)}</td>`;
           return;
         }
         if(!m.matchedKey){
@@ -3069,7 +3173,7 @@
         const val = row[label];
         if(label === "Symbol"){
           html += val
-            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span></td>`
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span>${chartIconHtml(val)}</td>`
             : `<td class="na">—</td>`;
         } else if(label === "Price ($)"){
           html += renderPriceCell(val);
@@ -3273,7 +3377,7 @@
         const val = row[label];
         if(label === "Symbol"){
           html += val
-            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span></td>`
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span>${chartIconHtml(val)}</td>`
             : `<td class="na">—</td>`;
         } else if(label === "Price ($)"){
           html += renderPriceCell(val);
@@ -3324,7 +3428,7 @@
             </span>
             <div class="alert-time mono">${escapeHtml(item.time)}</div>
           </div>
-          ${item.symbol ? `<span class="sym sym-link alert-sym-badge" data-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</span>` : ""}
+          ${item.symbol ? `<span class="sym sym-link alert-sym-badge" data-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</span>${chartIconHtml(item.symbol)}` : ""}
         </div>
         <div class="alert-kv-grid">
           ${item.fields.map(f => `
@@ -3526,6 +3630,22 @@
   }
 
   let currentModalSymbol = null;
+  let currentChartSymbol = null;
+  let currentChartInterval = null;
+  let tvWidgetInstance = null;
+
+  // Add, remove, or reorder entries here to change which timeframe buttons
+  // appear on the chart page. `interval` follows TradingView's resolution
+  // format: minutes as a number ("1","5","15"), hours as "60"/"240", or
+  // "D"/"W"/"M" for day/week/month.
+  const CHART_TIMEFRAMES = [
+    { label: "1m",  interval: "1" },
+    { label: "5m",  interval: "5" },
+    { label: "15m", interval: "15" },
+    { label: "1H",  interval: "60" },
+    { label: "1D",  interval: "D" }
+  ];
+  const DEFAULT_CHART_INTERVAL = "5";
 
   let allSymbolsMap = null;
   let allSymbolsLoading = false;
@@ -4175,7 +4295,114 @@
     if(currentModalSymbol) renderStockModal(currentModalSymbol);
   }
 
+  function renderChartTimeframeButtons(){
+    const wrap = document.getElementById("chartPageTimeframes");
+    if(!wrap) return;
+    wrap.innerHTML = CHART_TIMEFRAMES.map(tf =>
+      `<button class="chart-tf-btn${tf.interval === currentChartInterval ? " active" : ""}" data-chart-interval="${escapeHtml(tf.interval)}">${escapeHtml(tf.label)}</button>`
+    ).join("");
+  }
+
+  let tvChartReadyForSymbol = null;
+
+  function loadTradingViewChart(symbol, interval){
+    const container = document.getElementById("chartPageWidgetContainer");
+    const emptyEl = document.getElementById("chartPageEmpty");
+    if(!container) return;
+
+    if(typeof TradingView === "undefined" || !TradingView.widget){
+      // tv.js hasn't finished loading yet — retry shortly.
+      setTimeout(() => loadTradingViewChart(symbol, interval), 250);
+      return;
+    }
+
+    if(emptyEl) emptyEl.style.display = "none";
+    tvChartReadyForSymbol = null;
+    container.innerHTML = "";
+    tvWidgetInstance = new TradingView.widget({
+      container_id: "chartPageWidgetContainer",
+      autosize: true,
+      symbol: symbol,
+      interval: interval,
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      toolbar_bg: "#1a2a45",
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
+      // Always show pre/after-market candles, not just the regular session.
+      extended_hours: true,
+      studies: [
+        "MAExp@tv-basicstudies",
+        "Volume@tv-basicstudies",
+        "VWAP@tv-basicstudies"
+      ],
+      // Locks the EMA study to a length of 9 specifically (its default
+      // length isn't guaranteed to be 9), and re-styles VWAP to orange
+      // with a slightly thicker line, so every chart opens pre-set this way.
+      studies_overrides: {
+        "moving average exponential.length": 9,
+        "vwap.color": "#ffb347",
+        "vwap.linewidth": 2,
+        "vwap.vwap.color": "#ffb347",
+        "vwap.vwap.linewidth": 2
+      }
+    });
+    // Once the chart is fully constructed we can call its API (e.g. to
+    // switch resolution) WITHOUT tearing the widget down — tearing it
+    // down is what wipes any drawings/indicators the user just added.
+    tvWidgetInstance.onChartReady(() => {
+      tvChartReadyForSymbol = symbol;
+      // Belt-and-braces: force the VWAP line's style directly through the
+      // study API too, in case the studies_overrides keys above don't
+      // match this widget build's internal plot naming.
+      try{
+        const chart = tvWidgetInstance.chart();
+        const vwapStudy = chart.getAllStudies().find(s => /vwap/i.test(s.name || ""));
+        if(vwapStudy){
+          const studyApi = chart.getStudyById(vwapStudy.id);
+          if(studyApi && typeof studyApi.applyOverrides === "function"){
+            studyApi.applyOverrides({
+              "vwap.color": "#ffb347",
+              "vwap.linewidth": 2
+            });
+          }
+        }
+      }catch(err){
+        // Non-fatal — API surface can vary slightly between widget builds.
+      }
+    });
+  }
+
+  function openChartPage(symbol){
+    currentChartSymbol = symbol ? symbol.toUpperCase() : null;
+    currentChartInterval = DEFAULT_CHART_INTERVAL;
+    document.getElementById("chartPageOverlay").classList.remove("hidden");
+    document.getElementById("chartPageSymbolInput").value = currentChartSymbol || "";
+    renderChartTimeframeButtons();
+    if(currentChartSymbol){
+      loadTradingViewChart(currentChartSymbol, currentChartInterval);
+    } else {
+      document.getElementById("chartPageWidgetContainer").innerHTML = "";
+      const emptyEl = document.getElementById("chartPageEmpty");
+      if(emptyEl) emptyEl.style.display = "flex";
+    }
+  }
+
+  function closeChartPage(){
+    document.getElementById("chartPageOverlay").classList.add("hidden");
+  }
+
   document.addEventListener("click", (e) => {
+    const chartIcon = e.target.closest("[data-chart-symbol]");
+    if(chartIcon){
+      e.stopPropagation();
+      e.preventDefault();
+      const symbol = chartIcon.getAttribute("data-chart-symbol");
+      if(symbol) openChartPage(symbol);
+      return;
+    }
     const previewRow = e.target.closest(".card-preview-row-toplist");
     if(!previewRow) return;
     e.stopPropagation();
@@ -4197,6 +4424,46 @@
     if(e.target === document.getElementById("stockModalOverlay") || e.target.closest("#modalCloseBtn")){
       closeStockModal();
     }
+    if(e.target.closest("#modalChartBtn") && currentModalSymbol){
+      const sym = currentModalSymbol;
+      closeStockModal();
+      openChartPage(sym);
+      return;
+    }
+    if(e.target.closest("#openChartPageBtn")){
+      openChartPage(currentChartSymbol);
+      return;
+    }
+    if(e.target.closest("#chartPageBackBtn")){
+      closeChartPage();
+      return;
+    }
+    const tfBtn = e.target.closest("[data-chart-interval]");
+    if(tfBtn){
+      currentChartInterval = tfBtn.getAttribute("data-chart-interval");
+      renderChartTimeframeButtons();
+      if(currentChartSymbol){
+        if(tvWidgetInstance && tvChartReadyForSymbol === currentChartSymbol){
+          // Switch resolution on the live chart instance so any drawings
+          // or indicators the user added stay in place.
+          try{
+            tvWidgetInstance.chart().setResolution(currentChartInterval);
+          }catch(err){
+            loadTradingViewChart(currentChartSymbol, currentChartInterval);
+          }
+        } else {
+          loadTradingViewChart(currentChartSymbol, currentChartInterval);
+        }
+      }
+      return;
+    }
+  });
+
+  document.getElementById("chartPageSymbolForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = document.getElementById("chartPageSymbolInput").value.trim();
+    if(!raw) return;
+    openChartPage(raw);
   });
   document.addEventListener("keydown", (e) => {
     if(e.key === "Escape") closeStockModal();
