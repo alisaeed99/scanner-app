@@ -308,7 +308,8 @@
   .mp-trend.down{ color: var(--down); }
   .mp-trend.flat{ color: var(--muted); }
 
-  .mp-health-bar-wrap{ margin: 2px 0 14px; }
+  .mp-health-row{ display:flex; align-items:center; gap:18px; margin: 2px 0 14px; }
+  .mp-health-bar-wrap{ flex:1; min-width:0; }
   .mp-health-bar-track{ width:100%; height:10px; border-radius:6px; background: rgba(255,255,255,0.06); overflow:hidden; margin-bottom:7px; }
   .mp-health-bar-fill{ height:100%; border-radius:6px; width:0%; transition: width .5s ease, background .4s ease; }
   .mp-health-bar-fill.mh-burst{ background: linear-gradient(90deg, #22c55e, #22d3ee); box-shadow: 0 0 10px rgba(34,211,238,0.5); }
@@ -322,6 +323,24 @@
   .mp-health-label.mh-consolidation{ color:#eab308; }
   .mp-health-label.mh-weak{ color:#f97316; }
   .mp-health-label.mh-dead{ color: var(--down); }
+
+  .mp-health-gauge{ position:relative; width:76px; height:76px; flex-shrink:0; }
+  .mp-gauge-track{ fill:none; stroke: rgba(255,255,255,0.08); stroke-width:6; }
+  .mp-gauge-fill{
+    fill:none; stroke-width:6; stroke-linecap:round;
+    stroke-dasharray: 201.06; stroke-dashoffset: 201.06;
+    transition: stroke-dashoffset .6s ease, stroke .4s ease;
+  }
+  .mp-gauge-fill.mh-burst{ stroke: #22d3ee; filter: drop-shadow(0 0 5px rgba(34,211,238,0.6)); }
+  .mp-gauge-fill.mh-bull{ stroke: #22c55e; filter: drop-shadow(0 0 4px rgba(34,197,94,0.5)); }
+  .mp-gauge-fill.mh-consolidation{ stroke: #eab308; filter: drop-shadow(0 0 4px rgba(234,179,8,0.5)); }
+  .mp-gauge-fill.mh-weak{ stroke: #f97316; filter: drop-shadow(0 0 4px rgba(249,115,22,0.5)); }
+  .mp-gauge-fill.mh-dead{ stroke: var(--down); filter: drop-shadow(0 0 4px var(--down-glow)); }
+  .mp-health-gauge-value{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', ui-monospace, monospace; font-weight:700; font-size:18px; color: var(--header-text);
+  }
+  @media (max-width: 640px){ .mp-health-gauge{ display:none; } }
   .notif-toggle-btn{ display:flex; align-items:center; gap:7px; background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--muted); font-family:inherit; font-size:11.5px; font-weight:700; text-transform:none; letter-spacing:normal; padding:6px 12px; border-radius:20px; cursor:pointer; transition: all .15s ease; }
   .notif-toggle-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
   .notif-toggle-btn.enabled{ background: rgba(110,219,143,0.12); color: var(--up); border-color: rgba(110,219,143,0.35); }
@@ -369,6 +388,46 @@
     border-radius:8px; padding:8px 10px 8px 12px; margin-bottom:16px; font-size:12.5px; color: var(--muted); box-shadow: var(--shadow); flex-wrap:wrap;
   }
   .market-status-left{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ms-divider{ width:1px; align-self:stretch; min-height:22px; background: var(--border); flex-shrink:0; }
+  @media (max-width: 900px){ .ms-divider{ display:none; } }
+
+  .cmdk-trigger-btn{
+    display:flex; align-items:center; gap:7px; background: var(--card); border:1px solid var(--border); color: var(--header-text);
+    padding: 10px 12px; border-radius: 8px; font-weight:600; font-size:13.5px; cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .cmdk-trigger-btn:hover{ border-color: var(--accent); background: var(--accent-dim); }
+  .cmdk-trigger-kbd{
+    font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:10.5px; color: var(--muted);
+    background: rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:5px; padding:2px 6px;
+  }
+  @media (max-width: 640px){ .cmdk-trigger-btn span:not(.cmdk-trigger-kbd){ display:none; } }
+
+  .cmdk-overlay{
+    position: fixed; inset:0; z-index:400; background: rgba(4,8,16,0.7); backdrop-filter: blur(3px);
+    display:flex; align-items:flex-start; justify-content:center; padding-top:12vh;
+  }
+  .cmdk-overlay.hidden{ display:none; }
+  .cmdk-box{
+    width:min(560px, 92vw); background: var(--card-2); border:1px solid var(--border); border-radius:14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow:hidden; animation: cmdkPop .15s ease;
+  }
+  @keyframes cmdkPop{ from{ opacity:0; transform: translateY(-6px) scale(0.98); } to{ opacity:1; transform:none; } }
+  .cmdk-input-row{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); color: var(--muted); }
+  .cmdk-input{
+    flex:1; background:transparent; border:none; color: var(--header-text); font-size:15px; font-family:inherit;
+  }
+  .cmdk-input:focus{ outline:none; }
+  .cmdk-hint{ font-size:10.5px; color: var(--muted); background: rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:5px; padding:2px 6px; flex-shrink:0; }
+  .cmdk-results{ max-height:340px; overflow-y:auto; padding:6px; }
+  .cmdk-result{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:8px;
+    cursor:pointer; transition: background .1s ease;
+  }
+  .cmdk-result:hover, .cmdk-result.active{ background: var(--accent-dim); }
+  .cmdk-result-symbol{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-weight:700; color: var(--header-text); flex-shrink:0; }
+  .cmdk-result-name{ color: var(--muted); font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .cmdk-empty{ padding:24px 12px; text-align:center; color: var(--muted); font-size:13px; }
   .market-status-bar .refresh{ flex-shrink:0; }
   .market-status-dot{ width:8px; height:8px; border-radius:50%; background: var(--muted); flex-shrink:0; }
   .market-status-bar.session-pre .market-status-dot,
@@ -491,6 +550,20 @@
   .sym{ font-weight:700; color: var(--header-text); letter-spacing:0.01em; }
   .num-up{ color: var(--up); font-weight:600; text-shadow: 0 0 8px var(--up-glow); }
   .num-down{ color: var(--down); font-weight:600; text-shadow: 0 0 8px var(--down-glow); }
+  /* Small directional arrows so up/down is legible even for colorblind
+     users, not conveyed by color alone. */
+  .num-up::before{ content:"▲"; font-size:0.7em; margin-inline-end:2px; vertical-align:1px; display:inline-block; }
+  .num-down::before{ content:"▼"; font-size:0.7em; margin-inline-end:2px; vertical-align:1px; display:inline-block; }
+
+  .back-to-top{
+    position: fixed; bottom:22px; right:22px; z-index:80; width:42px; height:42px; border-radius:50%;
+    background: var(--accent); border:none; color:#06111f; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.4); opacity:0; transform: translateY(8px);
+    transition: opacity .2s ease, transform .2s ease; pointer-events:none;
+  }
+  .back-to-top.visible{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .back-to-top:hover{ filter:brightness(1.1); }
+  [dir="rtl"] .back-to-top{ right:auto; left:22px; }
   .num-neutral{ color: var(--text); }
   .na{ color: #3a3f47; }
   .country-cell{ display:inline-flex; align-items:center; gap:6px; }
@@ -949,9 +1022,13 @@
         <span class="iw-change" id="btcChange">—</span>
       </div>
     </div>
-    <button class="lang-toggle-btn" id="langToggleBtn" title="Switch language / تبديل اللغة">
-      <span id="langToggleLabel">العربية</span>
+    <span class="ms-divider" aria-hidden="true"></span>
+    <button class="cmdk-trigger-btn" id="cmdkTriggerBtn" title="Quick symbol search (Ctrl/Cmd+K)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span data-i18n="quickSearch">Search</span>
+      <span class="cmdk-trigger-kbd">⌘K</span>
     </button>
+    <span class="ms-divider" aria-hidden="true"></span>
     <button class="refresh" id="openChartPageBtn" title="Open full chart page">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
       <span data-i18n="chartNav">Chart</span>
@@ -960,9 +1037,14 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       <span data-i18n="resources">Resources</span>
     </button>
+    <span class="ms-divider" aria-hidden="true"></span>
     <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       <span data-i18n="refresh">Refresh</span>
+    </button>
+    <span class="ms-divider" aria-hidden="true"></span>
+    <button class="lang-toggle-btn" id="langToggleBtn" title="Switch language / تبديل اللغة">
+      <span id="langToggleLabel">العربية</span>
     </button>
   </div>
 
@@ -971,11 +1053,20 @@
   <div class="section-heading main-section-heading">
     <h3 data-i18n="marketPulse">Market Pulse</h3>
   </div>
-  <div class="mp-health-bar-wrap">
-    <div class="mp-health-bar-track">
-      <div class="mp-health-bar-fill" id="mpHealthBarFill" style="width:0%;"></div>
+  <div class="mp-health-row">
+    <div class="mp-health-gauge">
+      <svg viewBox="0 0 76 76" width="76" height="76">
+        <circle class="mp-gauge-track" cx="38" cy="38" r="32"/>
+        <circle class="mp-gauge-fill" id="mpHealthGaugeFill" cx="38" cy="38" r="32" transform="rotate(-90 38 38)"/>
+      </svg>
+      <div class="mp-health-gauge-value" id="mpHealthGaugeValue">—</div>
     </div>
-    <div class="mp-health-label" id="mpHealthLabel">—</div>
+    <div class="mp-health-bar-wrap">
+      <div class="mp-health-bar-track">
+        <div class="mp-health-bar-fill" id="mpHealthBarFill" style="width:0%;"></div>
+      </div>
+      <div class="mp-health-label" id="mpHealthLabel">—</div>
+    </div>
   </div>
   <div class="market-pulse-grid always-ltr">
     <div class="mp-card">
@@ -1250,6 +1341,10 @@
 
 </div>
 
+<button class="back-to-top hidden" id="backToTopBtn" title="Back to top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+</button>
+
 <!-- ===================== STOCK DETAIL MODAL ===================== -->
 <div class="modal-overlay hidden" id="stockModalOverlay">
   <div class="modal-card" id="stockModalCard" role="dialog" aria-modal="true">
@@ -1383,6 +1478,18 @@
   </div>
 </div>
 
+<!-- ===================== QUICK SYMBOL SEARCH (Ctrl/Cmd+K) ===================== -->
+<div class="cmdk-overlay hidden" id="cmdkOverlay">
+  <div class="cmdk-box" role="dialog" aria-modal="true" aria-label="Quick symbol search">
+    <div class="cmdk-input-row">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="cmdk-input mono" id="cmdkInput" type="text" placeholder="Jump to symbol…" autocomplete="off" spellcheck="false" />
+      <span class="cmdk-hint">esc</span>
+    </div>
+    <div class="cmdk-results" id="cmdkResults"></div>
+  </div>
+</div>
+
 <script>
   // TradingView's free embeddable charting widget — no API key needed, renders
   // client-side in the visitor's browser. Loaded once, reused for every symbol.
@@ -1454,6 +1561,7 @@
       refresh: "Refresh",
       chartNav: "Chart",
       resources: "Resources",
+      quickSearch: "Search",
       viewDesktop: "Desktop View",
       viewMobile: "Mobile View",
       notifEnable: "Enable Notifications",
@@ -1468,7 +1576,7 @@
       topGainers: "Top Gainers",
       momentum: "Momentum",
       volumePressure: "Volume Pressure",
-      floatVelocity: "Float Velocity",
+      floatVelocity: "Breadth (Most Active)",
       catalystPulse: "Catalyst Pulse",
       session_closedWeekend: "Closed (Weekend)",
       session_closed: "Closed",
@@ -1518,7 +1626,7 @@
       topGainers: "الأكثر ارتفاعاً",
       momentum: "الزخم",
       volumePressure: "ضغط الحجم",
-      floatVelocity: "سرعة دوران الفلوت",
+      floatVelocity: "اتساع السوق (الأكثر نشاطًا)",
       catalystPulse: "نبض المحفزات",
       session_closedWeekend: "مغلق (نهاية الأسبوع)",
       session_closed: "مغلق",
@@ -1552,7 +1660,8 @@
       ipoCalendar: "الاكتتابات",
       langToggleLabel: "EN",
       chartNav: "الشارت",
-      resources: "المرجع"
+      resources: "المرجع",
+      quickSearch: "بحث"
     }
   };
 
@@ -3101,7 +3210,6 @@
 
     const stockMomentums = [];
     const stockRvols = [];
-    const stockFloatVelocities = [];
 
     gainersRows.forEach(row => {
       const colMap = {};
@@ -3127,12 +3235,6 @@
 
       const rvolPct = num(get("Relative Daily Volume (%)"));
       if(rvolPct !== null) stockRvols.push(Math.min(2000, rvolPct));
-
-      const volume = parseAbbrevNumber(get("Daily Volume"));
-      const float = parseAbbrevNumber(get("Float"));
-      if(volume !== null && float !== null && float > 0){
-        stockFloatVelocities.push(Math.min(100, (volume / float) * 100));
-      }
     });
 
     if(gainersRows.length > 0 && !fiveMinHighLowFound){
@@ -3146,9 +3248,25 @@
     const avgRvolPercent = stockRvols.length ? stockRvols.reduce((a, b) => a + b, 0) / stockRvols.length : 0;
     const volumePressureX = avgRvolPercent / 100;
 
-    const floatVelocity = stockFloatVelocities.length
-      ? stockFloatVelocities.reduce((a, b) => a + b, 0) / stockFloatVelocities.length
-      : 0;
+    // Breadth: unlike Momentum/Volume above (which only look at the Top
+    // Gainers list — already a winners-only sample by definition), Breadth
+    // is read from the Most Active list, which includes both advancing and
+    // declining names. That gives a rough read on whether strength is
+    // widespread across active tickers or confined to a handful of gainers.
+    const activeRows = displayed["table2"] || [];
+    let advancers = 0, decliners = 0;
+    activeRows.forEach(row => {
+      const colMap = {};
+      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+      const key = findColumnKey("table2", "% Change");
+      const raw = key ? colMap[key] : null;
+      if(raw === null || raw === undefined || raw === "") return;
+      const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ""));
+      if(isNaN(n)) return;
+      if(n > 0) advancers++; else if(n < 0) decliners++;
+    });
+    const breadthTotal = advancers + decliners;
+    const breadthPercent = breadthTotal > 0 ? (advancers / breadthTotal) * 100 : null;
 
     const catalystCutoffMs = Date.now() - CATALYST_PULSE_WINDOW_MS;
     let catalystPulseCount = 0;
@@ -3171,10 +3289,11 @@
       if(!isNaN(minutesSinceNews) && minutesSinceNews <= 200) catalystPulseCount++;
     });
 
-    return { momentum, volumePressureX, floatVelocity, catalystPulseCount };
+    return { momentum, volumePressureX, breadthPercent, catalystPulseCount };
   }
 
   function pctChangeVs(curr, prev){
+    if(curr === null || curr === undefined) return null;
     if(prev === null || prev === undefined || prev === 0) return null;
     return ((curr - prev) / Math.abs(prev)) * 100;
   }
@@ -3222,13 +3341,25 @@
   const VOLUME_SCORE_CEILING_X = 10;
   const CATALYST_SCORE_CEILING = 10;
 
+  // Weights: Momentum + Volume together are Top-Gainers-only signals (a
+  // winners-only sample by construction), so they're capped at 60% combined.
+  // Breadth reads the Most Active list instead — advancers vs decliners —
+  // so it's the only component that can tell a broad rally apart from a
+  // handful of gainers moving in isolation.
   function computeMarketHealthScore(m){
     const momentumScore = Math.min(100, Math.max(0, m.momentum));
     const volumeScore = Math.min(100, (m.volumePressureX / VOLUME_SCORE_CEILING_X) * 100);
-    const floatScore = Math.min(100, Math.max(0, m.floatVelocity));
     const catalystScore = Math.min(100, (m.catalystPulseCount / CATALYST_SCORE_CEILING) * 100);
 
-    return (momentumScore * 0.40) + (volumeScore * 0.30) + (floatScore * 0.15) + (catalystScore * 0.15);
+    if(m.breadthPercent === null){
+      // No Most Active data yet (e.g. right after page load) — fall back to
+      // the other three components with their weights scaled back up so
+      // they still sum to 100%, rather than silently treating breadth as 0.
+      return (momentumScore * (0.40 / 0.85)) + (volumeScore * (0.30 / 0.85)) + (catalystScore * (0.15 / 0.85));
+    }
+
+    const breadthScore = Math.min(100, Math.max(0, m.breadthPercent));
+    return (momentumScore * 0.35) + (volumeScore * 0.25) + (breadthScore * 0.25) + (catalystScore * 0.15);
   }
 
   function getMarketHealthBand(score){
@@ -3242,15 +3373,27 @@
   function renderMarketHealthBar(score){
     const fillEl = document.getElementById("mpHealthBarFill");
     const labelEl = document.getElementById("mpHealthLabel");
+    const gaugeFillEl = document.getElementById("mpHealthGaugeFill");
+    const gaugeValueEl = document.getElementById("mpHealthGaugeValue");
     if(!fillEl || !labelEl) return;
     const band = getMarketHealthBand(score);
     const label = (MARKET_HEALTH_LABELS[currentLanguage] || MARKET_HEALTH_LABELS.en)[band];
+    const clamped = Math.max(0, Math.min(100, score));
 
-    fillEl.style.width = `${Math.max(0, Math.min(100, score))}%`;
+    fillEl.style.width = `${clamped}%`;
     fillEl.className = "mp-health-bar-fill mh-" + band;
     labelEl.textContent = `${label} (${Math.round(score)}/100)`;
     labelEl.className = "mp-health-label mh-" + band;
+
+    if(gaugeFillEl && gaugeValueEl){
+      const circumference = 201.06; // 2 * PI * r(32)
+      gaugeFillEl.style.strokeDashoffset = String(circumference * (1 - clamped / 100));
+      gaugeFillEl.setAttribute("class", "mp-gauge-fill mh-" + band);
+      gaugeValueEl.textContent = String(Math.round(score));
+    }
   }
+
+  const scoreHistoryForSmoothing = [];
 
   function recomputeMarketPulse(){
     const m = computeMarketPulseMetrics();
@@ -3261,7 +3404,14 @@
       marketPulseHistory.shift();
     }
 
-    renderMarketHealthBar(computeMarketHealthScore(m));
+    // Smooth the displayed score over the last ~60s (4 readings @ 15s each)
+    // instead of showing the raw instantaneous value — a single stock
+    // rotating in/out of the Top Gainers list shouldn't visibly jerk the
+    // gauge from one reading to the next.
+    scoreHistoryForSmoothing.push(computeMarketHealthScore(m));
+    if(scoreHistoryForSmoothing.length > 4) scoreHistoryForSmoothing.shift();
+    const smoothedScore = scoreHistoryForSmoothing.reduce((a, b) => a + b, 0) / scoreHistoryForSmoothing.length;
+    renderMarketHealthBar(smoothedScore);
 
     const prevSnap15m = findPrevSnapshot(now, TREND_WINDOW_MS);
     const prevSnap5m = findPrevSnapshot(now, MARKET_PULSE_WINDOW_MS);
@@ -3272,12 +3422,12 @@
     const catalystEl = document.getElementById("mpCatalystValue");
     if(momentumEl) momentumEl.innerHTML = `${Math.round(m.momentum)}<span class="mp-suffix">/100</span>`;
     if(volumeEl) volumeEl.textContent = `${m.volumePressureX.toFixed(1)}x RVOL`;
-    if(floatEl) floatEl.textContent = `${m.floatVelocity.toFixed(1)}%`;
+    if(floatEl) floatEl.textContent = m.breadthPercent === null ? "—" : `${m.breadthPercent.toFixed(0)}%`;
     if(catalystEl) catalystEl.textContent = m.catalystPulseCount;
 
     renderTrendEl("mpMomentumTrend", m.momentum, prevSnap15m ? prevSnap15m.momentum : null, "15m");
     renderTrendEl("mpVolumeTrend", m.volumePressureX, prevSnap15m ? prevSnap15m.volumePressureX : null, "15m");
-    renderTrendEl("mpFloatTrend", m.floatVelocity, prevSnap15m ? prevSnap15m.floatVelocity : null, "15m");
+    renderTrendEl("mpFloatTrend", m.breadthPercent, prevSnap15m ? prevSnap15m.breadthPercent : null, "15m");
     renderTrendEl("mpCatalystTrend", m.catalystPulseCount, prevSnap5m ? prevSnap5m.catalystPulseCount : null, "5m");
   }
 
@@ -4889,6 +5039,136 @@
   window.addEventListener("beforeunload", () => {
     unloading = true;
     if(ws) ws.close();
+  });
+
+  // Back-to-top: only appears once the person has scrolled a bit, since
+  // showing it right away would just be visual clutter near the topbar.
+  const backToTopBtn = document.getElementById("backToTopBtn");
+  if(backToTopBtn){
+    window.addEventListener("scroll", () => {
+      backToTopBtn.classList.toggle("visible", window.scrollY > 600);
+    }, { passive: true });
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  // ===================== QUICK SYMBOL SEARCH (Ctrl/Cmd+K) =====================
+  const cmdkOverlay = document.getElementById("cmdkOverlay");
+  const cmdkInput = document.getElementById("cmdkInput");
+  const cmdkResultsEl = document.getElementById("cmdkResults");
+  let cmdkActiveIndex = -1;
+  let cmdkMatches = [];
+
+  function openCmdk(){
+    if(!cmdkOverlay) return;
+    cmdkOverlay.classList.remove("hidden");
+    cmdkInput.value = "";
+    renderCmdkResults([]);
+    setTimeout(() => cmdkInput.focus(), 10);
+  }
+
+  function closeCmdk(){
+    if(!cmdkOverlay) return;
+    cmdkOverlay.classList.add("hidden");
+  }
+
+  function renderCmdkResults(matches){
+    cmdkMatches = matches;
+    cmdkActiveIndex = matches.length ? 0 : -1;
+    if(!matches.length){
+      cmdkResultsEl.innerHTML = `<div class="cmdk-empty">Type a ticker or company name…</div>`;
+      return;
+    }
+    cmdkResultsEl.innerHTML = matches.map((m, i) =>
+      `<div class="cmdk-result${i === 0 ? " active" : ""}" data-index="${i}">
+        <span class="cmdk-result-symbol">${escapeHtml(m.symbol)}</span>
+        <span class="cmdk-result-name">${escapeHtml(m.name || "")}</span>
+      </div>`
+    ).join("");
+  }
+
+  function updateCmdkActiveHighlight(){
+    cmdkResultsEl.querySelectorAll(".cmdk-result").forEach((el, i) => {
+      el.classList.toggle("active", i === cmdkActiveIndex);
+    });
+    const activeEl = cmdkResultsEl.querySelector(".cmdk-result.active");
+    if(activeEl) activeEl.scrollIntoView({ block: "nearest" });
+  }
+
+  function selectCmdkMatch(index){
+    const match = cmdkMatches[index];
+    if(!match) return;
+    closeCmdk();
+    openChartPage(match.symbol);
+  }
+
+  if(cmdkInput){
+    cmdkInput.addEventListener("input", () => {
+      const q = cmdkInput.value.trim().toUpperCase();
+      if(!q){ renderCmdkResults([]); return; }
+      const matches = [];
+      if(allSymbolsMap){
+        for(const [symbol, name] of allSymbolsMap){
+          if(symbol.startsWith(q) || (name && name.toUpperCase().includes(q))){
+            matches.push({ symbol, name });
+            if(matches.length >= 8) break;
+          }
+        }
+      }
+      // Exact/prefix ticker matches should always float to the top.
+      matches.sort((a, b) => {
+        const aStarts = a.symbol.startsWith(q) ? 0 : 1;
+        const bStarts = b.symbol.startsWith(q) ? 0 : 1;
+        return aStarts - bStarts;
+      });
+      renderCmdkResults(matches);
+    });
+
+    cmdkInput.addEventListener("keydown", (e) => {
+      if(e.key === "ArrowDown"){
+        e.preventDefault();
+        if(cmdkMatches.length){
+          cmdkActiveIndex = (cmdkActiveIndex + 1) % cmdkMatches.length;
+          updateCmdkActiveHighlight();
+        }
+      } else if(e.key === "ArrowUp"){
+        e.preventDefault();
+        if(cmdkMatches.length){
+          cmdkActiveIndex = (cmdkActiveIndex - 1 + cmdkMatches.length) % cmdkMatches.length;
+          updateCmdkActiveHighlight();
+        }
+      } else if(e.key === "Enter"){
+        e.preventDefault();
+        if(cmdkActiveIndex >= 0) selectCmdkMatch(cmdkActiveIndex);
+      } else if(e.key === "Escape"){
+        closeCmdk();
+      }
+    });
+  }
+
+  if(cmdkResultsEl){
+    cmdkResultsEl.addEventListener("click", (e) => {
+      const item = e.target.closest(".cmdk-result");
+      if(item) selectCmdkMatch(parseInt(item.getAttribute("data-index"), 10));
+    });
+  }
+
+  document.getElementById("cmdkTriggerBtn")?.addEventListener("click", openCmdk);
+
+  document.addEventListener("click", (e) => {
+    if(e.target === cmdkOverlay) closeCmdk();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k"){
+      e.preventDefault();
+      if(cmdkOverlay && cmdkOverlay.classList.contains("hidden")){
+        openCmdk();
+      } else {
+        closeCmdk();
+      }
+    }
   });
 
   applyLanguage();
