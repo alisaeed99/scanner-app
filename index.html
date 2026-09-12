@@ -2326,4 +2326,3011 @@
   const refreshBtn   = document.getElementById("refreshBtn");
   const connLog       = document.getElementById("connLog");
   const warnSection  = document.getElementById("warnSection");
-  const warnList      =
+  const warnList      = document.getElementById("warnList");
+
+  function logLine(msg, level){
+    const time = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    const div = document.createElement("div");
+    div.className = "line" + (level ? " " + level : "");
+    div.innerHTML = `<span class="t">${time}</span>${escapeHtml(msg)}`;
+    connLog.appendChild(div);
+    connLog.scrollTop = connLog.scrollHeight;
+    while(connLog.children.length > 120){ connLog.removeChild(connLog.firstChild); }
+  }
+
+  function addColumnWarning(tableKey, label){
+    if(warnedColumns[tableKey].has(label)) return;
+    warnedColumns[tableKey].add(label);
+    warnSection.style.display = "block";
+    const li = document.createElement("li");
+    li.textContent = `[${TABLES.find(t=>t.key===tableKey).name}] No matching column found for "${label}" in the server's config — showing "—".`;
+    warnList.appendChild(li);
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function chartIconHtml(symbol){
+    const s = escapeHtml(symbol || "");
+    if(!s) return "";
+    return `<span class="chart-icon-link" data-chart-symbol="${s}" role="button" title="Open chart for ${s}" aria-label="Open chart for ${s}">📈</span>`;
+  }
+
+  const ALIASES = { chg:"change", pct:"percent", rel:"relative", vol:"volume", min:"minute", mins:"minute", cty:"country", shs:"shares", shrs:"shares", cnt:"count" };
+
+  function normalizeLabel(str){
+    const noParens = String(str).replace(/\(.*?\)/g, " ");
+    const words = (noParens.toLowerCase().match(/[a-z0-9]+/g) || []);
+    return words.map(w => ALIASES[w] || w).join("");
+  }
+
+  function isSymbolDesc(desc){
+    return desc.key === "SymbolColumn" || String(desc.name).toLowerCase().trim() === "symbol";
+  }
+
+  function buildColumnMapping(spec, descList, tableKey){
+    const available = descList.filter(d => !isSymbolDesc(d));
+    const used = new Set();
+    const tableName = TABLES.find(t => t.key === tableKey).name;
+
+    const mapping = spec.map(col => {
+      if(col.render === "symbol"){
+        return { label: col.display, render: "symbol", matchedKey: null, matchedName: null };
+      }
+
+      let match = null;
+
+      if(col.display === "News Icon"){
+        const newsCandidates = available.filter(d =>
+          !used.has(d.key) &&
+          (String(d.key).toLowerCase().includes("news") || normalizeLabel(d.name).includes("news"))
+        );
+        match = newsCandidates.find(d => normalizeLabel(d.name).includes("minute"))
+             || newsCandidates.find(d => String(d.key).toLowerCase().includes("news"))
+             || newsCandidates[0]
+             || null;
+      }
+
+      if(col.display === "% Change"){
+        const changeCandidates = available.filter(d =>
+          !used.has(d.key) &&
+          !/rank/i.test(d.name) &&
+          (normalizeLabel(d.name).includes("change") || String(d.key).toLowerCase().includes("chg") || String(d.key).toLowerCase().includes("change"))
+        );
+        match = changeCandidates.find(d => /%|percent|pct/i.test(d.name) || /pct|percent/i.test(d.key))
+             || changeCandidates[0]
+             || null;
+      }
+
+      if(col.display === "15 Min Chg"){
+        // Confirmed real field key from a live payload — exact match
+        // first (most reliable), fuzzy fallback only if that specific
+        // key isn't present in this particular table's config.
+        match = available.find(d => !used.has(d.key) && d.key === "PrzChangeFilterMIN15")
+             || available.find(d => !used.has(d.key) && /min15|15min/.test(normalizeLabel(d.key)) && normalizeLabel(d.name).includes("change"))
+             || null;
+      }
+
+      if(!match){
+        const target = normalizeLabel(col.display);
+        match = available.find(d => !used.has(d.key) && normalizeLabel(d.name) === target);
+      }
+      if(!match){
+        const target = normalizeLabel(col.display);
+        match = available.find(d => {
+          if(used.has(d.key)) return false;
+          const n = normalizeLabel(d.name);
+          return n.length > 2 && target.length > 2 && (n.includes(target) || target.includes(n));
+        });
+      }
+
+      if(match) used.add(match.key);
+      return { label: col.display, render: col.render, matchedKey: match ? match.key : null, matchedName: match ? match.name : null };
+    });
+
+    mapping.forEach(m => {
+      if(m.render === "symbol"){
+        logLine(`[${tableName}] "Symbol" → row.symbol field`);
+      } else if(m.matchedKey){
+        logLine(`[${tableName}] "${m.label}" → matched "${m.matchedName}" (key: ${m.matchedKey})`, "good");
+      } else {
+        logLine(`[${tableName}] "${m.label}" → NO MATCH found in column_desc`, "warn");
+      }
+    });
+
+    return mapping;
+  }
+
+  function directionClass(valueStr){
+    if(valueStr === null || valueStr === undefined) return "num-neutral";
+    const s = String(valueStr).trim();
+    if(s.startsWith("-")) return "num-down";
+    if(s.startsWith("+")) return "num-up";
+    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+    if(!isNaN(n)){
+      if(n > 0) return "num-up";
+      if(n < 0) return "num-down";
+    }
+    return "num-neutral";
+  }
+
+  function parseAbbrevNumber(str){
+    if(str === null || str === undefined) return null;
+    const s = String(str).trim().replace(/,/g, "");
+    const m = s.match(/-?\d+(\.\d+)?/);
+    if(!m) return null;
+    let num = parseFloat(m[0]);
+    const rest = s.slice(m.index + m[0].length).trim();
+    const suffix = rest.charAt(0).toUpperCase();
+    const mult = { K: 1e3, M: 1e6, B: 1e9, T: 1e12 }[suffix];
+    if(mult) num *= mult;
+    return num;
+  }
+
+  function setConnStatus(state, text){
+    connStatusEl.className = "conn " + state;
+    connText.textContent = text;
+  }
+
+  function getEasternParts(){
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    });
+    const parts = {};
+    fmt.formatToParts(new Date()).forEach(p => { parts[p.type] = p.value; });
+    let hour = parseInt(parts.hour, 10);
+    if(hour === 24) hour = 0;
+    return {
+      weekday: parts.weekday,
+      hour,
+      minute: parseInt(parts.minute, 10),
+      second: parseInt(parts.second, 10)
+    };
+  }
+
+  function formatCountdown(totalSeconds){
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+    if(h > 0) return `${h}h ${String(m).padStart(2,"0")}m`;
+    return `${m}m ${String(s).padStart(2,"0")}s`;
+  }
+
+  function updateMarketStatusBar(){
+    const barEl = document.getElementById("marketStatusBar");
+    const labelEl = document.getElementById("marketStatusLabel");
+    const countdownEl = document.getElementById("marketStatusCountdown");
+    if(!barEl) return;
+
+    const { weekday, hour, minute, second } = getEasternParts();
+    const nowSec = hour * 3600 + minute * 60 + second;
+    const isWeekend = weekday === "Sat" || weekday === "Sun";
+
+    const PRE_START = 4 * 3600;
+    const OPEN_START = 9.5 * 3600;
+    const OPEN_END = 16 * 3600;
+    const AH_END = 20 * 3600;
+
+    let sessionKey, sessionClass, secondsToEnd;
+
+    if(isWeekend){
+      sessionKey = "closedWeekend";
+      sessionClass = "session-closed";
+      secondsToEnd = null;
+    } else if(nowSec >= AH_END || nowSec < PRE_START){
+      sessionKey = "closed";
+      sessionClass = "session-closed";
+      secondsToEnd = nowSec < PRE_START ? (PRE_START - nowSec) : ((86400 - nowSec) + PRE_START);
+    } else if(nowSec < OPEN_START){
+      sessionKey = "preMarket";
+      sessionClass = "session-pre";
+      secondsToEnd = OPEN_START - nowSec;
+    } else if(nowSec < OPEN_END){
+      sessionKey = "marketOpen";
+      sessionClass = "session-open";
+      secondsToEnd = OPEN_END - nowSec;
+    } else {
+      sessionKey = "afterHours";
+      sessionClass = "session-after";
+      secondsToEnd = AH_END - nowSec;
+    }
+
+    barEl.className = "market-status-bar " + sessionClass;
+    labelEl.textContent = tr("session_" + sessionKey);
+
+    const countdownLabelKeyMap = {
+      preMarket: "countdownToOpen",
+      marketOpen: "countdownToClose",
+      afterHours: "countdownToAhEnd",
+      closed: "countdownToPreMarket",
+      closedWeekend: "countdownToPreMarket"
+    };
+    countdownEl.textContent = secondsToEnd !== null
+      ? `${tr(countdownLabelKeyMap[sessionKey] || "countdownTimeLeft")}: ${formatCountdown(secondsToEnd)}`
+      : tr("marketClosedWeekendMsg");
+  }
+  updateMarketStatusBar();
+  setInterval(updateMarketStatusBar, 1000);
+
+  // ---- Header index widgets: SPY / BTC ----
+  // BTC via CoinGecko's public API — well-established to allow direct
+  // browser fetches (CORS), so this should work reliably.
+  // SPY via Stooq's free CSV endpoint (no API key needed) — the best of
+  // the three sources requested, but its CORS policy for arbitrary
+  // browser origins isn't officially documented. Yahoo Finance's
+  // unofficial endpoints are widely known to BLOCK direct browser CORS
+  // requests entirely (this trips up nearly every client-side attempt),
+  // and Alpha Vantage requires a personal API key this app doesn't have
+  // — so Stooq was the only genuinely triable option without a key.
+  // If it fails, this logs the real reason and shows "—" / "N/A" rather
+  // than fabricating a price.
+  function renderIndexWidget(key, price, changePct){
+    const priceEl = document.getElementById(key + "Price");
+    const changeEl = document.getElementById(key + "Change");
+    if(priceEl) priceEl.textContent = "$" + price.toFixed(2);
+    if(changeEl){
+      const sign = changePct > 0 ? "+" : "";
+      changeEl.textContent = `${sign}${changePct.toFixed(2)}%`;
+      changeEl.className = "iw-change " + (changePct > 0.05 ? "pos" : changePct < -0.05 ? "neg" : "flat");
+    }
+  }
+
+  function renderIndexWidgetError(key){
+    const priceEl = document.getElementById(key + "Price");
+    const changeEl = document.getElementById(key + "Change");
+    if(priceEl) priceEl.textContent = "—";
+    if(changeEl){ changeEl.textContent = "N/A"; changeEl.className = "iw-change flat"; }
+  }
+
+  async function fetchBtcPrice(){
+    try{
+      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true");
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const price = json?.bitcoin?.usd;
+      const change = json?.bitcoin?.usd_24h_change;
+      if(typeof price !== "number" || typeof change !== "number") throw new Error("Unexpected response shape from CoinGecko");
+      renderIndexWidget("btc", price, change);
+    }catch(e){
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel ? " (likely CORS or network block)" : "";
+      logLine(`BTC price fetch failed: ${e.message}${hint}`, "warn");
+      renderIndexWidgetError("btc");
+    }
+  }
+
+  function fetchIndexWidgets(){
+    fetchBtcPrice();
+  }
+  fetchIndexWidgets();
+  setInterval(fetchBtcPrice, 60 * 1000);
+  // SPY no longer needs a fetch/interval at all — it now arrives live via
+  // ChartsWatcher's own WebSocket (see SPY_TOPLIST_CONFIG_ID below),
+  // pushed the same way as every other table in this app. No rate limit,
+  // no CORS risk, updates the instant ChartsWatcher sends a new row.
+
+  function formatNumberEN(num){
+    const rounded = Math.round(num);
+    const negative = rounded < 0;
+    const digits = String(Math.abs(rounded));
+    const withCommas = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return (negative ? "-" : "") + withCommas;
+  }
+  const NEWS_FRESH_HOURS = 7;
+  const MAX_ROWS = 15;
+  const MAX_ALERT_ROWS = 500;
+  const cellUpdateCache = {};
+
+  // ===================== LIVE SPARKLINE =====================
+  // Builds a tiny trend line per symbol purely from the live prices we
+  // already receive on every ToplistUpdate — no extra API, no delay,
+  // works only for symbols currently present in one of our toplists.
+  const SPARKLINE_MAX_POINTS = 20;
+  const sparklineHistory = {};
+
+  function recordSparklinePoint(symbol, priceStr){
+    if(!symbol || priceStr === null || priceStr === undefined || priceStr === "") return;
+    const n = parseFloat(String(priceStr).replace(/[^0-9.\-]/g, ""));
+    if(isNaN(n)) return;
+    const hist = sparklineHistory[symbol] || (sparklineHistory[symbol] = []);
+    if(hist.length === 0 || hist[hist.length - 1] !== n){
+      hist.push(n);
+      if(hist.length > SPARKLINE_MAX_POINTS) hist.shift();
+    }
+  }
+
+  function sparklineSvgHtml(symbol){
+    const hist = sparklineHistory[symbol];
+    if(!hist || hist.length < 2) return "";
+    const w = 46, h = 16, pad = 2;
+    const min = Math.min(...hist), max = Math.max(...hist);
+    const range = (max - min) || 1;
+    const stepX = (w - pad * 2) / (hist.length - 1);
+    const points = hist.map((v, i) => {
+      const x = pad + i * stepX;
+      const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const up = hist[hist.length - 1] >= hist[0];
+    const color = up ? "var(--up)" : "var(--down)";
+    return `<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  }
+
+  function renderPriceCell(value, symbol){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+    if(isNaN(n)) return `<td class="mono">${escapeHtml(value)}</td>`;
+
+    if(symbol) recordSparklinePoint(symbol, value);
+    const spark = symbol ? sparklineSvgHtml(symbol) : "";
+
+    let tier = null;
+    if(n < 1) tier = "blue";
+    else if(n >= 1 && n < 5) tier = "green";
+    else if(n >= 5 && n < 10) tier = "darkgreen";
+    else if(n > 10 && n <= 20) tier = "orange";
+    else if(n > 25) tier = "white";
+
+    if(tier){
+      return `<td><span class="price-badge ${tier} mono">${escapeHtml(value)}</span>${spark}</td>`;
+    }
+    return `<td class="mono">${escapeHtml(value)}${spark}</td>`;
+  }
+
+  function renderTradeCountCell(value, cacheKey){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
+
+    let tierCls = "tc-white";
+    if(!isNaN(n)){
+      if(n < 500) tierCls = "tc-white";
+      else if(n <= 2000) tierCls = "tc-green";
+      else if(n <= 5000) tierCls = "tc-darkgreen";
+      else tierCls = "tc-orange";
+    }
+
+    let pulseCls = "";
+    if(cacheKey){
+      const prevVal = cellUpdateCache[cacheKey];
+      if(prevVal !== undefined && String(value) !== prevVal && !isNaN(n) && n > 1000){
+        pulseCls = " cell-pulse-green";
+      }
+      cellUpdateCache[cacheKey] = String(value);
+    }
+
+    return `<td><span class="tc-badge ${tierCls}${pulseCls} mono">${escapeHtml(value)}</span></td>`;
+  }
+
+  function renderRvolCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+    if(isNaN(n)) return `<td class="mono">${escapeHtml(value)}</td>`;
+
+    let cls;
+    if(n < 100) cls = "rvol-white";
+    else if(n <= 300) cls = "rvol-lightgreen";
+    else if(n <= 1000) cls = "rvol-darkgreen";
+    else if(n <= 5000) cls = "rvol-orange";
+    else cls = "rvol-red";
+    return `<td><span class="rvol-badge ${cls} mono">${escapeHtml(value)}</span></td>`;
+  }
+
+  function renderVolumeCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseAbbrevNumber(value);
+    if(n === null) return `<td class="mono">${escapeHtml(value)}</td>`;
+    const abs = Math.abs(n);
+    let tier;
+    if(abs < 1e6) tier = "white";
+    else if(abs <= 15e6) tier = "green";
+    else if(abs <= 50e6) tier = "orange";
+    else if(abs <= 100e6) tier = "darkorange";
+    else tier = "red";
+    return `<td><span class="volume-badge ${tier} mono">${escapeHtml(value)}</span></td>`;
+  }
+
+  function renderCountryCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const code = String(value).trim();
+    if(!/^[A-Za-z]{2}$/.test(code)){
+      return `<td class="mono">${escapeHtml(code)}</td>`;
+    }
+    const cc = code.toLowerCase();
+    return `<td>
+      <span class="country-cell mono">
+        <img class="flag-icon-img" width="18" height="13" loading="lazy"
+          src="https://flagcdn.com/20x15/${cc}.png"
+          srcset="https://flagcdn.com/40x30/${cc}.png 2x"
+          alt="${escapeHtml(code)}"
+          onerror="this.remove()" />
+        <span>${escapeHtml(code)}</span>
+      </span>
+    </td>`;
+  }
+
+  function renderChangeCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+    if(isNaN(n)) return `<td class="mono">${escapeHtml(value)}</td>`;
+
+    if(n >= 0){
+      let tier;
+      if(n < 10) tier = "white";
+      else if(n <= 30) tier = "lightgreen";
+      else if(n <= 60) tier = "green";
+      else if(n <= 100) tier = "darkgreen";
+      else tier = "darkergreen";
+      return `<td><span class="chg-badge ${tier} mono">${escapeHtml(value)}</span></td>`;
+    }
+    return `<td class="mono ${directionClass(value)}">${escapeHtml(value)}</td>`;
+  }
+
+  function renderNewsCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const strVal = String(value).trim();
+    const lower = strVal.toLowerCase();
+
+    if(["true","yes","fresh","hot","new"].includes(lower)){
+      return `<td><span class="news-badge hot">🔥</span></td>`;
+    }
+    if(["false","no","none"].includes(lower)){
+      return `<td class="na">—</td>`;
+    }
+
+    const cleaned = strVal.replace(/,/g, "");
+    const m = cleaned.match(/-?\d+(\.\d+)?/);
+    const minutes = m ? parseFloat(m[0]) : null;
+
+    if(minutes !== null){
+      const hoursText = formatHoursSinceNews(minutes / 60);
+      if((minutes / 60) < NEWS_FRESH_HOURS){
+        return `<td><span class="news-badge hot">🔥 ${hoursText}</span></td>`;
+      }
+      return `<td><span class="news-badge num">${hoursText}</span></td>`;
+    }
+    return `<td><span class="news-badge">${escapeHtml(strVal)}</span></td>`;
+  }
+
+  function formatHoursSinceNews(hours){
+    const rounded = Math.round(hours * 10) / 10;
+    return (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + "h";
+  }
+
+  function floatBarPercent(n){
+    if(n === null) return 0;
+    const abs = Math.abs(n);
+    if(abs < 1e6) return 20;
+    if(abs <= 5e6) return 25;
+    if(abs <= 10e6) return 35;
+    if(abs <= 15e6) return 45;
+    if(abs <= 20e6) return 50;
+    if(abs <= 50e6) return 75;
+    return 100;
+  }
+
+  function floatColorTier(n){
+    if(n === null) return { cssClass: null, dark: false };
+    const abs = Math.abs(n);
+    if(abs < 1e6)  return { cssClass: "flt-lightgreen", dark: true };
+    if(abs <= 5e6)  return { cssClass: "flt-green",      dark: false };
+    if(abs <= 15e6) return { cssClass: "flt-darkgreen",  dark: false };
+    if(abs <= 30e6) return { cssClass: "flt-orange",     dark: false };
+    return                 { cssClass: "flt-white",       dark: true };
+  }
+
+  function renderFloatCell(value){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseAbbrevNumber(value);
+    const pct = floatBarPercent(n);
+    const tier = floatColorTier(n);
+    const fillClass = tier.cssClass || "teal";
+    return `<td><div class="bar-cell"><div class="bar-fill ${fillClass}" style="width:${pct}%;"></div><span class="bar-label float-label-white mono">${escapeHtml(value)}</span></div></td>`;
+  }
+
+  function renderBarCell(value, colorClass, maxAbs){
+    if(value === null || value === undefined || value === "") return `<td class="na">—</td>`;
+    const n = parseAbbrevNumber(value);
+    const pct = colorClass === "teal"
+      ? floatBarPercent(n)
+      : (n === null || !maxAbs) ? 0 : Math.max(4, Math.min(100, (Math.abs(n) / maxAbs) * 100));
+    return `<td><div class="bar-cell"><div class="bar-fill ${colorClass}" style="width:${pct}%;"></div><span class="bar-label mono">${escapeHtml(value)}</span></div></td>`;
+  }
+
+  function renderTable(tableConf){
+    if(!tableConf) return;
+    const wrap = document.getElementById(tableConf.wrapId);
+    const countEl = document.getElementById(tableConf.countId);
+    const err = lastError[tableConf.key];
+
+    if(err){
+      wrap.innerHTML = `<div class="err">Couldn't load this table.<div class="details">${escapeHtml(err)}</div></div>`;
+      countEl.textContent = "";
+      return;
+    }
+
+    const mapping = columnMapping[tableConf.key];
+    const rowsSrc = displayed[tableConf.key];
+
+    if(!mapping || rowsSrc === null){
+      wrap.innerHTML = `<div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>`;
+      countEl.textContent = "";
+      return;
+    }
+
+    let rows = rowsSrc;
+    if(searchTerm){
+      const t = searchTerm.toLowerCase();
+      rows = rows.filter(row => {
+        if(String(row.symbol || "").toLowerCase().includes(t)) return true;
+        return (row.columns || []).some(c => String(c.value).toLowerCase().includes(t));
+      });
+    }
+
+    const matchedCount = rows.length;
+    rows = rows.slice(0, MAX_ROWS);
+
+    if(rows.length === 0){
+      wrap.innerHTML = `<div class="empty">${searchTerm ? "No symbols match your search." : "No rows returned."}</div>`;
+      countEl.textContent = "0 rows";
+      return;
+    }
+
+    const rowColMaps = rows.map(row => {
+      const m = {};
+      (row.columns || []).forEach(c => { m[c.key] = c.value; });
+      return m;
+    });
+
+    const barMax = {};
+    mapping.forEach((m, idx) => {
+      if((m.render === "bar-teal" || m.render === "bar-purple") && m.matchedKey){
+        let max = 0;
+        rowColMaps.forEach(cm => {
+          const n = parseAbbrevNumber(cm[m.matchedKey]);
+          if(n !== null) max = Math.max(max, Math.abs(n));
+        });
+        barMax[idx] = max || 1;
+      }
+    });
+
+    let html = "<table><thead><tr>";
+    mapping.forEach(m => {
+      const meta = HEADER_META[m.label] || {};
+      const icon = meta.icon || "";
+      const abbr = meta.abbr || m.label;
+      const tooltip = meta.title || m.label;
+      html += `<th title="${escapeHtml(tooltip)}">${icon}<span class="th-abbr">${escapeHtml(abbr)}</span></th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    rows.forEach((row, rIdx) => {
+      const colMap = rowColMaps[rIdx];
+      html += "<tr>";
+      mapping.forEach((m, idx) => {
+        if(m.render === "symbol"){
+          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${chartIconHtml(row.symbol)}</td>`;
+          return;
+        }
+        if(!m.matchedKey){
+          addColumnWarning(tableConf.key, m.label);
+          html += `<td class="na">—</td>`;
+          return;
+        }
+        const val = colMap.hasOwnProperty(m.matchedKey) ? colMap[m.matchedKey] : null;
+
+        if(m.render === "news-icon"){
+          html += renderNewsCell(val);
+        } else if(m.render === "price-tier"){
+          html += renderPriceCell(val, row.symbol);
+        } else if(m.render === "float-tier"){
+          html += renderFloatCell(val);
+        } else if(m.render === "change-tier"){
+          html += renderChangeCell(val);
+        } else if(m.render === "country-flag"){
+          html += renderCountryCell(val);
+        } else if(m.render === "volume-tier"){
+          html += renderVolumeCell(val);
+        } else if(m.render === "rvol-tier"){
+          html += renderRvolCell(val);
+        } else if(m.render === "trade-count-tier"){
+          const cacheKey = tableConf.key + ":" + (row.symbol || "") + ":5mincount";
+          html += renderTradeCountCell(val, cacheKey);
+        } else if(m.render === "bar-teal"){
+          html += renderBarCell(val, "teal", barMax[idx]);
+        } else if(m.render === "bar-purple"){
+          html += renderBarCell(val, "purple", barMax[idx]);
+        } else if(val === null || val === undefined){
+          html += `<td class="na">—</td>`;
+        } else {
+          html += `<td class="mono ${directionClass(val)}">${escapeHtml(val)}</td>`;
+        }
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+
+    wrap.innerHTML = html;
+    countEl.textContent = matchedCount > rows.length
+      ? `${rows.length} of ${matchedCount} rows`
+      : `${rows.length} row${rows.length === 1 ? "" : "s"}`;
+    renderCardPreview(tableConf.key, rows, tableConf.key, true);
+  }
+
+  function renderAll(){
+    TABLES.forEach(renderTable);
+  }
+
+  function findColumnKey(tableKey, label){
+    const mapping = columnMapping[tableKey];
+    if(!mapping) return null;
+    const m = mapping.find(m => m.label === label);
+    return m && m.matchedKey ? m.matchedKey : null;
+  }
+
+  const alertsByConfig = {};
+  ALERT_CONFIGS.forEach(a => { alertsByConfig[a.key] = []; });
+
+  function buildAlertPanels(){
+    const container = document.getElementById("alertsPanelsContainer");
+    if(!container) return;
+    container.innerHTML = ALERT_CONFIGS.filter(a => !a.special).map(a => `
+      <div class="panel collapsed" id="panel-${a.key}">
+        <div class="panel-head" data-fold="${a.key}">
+          <div class="panel-head-left">
+            <button class="fold-btn" aria-label="Collapse ${escapeHtml(a.name)}" tabindex="-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <span class="panel-head-icon icon-orange">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </span>
+            <h2>${escapeHtml(a.name)}</h2>
+          </div>
+          <span class="count" id="alertCount_${a.key}">0 alerts</span>
+        </div>
+        <div id="alertBody_${a.key}" class="table-scroll" style="padding:12px;">
+          <div class="alerts-empty-note"><span class="dot-pulse"></span>Waiting for alerts…</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function prettifyFieldKey(key){
+    const stripped = String(key).replace(/Column$/i, "").trim();
+    const base = stripped || String(key);
+    return base
+      .replace(/_/g, " ")
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function formatFlexibleTimestamp(v){
+    if(v === null || v === undefined) return null;
+    const n = Number(v);
+    if(!isNaN(n) && n > 0){
+      const ms = String(Math.trunc(n)).length >= 13 ? n : n * 1000;
+      const d = new Date(ms);
+      if(!isNaN(d.getTime())) return d.toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    }
+    const parsed = Date.parse(v);
+    if(!isNaN(parsed)) return new Date(parsed).toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    return String(v);
+  }
+
+  const ALERT_META_KEYS = new Set(["@type", "config_id", "action", "success"]);
+  function flattenAlertFields(rawMsg){
+    const fields = [];
+    if(rawMsg.row && typeof rawMsg.row === "object"){
+      const row = rawMsg.row;
+      if(Array.isArray(row.columns)){
+        row.columns.forEach(col => {
+          if(col && col.key !== undefined) fields.push({ key: col.key, value: col.value });
+        });
+      }
+      if(row.symbol !== undefined && row.symbol !== null && !fields.some(f => normalizeLabel(f.key).includes("symbol"))){
+        fields.push({ key: "SymbolColumn", value: row.symbol });
+      }
+      return fields;
+    }
+    Object.keys(rawMsg).forEach(k => {
+      if(ALERT_META_KEYS.has(k)) return;
+      const v = rawMsg[k];
+      if(v !== null && typeof v === "object" && !Array.isArray(v)){
+        Object.keys(v).forEach(k2 => fields.push({ key: k2, value: v[k2] }));
+      } else {
+        fields.push({ key: k, value: Array.isArray(v) ? v.join(", ") : v });
+      }
+    });
+    return fields;
+  }
+
+  function parseAlertItem(rawMsg){
+    const allFields = flattenAlertFields(rawMsg);
+    const tsField = allFields.find(f => /time|epoch|date/i.test(f.key));
+    const symField = allFields.find(f => /symbol|ticker/i.test(f.key));
+    const fields = allFields.filter(f =>
+      f !== tsField &&
+      f !== symField &&
+      !/newsicon/i.test(f.key) &&
+      !/strategy/i.test(f.key)
+    );
+    return {
+      fields,
+      ts: tsField ? tsField.value : null,
+      symbol: symField ? symField.value : null
+    };
+  }
+
+  const HALTS_COLUMN_DEFS = {
+    "Time":            { hints: ["time", "timestamp", "epoch", "date"] },
+    "Symbol":           { hints: ["symbol", "ticker"] },
+    "Price ($)":       { hints: ["price"] },
+    "Float":             { hints: ["float"] },
+    "Daily Volume":     { hints: ["dailyvolume", "dvolume", "volume", "vol"] },
+    "Explanation":      { hints: ["explanation", "reason", "status", "description", "message"] },
+    "Change %":          { hints: ["changepercent", "pctchange", "change"] },
+    "5 Min Volume":     { hints: ["5minvolume", "fiveminvolume", "5minvol", "vol5min", "5mvol", "5min", "absvolumefiltermin5", "volumefiltermin5", "filtermin5"] }
+  };
+  const HALTS_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "Float", "Daily Volume", "Explanation", "Change %", "5 Min Volume"];
+  const HALTS_MATCH_ORDER = ["5 Min Volume", "Time", "Symbol", "Price ($)", "Float", "Change %", "Explanation", "Daily Volume"];
+
+  function matchHaltRow(fields){
+    const used = new Set();
+    const result = {};
+    HALTS_MATCH_ORDER.forEach(label => {
+      const hints = HALTS_COLUMN_DEFS[label].hints;
+      let match = fields.find(f => !used.has(f.key) && hints.some(h => normalizeLabel(f.key) === h));
+      if(!match){
+        match = fields.find(f => {
+          if(used.has(f.key)) return false;
+          const norm = normalizeLabel(f.key);
+          return hints.some(h => norm.includes(h) || h.includes(norm));
+        });
+      }
+      if(match) used.add(match.key);
+      result[label] = match ? match.value : null;
+    });
+    return result;
+  }
+
+  function explanationBadgeHtml(text){
+    if(text === null || text === undefined || text === "") return `<td class="na">—</td>`;
+    const lower = String(text).toLowerCase();
+    let cls = "neutral";
+    if(/resum|conclud|reopen/.test(lower)) cls = "resumed";
+    else if(/halt|pause|volatility/.test(lower)) cls = "paused";
+    return `<td><span class="halt-badge ${cls}">${escapeHtml(text)}</span></td>`;
+  }
+
+  const haltsRows = [];
+
+  let browserNotifsEnabled = localStorage.getItem("browserNotifsEnabled") === "true";
+
+  function updateNotifToggleUI(){
+    const btn = document.getElementById("notifToggleBtn");
+    const label = document.getElementById("notifToggleLabel");
+    if(!btn || !label) return;
+    const supported = "Notification" in window;
+    if(!supported){
+      btn.classList.add("denied");
+      label.textContent = tr("notifUnsupported");
+      return;
+    }
+    if(Notification.permission === "denied"){
+      btn.classList.remove("enabled");
+      btn.classList.add("denied");
+      label.textContent = tr("notifBlocked");
+    } else if(browserNotifsEnabled && Notification.permission === "granted"){
+      btn.classList.remove("denied");
+      btn.classList.add("enabled");
+      label.textContent = tr("notifOn");
+    } else {
+      btn.classList.remove("enabled", "denied");
+      label.textContent = tr("notifEnable");
+    }
+  }
+
+  async function toggleBrowserNotifications(){
+    if(!("Notification" in window)){
+      logLine("Browser notifications aren't supported in this browser.", "warn");
+      return;
+    }
+    if(Notification.permission === "denied"){
+      logLine("Notifications are blocked at the browser level — re-enable them in your browser's site settings for this page.", "warn");
+      updateNotifToggleUI();
+      return;
+    }
+    if(browserNotifsEnabled){
+      browserNotifsEnabled = false;
+      localStorage.setItem("browserNotifsEnabled", "false");
+      updateNotifToggleUI();
+      return;
+    }
+    let perm = Notification.permission;
+    if(perm === "default"){
+      perm = await Notification.requestPermission();
+    }
+    if(perm === "granted"){
+      browserNotifsEnabled = true;
+      localStorage.setItem("browserNotifsEnabled", "true");
+      logLine("Browser notifications enabled for Alerts (Halts, Screening, Running Up, Small Cap - High of Day Momentum).", "good");
+      new Notification("ChartsWatcher Dashboard", { body: "Notifications are now enabled for new alerts." });
+    } else {
+      logLine("Notification permission was not granted.", "warn");
+    }
+    updateNotifToggleUI();
+  }
+
+  function sendPushAlert(title, body){
+    if(!browserNotifsEnabled) return;
+    if(!("Notification" in window) || Notification.permission !== "granted") return;
+    try{
+      const n = new Notification(title, { body });
+      n.onclick = () => { window.focus(); n.close(); };
+    }catch(e){
+      logLine(`Browser notification failed: ${e.message}`, "warn");
+    }
+  }
+
+  // Audio chime for new alerts — replaces/supplements the popup
+  // notification with a short sound, sharing the SAME on/off toggle
+  // (browserNotifsEnabled) so muting one mutes both. Browsers block
+  // audio playback until the page has had a real user interaction
+  // (click/touch/keypress), so the AudioContext is created lazily on
+  // the very first such interaction, rather than at page load — trying
+  // to play before that would silently fail or throw in most browsers.
+  let audioContext = null;
+
+  function unlockAudioContext(){
+    if(audioContext) return;
+    try{
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioContext.state === "suspended") audioContext.resume();
+    }catch(e){
+      logLine(`Couldn't initialize audio for alert chimes: ${e.message}`, "warn");
+    }
+  }
+  ["click", "touchstart", "keydown"].forEach(evt => {
+    document.addEventListener(evt, unlockAudioContext, { once: true });
+  });
+
+  // Per-card sound mute — layered UNDER the global "Enable Notifications"
+  // toggle: if that global toggle is off, nothing plays for any card
+  // regardless of this setting. If it's on, each card's own toggle here
+  // decides whether THAT specific card's chime plays. Defaults to
+  // enabled (true) when nothing has been saved yet.
+  function getCardSoundEnabled(cardKey){
+    const v = localStorage.getItem("cardSound_" + cardKey);
+    return v === null ? true : v === "true";
+  }
+  function setCardSoundEnabled(cardKey, enabled){
+    localStorage.setItem("cardSound_" + cardKey, enabled ? "true" : "false");
+  }
+  function updateSoundToggleIcon(cardKey){
+    const btn = document.querySelector(`[data-sound-key="${cardKey}"]`);
+    if(!btn) return;
+    const enabled = getCardSoundEnabled(cardKey);
+    btn.textContent = enabled ? "🔊" : "🔇";
+    btn.classList.toggle("muted", !enabled);
+  }
+  ["alert5", "alert6", "alert7"].forEach(updateSoundToggleIcon);
+
+  document.addEventListener("click", (e) => {
+    const soundBtn = e.target.closest("[data-sound-key]");
+    if(!soundBtn) return;
+    e.stopPropagation();
+    const cardKey = soundBtn.dataset.soundKey;
+    if(e.shiftKey){
+      // Preview: play the sound regardless of current mute state, so you
+      // can hear it even to decide whether to unmute. Unlocking the
+      // audio context explicitly here (not just relying on the separate
+      // global unlock listener) matters because that listener runs in
+      // bubble phase while this one runs in capture phase — on someone's
+      // very first click ever, bubble-phase unlock would fire AFTER this
+      // handler, too late for this specific playback attempt.
+      unlockAudioContext();
+      playAlertChime(cardKey, true);
+      return;
+    }
+    setCardSoundEnabled(cardKey, !getCardSoundEnabled(cardKey));
+    updateSoundToggleIcon(cardKey);
+  }, true);
+
+  function playAlertChime(cardKey, forcePreview){
+    if(!forcePreview){
+      if(!browserNotifsEnabled) return;
+      if(cardKey && !getCardSoundEnabled(cardKey)) return;
+    }
+    if(!audioContext) return; // no user interaction yet — nothing we can do until there is one
+    try{
+      const ctx = audioContext;
+      const now = ctx.currentTime;
+      if(cardKey === "alert5"){
+        // HOD Momentum's own signature: crisp, high-pitched double-beep —
+        // square wave (sharper harmonic content than a smooth sine) at a
+        // higher pitch than the default chime, two short identical beeps
+        // instead of a soft ascending tone, matching the fast/urgent
+        // character requested for high-momentum alerts specifically.
+        [0, 0.13].forEach(offset => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.value = 1568; // notably higher-pitched than the 880/1320Hz default chime
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          const startAt = now + offset;
+          gain.gain.setValueAtTime(0, startAt);
+          gain.gain.linearRampToValueAtTime(0.12, startAt + 0.006);
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.08);
+          osc.start(startAt);
+          osc.stop(startAt + 0.09);
+        });
+      } else if(cardKey === "alert7"){
+        // RUNNING UP's own signature: a bright three-note rising arpeggio
+        // on a warmer triangle wave — a distinct "achievement" feel, easy
+        // to tell apart by ear from both the HOD Momentum double-beep and
+        // the default two-note chime.
+        [660, 880, 1100].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.value = freq;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          const startAt = now + i * 0.075;
+          gain.gain.setValueAtTime(0, startAt);
+          gain.gain.linearRampToValueAtTime(0.18, startAt + 0.008);
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.14);
+          osc.start(startAt);
+          osc.stop(startAt + 0.15);
+        });
+      } else {
+        // Default: short two-note ascending chime (~200ms total),
+        // gain-enveloped on both ends to avoid audible clicks.
+        [880, 1320].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          const startAt = now + i * 0.09;
+          gain.gain.setValueAtTime(0, startAt);
+          gain.gain.linearRampToValueAtTime(0.2, startAt + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.18);
+          osc.start(startAt);
+          osc.stop(startAt + 0.2);
+        });
+      }
+    }catch(e){
+      logLine(`Alert chime playback failed: ${e.message}`, "warn");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", updateNotifToggleUI);
+  updateNotifToggleUI();
+
+  const MARKET_PULSE_WINDOW_MS = 5 * 60 * 1000;
+  const TREND_WINDOW_MS = 15 * 60 * 1000;
+  const CATALYST_PULSE_WINDOW_MS = 200 * 60 * 1000;
+  const marketPulseHistory = [];
+
+  function resolveRowField(row, hints){
+    const reserved = new Set(["symbol", "columns", "color"]);
+    for(const key of Object.keys(row)){
+      if(reserved.has(key)) continue;
+      const val = row[key];
+      if(val === null || val === undefined || val === "") continue;
+      const norm = normalizeLabel(key);
+      if(hints.some(h => norm === h || norm.includes(h) || h.includes(norm))) return val;
+    }
+    for(const col of (row.columns || [])){
+      const norm = normalizeLabel(col.key);
+      if(hints.some(h => norm === h || norm.includes(h) || h.includes(norm))) return col.value;
+    }
+    return null;
+  }
+
+  function computeMarketPulseMetrics(){
+    const gainersRows = (displayed["table1"] || []).slice(0, 15);
+    let fiveMinHighLowFound = false;
+
+    const stockMomentums = [];
+    const stockRvols = [];
+
+    gainersRows.forEach(row => {
+      const colMap = {};
+      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+      const get = (label) => {
+        const key = findColumnKey("table1", label);
+        return key ? colMap[key] : null;
+      };
+      const num = (v) => { const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, "")); return isNaN(n) ? null : n; };
+
+      const price = num(get("Price ($)"));
+      const fiveMinHigh = num(resolveRowField(row, ["5minhigh", "fiveminutehigh", "high5min"]));
+      const fiveMinLow = num(resolveRowField(row, ["5minlow", "fiveminutelow", "low5min"]));
+      let stockMomentum;
+      if(fiveMinHigh !== null && fiveMinLow !== null && fiveMinHigh !== fiveMinLow && price !== null){
+        fiveMinHighLowFound = true;
+        stockMomentum = ((price - fiveMinLow) / (fiveMinHigh - fiveMinLow)) * 100;
+      } else {
+        const changePct = num(get("% Change"));
+        stockMomentum = changePct !== null ? Math.max(0, changePct) : null;
+      }
+      if(stockMomentum !== null && !isNaN(stockMomentum)) stockMomentums.push(stockMomentum);
+
+      const rvolPct = num(get("Relative Daily Volume (%)"));
+      if(rvolPct !== null) stockRvols.push(Math.min(2000, rvolPct));
+    });
+
+    if(gainersRows.length > 0 && !fiveMinHighLowFound){
+      logLine("Market Pulse: no 5-minute High/Low field found on Top Gainers rows — Momentum is using the daily % Change fallback instead.", "warn");
+    }
+
+    const momentum = stockMomentums.length
+      ? Math.min(100, stockMomentums.reduce((a, b) => a + b, 0) / stockMomentums.length)
+      : 0;
+
+    const avgRvolPercent = stockRvols.length ? stockRvols.reduce((a, b) => a + b, 0) / stockRvols.length : 0;
+    const volumePressureX = avgRvolPercent / 100;
+
+    // Breadth: unlike Momentum/Volume above (which only look at the Top
+    // Gainers list — already a winners-only sample by definition), Breadth
+    // is read from the Most Active list, which includes both advancing and
+    // declining names. That gives a rough read on whether strength is
+    // widespread across active tickers or confined to a handful of gainers.
+    const activeRows = displayed["table2"] || [];
+    let advancers = 0, decliners = 0;
+    activeRows.forEach(row => {
+      const colMap = {};
+      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+      const key = findColumnKey("table2", "% Change");
+      const raw = key ? colMap[key] : null;
+      if(raw === null || raw === undefined || raw === "") return;
+      const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ""));
+      if(isNaN(n)) return;
+      if(n > 0) advancers++; else if(n < 0) decliners++;
+    });
+    const breadthTotal = advancers + decliners;
+    const breadthPercent = breadthTotal > 0 ? (advancers / breadthTotal) * 100 : null;
+
+    const catalystCutoffMs = Date.now() - CATALYST_PULSE_WINDOW_MS;
+    let catalystPulseCount = 0;
+    function countEvents(rows, getTime){
+      rows.forEach(row => {
+        const t = timeSortKey(getTime(row));
+        if(!isNaN(t) && t >= catalystCutoffMs) catalystPulseCount++;
+      });
+    }
+    Object.keys(screeningState).forEach(key => countEvents(screeningState[key].rows, r => r["Time"]));
+    countEvents(haltsRows, r => r["Time"]);
+
+    gainersRows.forEach(row => {
+      const colMap = {};
+      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+      const key = findColumnKey("table1", "News Icon");
+      const rawMin = key ? colMap[key] : null;
+      if(rawMin === null || rawMin === undefined || rawMin === "") return;
+      const minutesSinceNews = parseFloat(String(rawMin).replace(/[^0-9.\-]/g, ""));
+      if(!isNaN(minutesSinceNews) && minutesSinceNews <= 200) catalystPulseCount++;
+    });
+
+    return { momentum, volumePressureX, breadthPercent, catalystPulseCount };
+  }
+
+  function pctChangeVs(curr, prev){
+    if(curr === null || curr === undefined) return null;
+    if(prev === null || prev === undefined || prev === 0) return null;
+    return ((curr - prev) / Math.abs(prev)) * 100;
+  }
+
+  function renderTrendEl(elId, curr, prev, suffixLabel){
+    const el = document.getElementById(elId);
+    if(!el) return;
+    const pct = pctChangeVs(curr, prev);
+    if(pct === null){
+      el.textContent = "—";
+      el.className = "mp-trend flat";
+      return;
+    }
+    const sign = pct > 0 ? "+" : "";
+    el.textContent = `${sign}${pct.toFixed(1)}% / ${suffixLabel}`;
+    el.className = "mp-trend " + (pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat");
+  }
+
+  function findPrevSnapshot(now, windowMs){
+    const targetT = now - windowMs;
+    let prevSnap = null;
+    for(const snap of marketPulseHistory){
+      if(snap.t <= targetT) prevSnap = snap; else break;
+    }
+    return prevSnap;
+  }
+
+  const MARKET_HEALTH_LABELS = {
+    en: {
+      burst: "🔥 MOMENTUM BURST",
+      bull: "📈 HEALTHY BULL",
+      consolidation: "⏳ CONSOLIDATION",
+      weak: "⚠️ WEAK MARKET",
+      dead: "🧊 DEAD MARKET"
+    },
+    ar: {
+      burst: "🔥 اندفاع زخمي",
+      bull: "📈 صعود صحي",
+      consolidation: "⏳ تماسك",
+      weak: "⚠️ سوق ضعيف",
+      dead: "🧊 سوق راكد"
+    }
+  };
+
+  const VOLUME_SCORE_CEILING_X = 10;
+  const CATALYST_SCORE_CEILING = 10;
+
+  // Weights: Momentum + Volume together are Top-Gainers-only signals (a
+  // winners-only sample by construction), so they're capped at 60% combined.
+  // Breadth reads the Most Active list instead — advancers vs decliners —
+  // so it's the only component that can tell a broad rally apart from a
+  // handful of gainers moving in isolation.
+  function computeMarketHealthScore(m){
+    const momentumScore = Math.min(100, Math.max(0, m.momentum));
+    const volumeScore = Math.min(100, (m.volumePressureX / VOLUME_SCORE_CEILING_X) * 100);
+    const catalystScore = Math.min(100, (m.catalystPulseCount / CATALYST_SCORE_CEILING) * 100);
+
+    if(m.breadthPercent === null){
+      // No Most Active data yet (e.g. right after page load) — fall back to
+      // the other three components with their weights scaled back up so
+      // they still sum to 100%, rather than silently treating breadth as 0.
+      return (momentumScore * (0.40 / 0.85)) + (volumeScore * (0.30 / 0.85)) + (catalystScore * (0.15 / 0.85));
+    }
+
+    const breadthScore = Math.min(100, Math.max(0, m.breadthPercent));
+    return (momentumScore * 0.35) + (volumeScore * 0.25) + (breadthScore * 0.25) + (catalystScore * 0.15);
+  }
+
+  function getMarketHealthBand(score){
+    if(score >= 80) return "burst";
+    if(score >= 60) return "bull";
+    if(score >= 40) return "consolidation";
+    if(score >= 20) return "weak";
+    return "dead";
+  }
+
+  function renderMarketHealthBar(score){
+    const fillEl = document.getElementById("mpHealthBarFill");
+    const labelEl = document.getElementById("mpHealthLabel");
+    const gaugeFillEl = document.getElementById("mpHealthGaugeFill");
+    const gaugeValueEl = document.getElementById("mpHealthGaugeValue");
+    if(!fillEl || !labelEl) return;
+    const band = getMarketHealthBand(score);
+    const label = (MARKET_HEALTH_LABELS[currentLanguage] || MARKET_HEALTH_LABELS.en)[band];
+    const clamped = Math.max(0, Math.min(100, score));
+
+    fillEl.style.width = `${clamped}%`;
+    fillEl.className = "mp-health-bar-fill mh-" + band;
+    labelEl.textContent = `${label} (${Math.round(score)}/100)`;
+    labelEl.className = "mp-health-label mh-" + band;
+
+    if(gaugeFillEl && gaugeValueEl){
+      const circumference = 201.06; // 2 * PI * r(32)
+      gaugeFillEl.style.strokeDashoffset = String(circumference * (1 - clamped / 100));
+      gaugeFillEl.setAttribute("class", "mp-gauge-fill mh-" + band);
+      gaugeValueEl.textContent = String(Math.round(score));
+    }
+  }
+
+  const scoreHistoryForSmoothing = [];
+
+  function recomputeMarketPulse(){
+    const m = computeMarketPulseMetrics();
+    const now = Date.now();
+    marketPulseHistory.push({ t: now, ...m });
+    const maxWindow = Math.max(TREND_WINDOW_MS, MARKET_PULSE_WINDOW_MS);
+    while(marketPulseHistory.length && now - marketPulseHistory[0].t > maxWindow * 2.2){
+      marketPulseHistory.shift();
+    }
+
+    // Smooth the displayed score over the last ~60s (4 readings @ 15s each)
+    // instead of showing the raw instantaneous value — a single stock
+    // rotating in/out of the Top Gainers list shouldn't visibly jerk the
+    // gauge from one reading to the next.
+    scoreHistoryForSmoothing.push(computeMarketHealthScore(m));
+    if(scoreHistoryForSmoothing.length > 4) scoreHistoryForSmoothing.shift();
+    const smoothedScore = scoreHistoryForSmoothing.reduce((a, b) => a + b, 0) / scoreHistoryForSmoothing.length;
+    renderMarketHealthBar(smoothedScore);
+
+    const prevSnap15m = findPrevSnapshot(now, TREND_WINDOW_MS);
+    const prevSnap5m = findPrevSnapshot(now, MARKET_PULSE_WINDOW_MS);
+
+    const momentumEl = document.getElementById("mpMomentumValue");
+    const volumeEl = document.getElementById("mpVolumeValue");
+    const floatEl = document.getElementById("mpFloatValue");
+    const catalystEl = document.getElementById("mpCatalystValue");
+    if(momentumEl) momentumEl.innerHTML = `${Math.round(m.momentum)}<span class="mp-suffix">/100</span>`;
+    if(volumeEl) volumeEl.textContent = `${m.volumePressureX.toFixed(1)}x RVOL`;
+    if(floatEl) floatEl.textContent = m.breadthPercent === null ? "—" : `${m.breadthPercent.toFixed(0)}%`;
+    if(catalystEl) catalystEl.textContent = m.catalystPulseCount;
+
+    renderTrendEl("mpMomentumTrend", m.momentum, prevSnap15m ? prevSnap15m.momentum : null, "15m");
+    renderTrendEl("mpVolumeTrend", m.volumePressureX, prevSnap15m ? prevSnap15m.volumePressureX : null, "15m");
+    renderTrendEl("mpFloatTrend", m.breadthPercent, prevSnap15m ? prevSnap15m.breadthPercent : null, "15m");
+    renderTrendEl("mpCatalystTrend", m.catalystPulseCount, prevSnap5m ? prevSnap5m.catalystPulseCount : null, "5m");
+  }
+
+  setInterval(recomputeMarketPulse, 15 * 1000);
+
+  function pushHaltEvent(rawMsg){
+    const fields = flattenAlertFields(rawMsg);
+    const row = matchHaltRow(fields);
+
+    const isDuplicate = haltsRows.some(r => r["Symbol"] === row["Symbol"] && r["Time"] === row["Time"]);
+    if(isDuplicate) return;
+
+    haltsRows.unshift(row);
+    if(haltsRows.length > MAX_ALERT_ROWS) haltsRows.length = MAX_ALERT_ROWS;
+    renderHaltsTable();
+    recomputeMarketPulse();
+
+    if(row["Symbol"]){
+      sendPushAlert(
+        `🚦 Halt/Resumption: ${row["Symbol"]}`,
+        `${row["Explanation"] || ""} · ${row["Price ($)"] || ""}`
+      );
+    }
+
+    logLine(`Halts event raw keys: ${fields.map(f => `${f.key}="${f.value}"`).join(", ")}`, "good");
+    const unmatched = HALTS_DISPLAY_ORDER.filter(label => row[label] === null || row[label] === undefined);
+    if(unmatched.length){
+      logLine(`Halts event — couldn't match: ${unmatched.join(", ")}. Check the raw keys logged above and adjust HALTS_COLUMN_DEFS hints if a real field was missed.`, "warn");
+    }
+    const rawEl = document.getElementById("rawAlert2update");
+    if(rawEl) rawEl.textContent = JSON.stringify(rawMsg, null, 2);
+  }
+
+  function renderHaltsTable(){
+    const wrap = document.getElementById("haltsTableWrap");
+    const countEl = document.getElementById("haltsCount");
+    if(!wrap) return;
+    countEl.textContent = `${haltsRows.length} event${haltsRows.length === 1 ? "" : "s"}`;
+
+    if(haltsRows.length === 0){
+      wrap.innerHTML = `<div class="loading"><span class="dot-pulse"></span>Waiting for halt/resumption events…</div>`;
+      return;
+    }
+
+    let html = `<table><thead><tr>`;
+    HALTS_DISPLAY_ORDER.forEach(label => { html += `<th>${escapeHtml(label)}</th>`; });
+    html += `</tr></thead><tbody>`;
+
+    const HALTS_ROW_TINT = "rgba(255,68,104,0.05)";
+
+    haltsRows.forEach(row => {
+      html += `<tr style="background-color:${HALTS_ROW_TINT};">`;
+      HALTS_DISPLAY_ORDER.forEach(label => {
+        const val = row[label];
+        if(label === "Symbol"){
+          html += val
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span>${chartIconHtml(val)}</td>`
+            : `<td class="na">—</td>`;
+        } else if(label === "Price ($)"){
+          html += renderPriceCell(val, row["Symbol"]);
+        } else if(label === "Float"){
+          html += renderFloatCell(val);
+        } else if(label === "Explanation"){
+          html += explanationBadgeHtml(val);
+        } else if(label === "Time"){
+          html += val ? `<td class="mono">${escapeHtml(formatFlexibleTimestamp(val))}</td>` : `<td class="na">—</td>`;
+        } else if(label === "Change %"){
+          html += val ? `<td class="mono ${directionClass(val)}">${escapeHtml(val)}</td>` : `<td class="na">—</td>`;
+        } else {
+          html += val !== null && val !== undefined && val !== "" ? `<td class="mono">${escapeHtml(val)}</td>` : `<td class="na">—</td>`;
+        }
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    wrap.innerHTML = html;
+    renderCardPreview("halts", haltsRows, null, false);
+  }
+
+  const SCREENING_COLUMN_DEFS = {
+    "Time":                          { hints: ["time", "timestamp", "epoch", "date"] },
+    "Symbol":                         { hints: ["symbol", "ticker"] },
+    "Price ($)":                     { hints: ["price", "pricenooption"] },
+    "News Icon":                     { hints: ["minutessincenews", "hourssincenews", "newsicon", "news"] },
+    "% Change":                       { hints: ["changepercent", "pctchange", "change", "changefromcloseprz"] },
+    "Float":                           { hints: ["float", "newfloatnooption"] },
+    "Country":                         { hints: ["country", "countryinfo"] },
+    "5 min trade count":              { hints: ["5mintradecount", "fiveminutetradecount", "tradecountfiltermin5", "min5"] },
+    "Relative Daily Volume (%)":     { hints: ["relativedailyvolume", "rvol", "przvolumefilterfd1"] },
+    "Daily Volume":                   { hints: ["dailyvolume", "dvolume", "volume", "vol", "absvolumefilterday1"] },
+    "Strategy":                        { hints: ["strategyname", "strategy"] }
+  };
+  const SCREENING_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Daily Volume", "Float", "Relative Daily Volume (%)", "Country", "5 min trade count", "Strategy"];
+  const SCREENING_MATCH_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Float", "Country", "5 min trade count", "Relative Daily Volume (%)", "Daily Volume", "Strategy"];
+
+  function timeSortKey(raw){
+    if(raw === null || raw === undefined || raw === "") return -Infinity;
+    const str = String(raw).trim();
+    const num = Number(str);
+    if(!isNaN(num) && num > 1e8) return num;
+    const m = str.match(/^(\d{1,2}):(\d{2})(:(\d{2}))?$/);
+    if(m){
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number(m[1]), Number(m[2]), Number(m[4] || 0)).getTime();
+    }
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? -Infinity : d.getTime();
+  }
+
+  function pickNewsAlertField(fields, used){
+    fields.forEach(f => {
+      const looksNews = String(f.key).toLowerCase().includes("news") || normalizeLabel(f.key).includes("news");
+      if(looksNews && /<svg/i.test(String(f.value))) used.add(f.key);
+    });
+    const candidates = fields.filter(f =>
+      !used.has(f.key) &&
+      (String(f.key).toLowerCase().includes("news") || normalizeLabel(f.key).includes("news"))
+    );
+    return candidates.find(f => normalizeLabel(f.key).includes("minute"))
+        || candidates.find(f => String(f.key).toLowerCase().includes("news"))
+        || candidates[0]
+        || null;
+  }
+
+  function newsFieldValueAsMinutes(field){
+    if(!field || field.value === null || field.value === undefined || field.value === "") return null;
+    const strVal = String(field.value).trim();
+    const lower = strVal.toLowerCase();
+    if(["true","yes","fresh","hot","new","false","no","none","—","n/a","na"].includes(lower)) return field.value;
+    const m = strVal.replace(/,/g, "").match(/-?\d+(\.\d+)?/);
+    if(!m) return field.value;
+    const n = parseFloat(m[0]);
+    if(isNaN(n)) return field.value;
+    const keyNorm = normalizeLabel(field.key);
+    if(keyNorm.includes("hour") && !keyNorm.includes("minute")) return n * 60;
+    return n;
+  }
+
+  function matchScreeningRow(fields){
+    const used = new Set();
+    const result = {};
+    SCREENING_MATCH_ORDER.forEach(label => {
+      let match = null;
+      if(label === "News Icon"){
+        match = pickNewsAlertField(fields, used);
+        if(match) used.add(match.key);
+        result[label] = match ? newsFieldValueAsMinutes(match) : null;
+        return;
+      }
+      const hints = SCREENING_COLUMN_DEFS[label].hints;
+      match = fields.find(f => !used.has(f.key) && hints.some(h => normalizeLabel(f.key) === h));
+      if(!match){
+        match = fields.find(f => {
+          if(used.has(f.key)) return false;
+          const norm = normalizeLabel(f.key);
+          return hints.some(h => norm.includes(h) || h.includes(norm));
+        });
+      }
+      if(match && /<svg/i.test(String(match.value))){
+        used.add(match.key);
+        match = null;
+      }
+      if(match) used.add(match.key);
+      result[label] = match ? match.value : null;
+    });
+    return result;
+  }
+
+  const screeningState = {};
+  function getScreeningState(cfgKey){
+    if(!screeningState[cfgKey]) screeningState[cfgKey] = { rows: [] };
+    return screeningState[cfgKey];
+  }
+
+  function pushScreeningEvent(rawMsg, cfgKey){
+    const cfg = ALERT_CONFIGS.find(a => a.key === cfgKey);
+    const state = getScreeningState(cfgKey);
+    const fields = flattenAlertFields(rawMsg);
+    const row = matchScreeningRow(fields);
+
+    const isDuplicate = state.rows.some(r => r["Symbol"] === row["Symbol"] && r["Time"] === row["Time"]);
+    if(isDuplicate) return;
+
+    state.rows.unshift(row);
+    if(state.rows.length > MAX_ALERT_ROWS) state.rows.length = MAX_ALERT_ROWS;
+    renderScreeningTable(cfgKey);
+    recomputeMarketPulse();
+
+    if(row["Symbol"]){
+      // The popup Notification carries its own OS/browser-level sound
+      // that we can't silence directly — so for the two cards with a
+      // per-card mute toggle, skip the popup entirely when muted,
+      // rather than just muting our own chime and leaving the
+      // browser's own notification sound still audible underneath.
+      const isMutableCard = cfgKey === "alert5" || cfgKey === "alert6" || cfgKey === "alert7";
+      if(!isMutableCard || getCardSoundEnabled(cfgKey)){
+        sendPushAlert(
+          `${cfg ? cfg.name : "Screening"}: ${row["Symbol"]}`,
+          `$${row["Price ($)"] || "?"} · ${row["% Change"] || ""}`
+        );
+      }
+    }
+    if(cfgKey === "alert5" || cfgKey === "alert6" || cfgKey === "alert7"){
+      playAlertChime(cfgKey);
+    }
+
+    logLine(`${cfg ? cfg.name : cfgKey} event raw keys: ${fields.map(f => `${f.key}="${f.value}"`).join(", ")}`, "good");
+    const unmatched = SCREENING_DISPLAY_ORDER.filter(label => row[label] === null || row[label] === undefined);
+    if(unmatched.length){
+      logLine(`${cfg ? cfg.name : cfgKey} event — couldn't match: ${unmatched.join(", ")}. Check the raw keys logged above and adjust SCREENING_COLUMN_DEFS hints if a real field was missed.`, "warn");
+    }
+    const rawEl = document.getElementById("raw" + cfgKey.replace("alert", "Alert") + "update");
+    if(rawEl) rawEl.textContent = JSON.stringify(rawMsg, null, 2);
+  }
+
+  function getStrategyRowTint(strategyText){
+    if(!strategyText) return "";
+    const norm = String(strategyText).toLowerCase();
+    if(norm.includes("near hod")) return "rgba(56,189,248,0.07)";
+    if(norm.includes("running up")) return "rgba(74,222,128,0.07)";
+    if(norm.includes("hod")) return "rgba(250,204,21,0.07)";
+    let hash = 0;
+    for(let i = 0; i < norm.length; i++){ hash = (hash * 31 + norm.charCodeAt(i)) | 0; }
+    const hue = Math.abs(hash) % 360;
+    return `hsla(${hue}, 45%, 55%, 0.06)`;
+  }
+
+  function renderScreeningTable(cfgKey){
+    const cfg = ALERT_CONFIGS.find(a => a.key === cfgKey);
+    if(!cfg) return;
+    const state = getScreeningState(cfgKey);
+    const wrap = document.getElementById(cfg.wrapId);
+    const countEl = document.getElementById(cfg.countId);
+    if(!wrap) return;
+    if(countEl) countEl.textContent = `${state.rows.length} event${state.rows.length === 1 ? "" : "s"}`;
+
+    if(state.rows.length === 0){
+      wrap.innerHTML = `<div class="loading"><span class="dot-pulse"></span>Waiting for screening events…</div>`;
+      return;
+    }
+
+    let html = `<table><thead><tr>`;
+    SCREENING_DISPLAY_ORDER.forEach(label => {
+      const meta = HEADER_META[label] || {};
+      const icon = meta.icon || "";
+      const abbr = meta.abbr || label;
+      const tooltip = meta.title || label;
+      html += `<th title="${escapeHtml(tooltip)}">${icon}<span class="th-abbr">${escapeHtml(abbr)}</span></th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    const sortedRows = [...state.rows].sort((a, b) => timeSortKey(b["Time"]) - timeSortKey(a["Time"]));
+
+    sortedRows.forEach(row => {
+      const rowTint = getStrategyRowTint(row["Strategy"]);
+      html += rowTint ? `<tr style="background-color:${rowTint};">` : "<tr>";
+      SCREENING_DISPLAY_ORDER.forEach(label => {
+        const val = row[label];
+        if(label === "Symbol"){
+          html += val
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span>${chartIconHtml(val)}</td>`
+            : `<td class="na">—</td>`;
+        } else if(label === "Price ($)"){
+          html += renderPriceCell(val, row["Symbol"]);
+        } else if(label === "Float"){
+          html += renderFloatCell(val);
+        } else if(label === "News Icon"){
+          html += renderNewsCell(val);
+        } else if(label === "% Change"){
+          html += renderChangeCell(val);
+        } else if(label === "Daily Volume"){
+          html += renderVolumeCell(val);
+        } else if(label === "Relative Daily Volume (%)"){
+          html += renderRvolCell(val);
+        } else if(label === "Country"){
+          html += renderCountryCell(val);
+        } else if(label === "5 min trade count"){
+          const cacheKey = cfgKey + ":" + (row["Symbol"] || "") + ":5mincount";
+          html += renderTradeCountCell(val, cacheKey);
+        } else if(label === "Time"){
+          html += val ? `<td class="mono">${escapeHtml(formatFlexibleTimestamp(val))}</td>` : `<td class="na">—</td>`;
+        } else {
+          html += val !== null && val !== undefined && val !== "" ? `<td class="mono">${escapeHtml(val)}</td>` : `<td class="na">—</td>`;
+        }
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    wrap.innerHTML = html;
+    renderCardPreview(cfgKey, sortedRows, null, false);
+  }
+
+  function renderAlertPanel(key){
+    const bodyEl = document.getElementById("alertBody_" + key);
+    const countEl = document.getElementById("alertCount_" + key);
+    if(!bodyEl) return;
+    const items = alertsByConfig[key] || [];
+    countEl.textContent = `${items.length} alert${items.length === 1 ? "" : "s"}`;
+    if(items.length === 0){
+      bodyEl.innerHTML = `<div class="alerts-empty-note"><span class="dot-pulse"></span>Waiting for alerts…</div>`;
+      return;
+    }
+    bodyEl.innerHTML = items.map(item => `
+      <div class="alert-card">
+        <div class="alert-card-head">
+          <div class="alert-card-head-left">
+            <span class="alert-card-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </span>
+            <div class="alert-time mono">${escapeHtml(item.time)}</div>
+          </div>
+          ${item.symbol ? `<span class="sym sym-link alert-sym-badge" data-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</span>${chartIconHtml(item.symbol)}` : ""}
+        </div>
+        <div class="alert-kv-grid">
+          ${item.fields.map(f => `
+            <div class="alert-kv">
+              <div class="alert-kv-label">${escapeHtml(prettifyFieldKey(f.key))}</div>
+              <div class="alert-kv-value mono">${escapeHtml(f.value === null || f.value === undefined || f.value === "" ? "—" : String(f.value))}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function pushAlertItem(key, rawMsg){
+    if(!alertsByConfig[key]) alertsByConfig[key] = [];
+    const parsed = parseAlertItem(rawMsg);
+    const time = parsed.ts ? formatFlexibleTimestamp(parsed.ts) : new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    alertsByConfig[key].unshift({ time, symbol: parsed.symbol, fields: parsed.fields });
+    if(alertsByConfig[key].length > 50) alertsByConfig[key].length = 50;
+    renderAlertPanel(key);
+    const rawEl = document.getElementById("raw" + key.replace("alert", "Alert") + "update");
+    if(rawEl) rawEl.textContent = JSON.stringify(rawMsg, null, 2);
+  }
+
+  buildAlertPanels();
+
+  function buildLastAlertsUrl(configId){
+    const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY, config_id: configId });
+    return `https://${BASE_URL}/data/v1/lastalerts?${params.toString()}`;
+  }
+
+  async function seedInitialAlerts(cfg){
+    try{
+      const res = await fetch(buildLastAlertsUrl(cfg.configId));
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error(`HTTP ${res.status} — response wasn't JSON: ${text.slice(0, 200)}`); }
+      if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
+      const alerts = Array.isArray(json.alerts) ? json.alerts : [];
+      logLine(`Seeded ${alerts.length} existing alert(s) for "${cfg.name}" via REST.`, "good");
+      alerts.slice().reverse().forEach(a => {
+        if(cfg.special === "halts") pushHaltEvent(a);
+        else if(cfg.special === "screening") pushScreeningEvent(a, cfg.key);
+        else pushAlertItem(cfg.key, a);
+      });
+    }catch(e){
+      logLine(`Couldn't seed initial alerts for "${cfg.name}": ${e.message}`, "warn");
+    }
+  }
+
+  const METRIC_GROUPS = [
+    {
+      title: "Float & Ownership",
+      metrics: [
+        { label: "Shares Outstanding", hints: ["sharesoutstanding", "outstandingshares", "sharesout"] },
+        { label: "Market Cap",          hints: ["marketcapnooption", "marketcap"] },
+        { label: "Float Rotation",       hints: ["floatrotation"] },
+        { label: "Float",                 hints: ["newfloatnooption", "newfloat"] },
+        { label: "Institutional Ownership", hints: ["institutionalownershipnooption", "institutionalownership"] }
+      ]
+    },
+    {
+      title: "Short Interest",
+      metrics: [
+        { label: "Shares Short",       hints: ["sharesshortcolumn", "sharesshort"] },
+        { label: "Short Ratio",         hints: ["shortrationooption", "shortratio"] },
+        { label: "Short Interest (%)", hints: ["shortinterestnooption", "shortinterest"] }
+      ]
+    },
+    {
+      title: "Trading Activity",
+      metrics: [
+        { label: "5 Min Volume",                    hints: ["absvolumefiltermin5"] },
+        { label: "5 Min Trade Count",               hints: ["tradecountfiltermin5"] },
+        { label: "Relative 5 Min Trade Count (%)", hints: ["przvolumefilterfm5"] },
+        { label: "Relative Daily Volume (%)",      hints: ["przvolumefilterfd1"] }
+      ]
+    },
+    {
+      title: "Corporate Actions",
+      metrics: [
+        { label: "Days Since IPO",   hints: ["dayssinceiponooption", "dayssinceipo"] },
+        { label: "Days Since Split", hints: ["dayssincesplitnooption", "dayssincesplit"], preferTables: ["table6"] },
+        { label: "Split Ratio",       hints: ["splitrationooption", "splitratio"], preferTables: ["table6"] }
+      ]
+    },
+    {
+      title: "Price Levels",
+      metrics: [
+        { label: "High of Day",                          hints: ["highcolumn"] },
+        { label: "Low of Day",                             hints: ["lowcolumn"] },
+        { label: "Previous Day's Close ($)",              hints: ["previousdaysclosenooption", "previousdaysclose"] },
+        { label: "Distance from VWAP ($)",                hints: ["distancefromvwap", "vwapdistance"] },
+        { label: "Distance from EMA(200) Daily (%)",     hints: ["distancefrommovingaverageema200d"] }
+      ]
+    },
+    {
+      title: "Alerts",
+      metrics: [
+        { label: "Alert Counter", hints: ["alertcounter", "alertcount"] }
+      ]
+    }
+  ];
+
+  function metricLookupTokens(raw){
+    const full = normalizeLabel(raw);
+    const stripped = full.replace(/(nooption|column|info)$/g, "");
+    return [full, stripped];
+  }
+
+  function metricKeyMatches(rawKey, hints){
+    const tokens = new Set(metricLookupTokens(rawKey));
+    return hints.some(h => metricLookupTokens(h).some(t => t && tokens.has(t)));
+  }
+
+  function isBlankMetricValue(val){
+    if(val === null || val === undefined) return true;
+    const s = String(val).trim();
+    return s === "" || s === "—" || s === "-" || s.toLowerCase() === "n/a" || s.toLowerCase() === "na";
+  }
+
+  function findMetricAcrossTables(symbol, hints, preferTables){
+    const reservedRowKeys = new Set(["symbol", "columns", "color"]);
+    const tableOrder = [
+      ...(preferTables || []).map(k => TABLES.find(t => t.key === k)).filter(Boolean),
+      ...TABLES.filter(t => !(preferTables || []).includes(t.key))
+    ];
+
+    let emptyHit = null;
+
+    function consider(rawVal, source, keyExists){
+      if(!keyExists) return null;
+      if(/<svg/i.test(String(rawVal))) return "skip";
+      if(isBlankMetricValue(rawVal)){
+        if(!emptyHit) emptyHit = { value: "—", source, empty: true };
+        return "empty";
+      }
+      return { value: rawVal, source };
+    }
+
+    for(const t of tableOrder){
+      const rows = displayed[t.key];
+      if(!rows) continue;
+      const row = rows.find(r => r.symbol === symbol);
+      if(!row) continue;
+
+      for(const c of (row.columns || [])){
+        if(!c || !metricKeyMatches(c.key, hints)) continue;
+        const hit = consider(c.value, t.name, true);
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
+      }
+
+      for(const key of Object.keys(row)){
+        if(reservedRowKeys.has(key)) continue;
+        if(!metricKeyMatches(key, hints)) continue;
+        const hit = consider(row[key], t.name, true);
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
+      }
+
+      const daysKey = (hints.some(h => h.includes("dayssincesplit")) || hints.some(h => h.includes("splitratio")))
+        ? findColumnKey(t.key, hints.some(h => h.includes("splitratio")) ? "Split Ratio" : "Days Since Split")
+        : null;
+      if(daysKey){
+        const col = (row.columns || []).find(c => c.key === daysKey);
+        const hit = consider(col ? col.value : "", t.name, true);
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
+      }
+
+      const descs = rawColumnDescs[t.key];
+      if(!descs) continue;
+      const colMap = {};
+      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+      for(const desc of descs){
+        if(desc.key === "SymbolColumn") continue;
+        if(!metricKeyMatches(desc.key, hints) && !metricKeyMatches(desc.name, hints)) continue;
+        const hit = consider(colMap[desc.key], t.name, Object.prototype.hasOwnProperty.call(colMap, desc.key));
+        if(hit && hit !== "skip" && hit !== "empty") return hit;
+      }
+    }
+    return emptyHit;
+  }
+
+  function findAnyRow(symbol){
+    for(const t of TABLES){
+      const rows = displayed[t.key];
+      if(!rows) continue;
+      const row = rows.find(r => r.symbol === symbol);
+      if(row) return { row, tableKey: t.key, tableName: t.name };
+    }
+    return null;
+  }
+
+  function metricValueHtml(result){
+    if(!result){
+      return `<div class="modal-metric-value na">Not available in connected feeds</div>`;
+    }
+    return `<div class="modal-metric-value mono">${escapeHtml(result.value)}</div><div class="modal-metric-source">via ${escapeHtml(result.source)}</div>`;
+  }
+
+  let currentModalSymbol = null;
+  let currentChartSymbol = null;
+  let currentChartInterval = null;
+  let tvWidgetInstance = null;
+
+  // Add, remove, or reorder entries here to change which timeframe buttons
+  // appear on the chart page. `interval` follows TradingView's resolution
+  // format: minutes as a number ("1","5","15"), hours as "60"/"240", or
+  // "D"/"W"/"M" for day/week/month.
+  const CHART_TIMEFRAMES = [
+    { label: "1m",  interval: "1" },
+    { label: "5m",  interval: "5" },
+    { label: "15m", interval: "15" },
+    { label: "1H",  interval: "60" },
+    { label: "1D",  interval: "D" }
+  ];
+  const DEFAULT_CHART_INTERVAL = "5";
+
+  let allSymbolsMap = null;
+  let allSymbolsLoading = false;
+
+  function buildSymbolsUrl(){
+    const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY });
+    return `https://${BASE_URL}/data/v1/symbols?${params.toString()}`;
+  }
+
+  async function loadAllSymbols(){
+    if(allSymbolsMap || allSymbolsLoading) return;
+    allSymbolsLoading = true;
+    try{
+      const res = await fetch(buildSymbolsUrl());
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error(`HTTP ${res.status} — response wasn't JSON: ${text.slice(0, 200)}`); }
+      if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
+
+      const list = Array.isArray(json) ? json : [];
+      allSymbolsMap = new Map();
+      list.forEach(item => {
+        if(item && item.symbol) allSymbolsMap.set(String(item.symbol).toUpperCase(), item.name || "");
+      });
+      logLine(`Loaded full symbol universe: ${allSymbolsMap.size} symbols via /data/v1/symbols.`, "good");
+    }catch(e){
+      allSymbolsMap = new Map();
+      logLine(`Couldn't load full symbol universe: ${e.message}`, "warn");
+    }
+    allSymbolsLoading = false;
+  }
+  loadAllSymbols();
+
+  const newsCache = {};
+
+  function buildNewsUrl(symbol){
+    const params = new URLSearchParams({ user_id: USER_ID, api_key: API_KEY, symbol });
+    return `https://${BASE_URL}/data/v1/lastnews?${params.toString()}`;
+  }
+
+  function formatNewsTime(epochSecond){
+    if(!epochSecond) return "";
+    const d = new Date(epochSecond * 1000);
+    return d.toLocaleString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function newsListHtml(symbol){
+    const cache = newsCache[symbol];
+    if(!cache){
+      return `<div class="news-loading"><span class="dot-pulse"></span>Loading news…</div>`;
+    }
+    if(cache.error){
+      return `<div class="news-error">Couldn't load news.<div class="details">${escapeHtml(cache.error)}</div></div>`;
+    }
+    if(!cache.articles || cache.articles.length === 0){
+      return `<div class="news-empty">No recent news found for ${escapeHtml(symbol)}.</div>`;
+    }
+    return cache.articles.map(a => `
+      <div class="news-card">
+        <div class="news-meta mono" dir="ltr">${escapeHtml(formatNewsTime(a.epochSecond))}${a.source ? " · " + escapeHtml(a.source) : ""}</div>
+        <div class="news-headline" dir="rtl">${escapeHtml(a.headline || "(untitled)")}</div>
+        ${a.summary ? `<div class="news-summary" dir="rtl">${escapeHtml(a.summary)}</div>` : ""}
+        ${a.headlineTranslated && a.headlineOriginal ? `<div class="news-original">${escapeHtml(a.headlineOriginal)}</div>` : ""}
+      </div>
+    `).join("");
+  }
+
+  function updateNewsSectionDom(symbol){
+    if(currentModalSymbol !== symbol) return;
+    const listEl = document.getElementById("newsList");
+    if(listEl) listEl.innerHTML = newsListHtml(symbol);
+  }
+
+  async function translateViaGoogle(text){
+    try{
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURIComponent(text)}`;
+      const res = await fetch(url);
+      if(!res.ok) return null;
+      const json = await res.json();
+      if(Array.isArray(json) && Array.isArray(json[0])){
+        const translated = json[0].map(seg => seg[0]).join("");
+        if(translated && translated.trim().toLowerCase() !== String(text).trim().toLowerCase()){
+          return translated;
+        }
+      }
+      return null;
+    }catch(e){
+      logLine(`Google translate endpoint unreachable: ${e.message}`, "warn");
+      return null;
+    }
+  }
+
+  async function translateViaMyMemory(text){
+    try{
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ar`;
+      const res = await fetch(url);
+      if(!res.ok){
+        logLine(`MyMemory request failed: HTTP ${res.status}`, "warn");
+        return null;
+      }
+      const json = await res.json();
+      const status = json?.responseStatus;
+      const translated = json?.responseData?.translatedText;
+
+      if(status && Number(status) !== 200){
+        logLine(`MyMemory returned status ${status}${json?.responseDetails ? `: ${json.responseDetails}` : ""}`, "warn");
+        return null;
+      }
+      if(translated && /mymemory/i.test(translated)){
+        logLine(`MyMemory quota/warning message: "${translated}"`, "warn");
+        return null;
+      }
+      if(translated && translated.trim().toLowerCase() === String(text).trim().toLowerCase()){
+        logLine(`No Arabic translation found for "${text}" (MyMemory returned the text unchanged).`, "warn");
+        return null;
+      }
+      return translated || null;
+    }catch(e){
+      logLine(`MyMemory request error: ${e.message}`, "warn");
+      return null;
+    }
+  }
+
+  const SECTOR_INDUSTRY_AR = {
+    "technology": "التكنولوجيا",
+    "information technology": "تكنولوجيا المعلومات",
+    "healthcare": "الرعاية الصحية",
+    "health care": "الرعاية الصحية",
+    "financials": "المالية",
+    "financial services": "الخدمات المالية",
+    "energy": "الطاقة",
+    "utilities": "المرافق العامة",
+    "real estate": "العقارات",
+    "industrials": "الصناعات",
+    "materials": "المواد",
+    "basic materials": "المواد الأساسية",
+    "consumer discretionary": "السلع الاستهلاكية الكمالية",
+    "consumer cyclical": "السلع الاستهلاكية الكمالية",
+    "consumer staples": "السلع الاستهلاكية الأساسية",
+    "consumer defensive": "السلع الاستهلاكية الأساسية",
+    "communication services": "خدمات الاتصالات",
+    "biotechnology": "التقنية الحيوية",
+    "pharmaceuticals": "الأدوية",
+    "drug manufacturers": "شركات تصنيع الأدوية",
+    "medical devices": "الأجهزة الطبية",
+    "medical instruments & supplies": "الأدوات والمستلزمات الطبية",
+    "diagnostics & research": "التشخيص والأبحاث",
+    "healthcare plans": "خطط الرعاية الصحية",
+    "medical care facilities": "مرافق الرعاية الطبية",
+    "medical distribution": "توزيع المستلزمات الطبية",
+    "software": "البرمجيات",
+    "software - infrastructure": "البرمجيات - البنية التحتية",
+    "software - application": "البرمجيات - التطبيقات",
+    "infrastructure": "البنية التحتية",
+    "application": "التطبيقات",
+    "semiconductors": "أشباه الموصلات",
+    "semiconductor equipment & materials": "معدات ومواد أشباه الموصلات",
+    "internet content & information": "محتوى ومعلومات الإنترنت",
+    "internet retail": "التجزئة عبر الإنترنت",
+    "computer hardware": "أجهزة الحاسوب",
+    "consumer electronics": "الإلكترونيات الاستهلاكية",
+    "electronic components": "المكونات الإلكترونية",
+    "electronic gaming & multimedia": "الألعاب الإلكترونية والوسائط المتعددة",
+    "communication equipment": "معدات الاتصالات",
+    "information technology services": "خدمات تكنولوجيا المعلومات",
+    "solar": "الطاقة الشمسية",
+    "scientific & technical instruments": "الأدوات العلمية والتقنية",
+    "banks": "البنوك",
+    "banks - regional": "البنوك - إقليمية",
+    "banks - diversified": "البنوك - متنوعة",
+    "regional": "إقليمية",
+    "diversified": "متنوعة",
+    "insurance": "التأمين",
+    "insurance - life": "التأمين - الحياة",
+    "insurance - property & casualty": "التأمين - الممتلكات والحوادث",
+    "insurance - specialty": "التأمين - متخصص",
+    "life": "الحياة",
+    "asset management": "إدارة الأصول",
+    "capital markets": "أسواق رأس المال",
+    "credit services": "خدمات الائتمان",
+    "shell companies": "شركات صورية",
+    "oil & gas e&p": "النفط والغاز - الاستكشاف والإنتاج",
+    "oil & gas midstream": "النفط والغاز - النقل والتخزين",
+    "oil & gas refining & marketing": "النفط والغاز - التكرير والتسويق",
+    "oil & gas integrated": "النفط والغاز - متكاملة",
+    "oil & gas equipment & services": "النفط والغاز - المعدات والخدمات",
+    "oil & gas drilling": "النفط والغاز - الحفر",
+    "uranium": "اليورانيوم",
+    "coal": "الفحم",
+    "renewable utilities": "المرافق المتجددة",
+    "renewable": "متجددة",
+    "regulated electric": "الكهرباء المنظمة",
+    "regulated gas": "الغاز المنظم",
+    "regulated water": "المياه المنظمة",
+    "independent power producers": "منتجو الطاقة المستقلون",
+    "retail": "التجزئة",
+    "specialty retail": "تجزئة متخصصة",
+    "department stores": "المتاجر الكبرى",
+    "discount stores": "متاجر التخفيضات",
+    "grocery stores": "متاجر البقالة",
+    "home improvement retail": "تجزئة تحسين المنازل",
+    "auto manufacturers": "صناعة السيارات",
+    "auto - manufacturers": "السيارات - الشركات المصنعة",
+    "auto": "السيارات",
+    "manufacturers": "الشركات المصنعة",
+    "auto parts": "قطع غيار السيارات",
+    "auto & truck dealerships": "وكالات السيارات والشاحنات",
+    "airlines": "الطيران",
+    "airports & air services": "المطارات وخدمات الطيران",
+    "aerospace & defense": "الطيران والدفاع",
+    "telecom services": "خدمات الاتصالات",
+    "telecommunications": "الاتصالات",
+    "media": "الإعلام",
+    "entertainment": "الترفيه",
+    "broadcasting": "البث الإعلامي",
+    "publishing": "النشر",
+    "advertising agencies": "وكالات الإعلان",
+    "mining": "التعدين",
+    "gold": "الذهب",
+    "silver": "الفضة",
+    "copper": "النحاس",
+    "steel": "الصلب",
+    "aluminum": "الألومنيوم",
+    "chemicals": "الكيماويات",
+    "specialty chemicals": "الكيماويات المتخصصة",
+    "agricultural inputs": "المدخلات الزراعية",
+    "agriculture": "الزراعة",
+    "farm products": "المنتجات الزراعية",
+    "construction": "البناء والتشييد",
+    "building materials": "مواد البناء",
+    "building products & equipment": "منتجات ومعدات البناء",
+    "engineering & construction": "الهندسة والإنشاءات",
+    "residential construction": "الإنشاءات السكنية",
+    "real estate services": "خدمات العقارات",
+    "real estate - development": "العقارات - التطوير",
+    "reit - residential": "صناديق استثمار عقاري - سكنية",
+    "reit - diversified": "صناديق استثمار عقاري - متنوعة",
+    "reit - retail": "صناديق استثمار عقاري - تجزئة",
+    "reit - office": "صناديق استثمار عقاري - مكاتب",
+    "reit - industrial": "صناديق استثمار عقاري - صناعية",
+    "reit - healthcare facilities": "صناديق استثمار عقاري - مرافق صحية",
+    "reit - hotel & motel": "صناديق استثمار عقاري - فنادق",
+    "hospitality": "الضيافة",
+    "restaurants": "المطاعم",
+    "lodging": "الإقامة الفندقية",
+    "resorts & casinos": "المنتجعات والكازينوهات",
+    "gambling": "المقامرة",
+    "leisure": "الترفيه والتسلية",
+    "travel services": "خدمات السفر",
+    "apparel": "الملابس",
+    "apparel manufacturing": "تصنيع الملابس",
+    "apparel retail": "تجزئة الملابس",
+    "footwear & accessories": "الأحذية والإكسسوارات",
+    "textile manufacturing": "تصنيع المنسوجات",
+    "manufacturing": "التصنيع",
+    "textiles": "المنسوجات",
+    "furnishings, fixtures & appliances": "الأثاث والتجهيزات والأجهزة",
+    "household & personal products": "المنتجات المنزلية والشخصية",
+    "personal products & services": "المنتجات والخدمات الشخصية",
+    "food distribution": "توزيع الأغذية",
+    "packaged foods": "الأغذية المعبأة",
+    "confectioners": "منتجو الحلويات",
+    "beverages": "المشروبات",
+    "beverages - alcoholic": "المشروبات - الكحولية",
+    "beverages - non-alcoholic": "المشروبات - غير الكحولية",
+    "beverages - wineries & distilleries": "المشروبات - مصانع النبيذ والتقطير",
+    "alcoholic": "الكحولية",
+    "non-alcoholic": "غير الكحولية",
+    "tobacco": "التبغ",
+    "conglomerates": "الشركات القابضة",
+    "shipping & ports": "الشحن والموانئ",
+    "marine shipping": "الشحن البحري",
+    "trucking": "النقل البري",
+    "railroads": "السكك الحديدية",
+    "airlines, airports & air services": "الطيران والمطارات وخدمات الطيران",
+    "integrated freight & logistics": "الشحن واللوجستيات المتكاملة",
+    "air freight & logistics": "الشحن الجوي واللوجستيات",
+    "rental & leasing services": "خدمات التأجير",
+    "staffing & employment services": "خدمات التوظيف والاستقدام",
+    "specialty business services": "خدمات الأعمال المتخصصة",
+    "consulting services": "الخدمات الاستشارية",
+    "security & protection services": "خدمات الأمن والحماية",
+    "waste management": "إدارة النفايات",
+    "pollution & treatment controls": "أدوات مكافحة التلوث والمعالجة",
+    "industrial distribution": "التوزيع الصناعي",
+    "farm & heavy construction machinery": "المعدات الزراعية ومعدات البناء الثقيلة",
+    "specialty industrial machinery": "الآلات الصناعية المتخصصة",
+    "metal fabrication": "تشكيل المعادن",
+    "tools & accessories": "الأدوات والإكسسوارات",
+    "electrical equipment & parts": "المعدات والأجزاء الكهربائية"
+  };
+
+  function translateSectorTerm(text){
+    if(!text) return text;
+    const raw = String(text).trim();
+    const direct = SECTOR_INDUSTRY_AR[raw.toLowerCase()];
+    if(direct) return direct;
+
+    if(raw.includes(" - ")){
+      const parts = raw.split(" - ").map(p => p.trim());
+      const translatedParts = parts.map(p => SECTOR_INDUSTRY_AR[p.toLowerCase()] || p);
+      if(translatedParts.some((p, i) => p !== parts[i])) return translatedParts.join(" - ");
+    }
+    return raw;
+  }
+
+  async function translateToArabic(text){
+    if(!text) return { text: "", translated: false };
+
+    const google = await translateViaGoogle(text);
+    if(google) return { text: google, translated: true, via: "Google" };
+
+    const mymemory = await translateViaMyMemory(text);
+    if(mymemory) return { text: mymemory, translated: true, via: "MyMemory" };
+
+    logLine(`Both translation providers failed for "${text}" — showing original English.`, "bad");
+    return { text, translated: false };
+  }
+
+  const SEC_FORMS = "S-1,S-3";
+
+  function buildSecSearchLink(symbol){
+    const universeName = allSymbolsMap ? allSymbolsMap.get(symbol.toUpperCase()) : null;
+    const query = universeName || symbol;
+    const params = new URLSearchParams({ q: query, forms: SEC_FORMS });
+    return `https://www.sec.gov/edgar/search/#/${params.toString()}`;
+  }
+
+  function buildSecBrowseLink(symbol){
+    const params = new URLSearchParams({
+      action: "getcompany", CIK: symbol.toUpperCase(), type: "", dateb: "", owner: "include", count: "40"
+    });
+    return `https://www.sec.gov/cgi-bin/browse-edgar?${params.toString()}`;
+  }
+
+  function slugifyCompanyName(name){
+    return String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  function buildBamSecCompanyLink(symbol){
+    const ticker = encodeURIComponent(symbol.toUpperCase());
+    return `https://www.bamsec.com/search?q=${ticker}`;
+  }
+
+  function secFilingsSectionHtml(symbol){
+    const bamSecLink = buildBamSecCompanyLink(symbol);
+    return `
+      <a class="sec-link-btn" href="${escapeHtml(buildSecSearchLink(symbol))}" target="_blank" rel="noopener noreferrer">
+        Search EDGAR for S-1 / S-3 →
+      </a>
+      <a class="sec-link-btn secondary" href="${escapeHtml(buildSecBrowseLink(symbol))}" target="_blank" rel="noopener noreferrer">
+        Browse all EDGAR filings for ${escapeHtml(symbol)} →
+      </a>
+      <a class="sec-link-btn secondary" href="${escapeHtml(bamSecLink)}" target="_blank" rel="noopener noreferrer">
+        Open ${escapeHtml(symbol)} on BamSEC →
+      </a>
+    `;
+  }
+
+  function buildShortDataLink(symbol){
+    return `https://www.shortablestocks.com/?${encodeURIComponent(symbol.toUpperCase())}`;
+  }
+
+  function normalizeChartExchangeSlug(exchangeRaw){
+    if(!exchangeRaw) return null;
+    const norm = String(exchangeRaw).toLowerCase().replace(/[^a-z]/g, "");
+    if(norm.includes("nasdaq")) return "nasdaq";
+    if(norm.includes("nyseamerican") || norm.includes("amex")) return "nyseamerican";
+    if(norm.includes("nyse")) return "nyse";
+    if(norm.includes("otc")) return "otc";
+    if(norm.includes("cboe") || norm.includes("bats")) return "cboe";
+    return null;
+  }
+
+  function buildChartExchangeBorrowLink(symbol, exchangeRaw){
+    const slug = normalizeChartExchangeSlug(exchangeRaw);
+    if(!slug) return null;
+    return `https://chartexchange.com/symbol/${slug}-${symbol.toLowerCase()}/borrow-fee/`;
+  }
+
+  function shortDataSectionHtml(symbol, exchangeRaw){
+    const ceLink = buildChartExchangeBorrowLink(symbol, exchangeRaw);
+    const links = [];
+    if(ceLink){
+      links.push(`<a class="sec-link-btn" href="${escapeHtml(ceLink)}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(symbol)} Borrow Fee on ChartExchange (free, no login) →</a>`);
+    }
+    links.push(`<a class="sec-link-btn${ceLink ? " secondary" : ""}" href="${escapeHtml(buildShortDataLink(symbol))}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(symbol)} on Shortable Stocks →</a>`);
+    return links.join("\n");
+  }
+
+  const ECONOMIC_CALENDAR_PAGE = "https://sa.investing.com/economic-calendar";
+  const NASDAQ_IPO_PAGE = "https://www.nasdaq.com/market-activity/ipos";
+
+  recomputeMarketPulse();
+
+  async function fetchNews(symbol){
+    const btn = document.querySelector('[data-refresh-news]');
+    if(btn) btn.classList.add("spinning");
+    try{
+      const res = await fetch(buildNewsUrl(symbol));
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error(`HTTP ${res.status} — response wasn't JSON: ${text.slice(0, 200)}`); }
+      if(!res.ok){ throw new Error(`HTTP ${res.status}: ${JSON.stringify(json).slice(0, 200)}`); }
+
+      const latest = (Array.isArray(json.news) ? json.news : [])
+        .slice()
+        .sort((a, b) => (b.epochSecond || 0) - (a.epochSecond || 0))
+        .slice(0, 3);
+
+      logLine(`Fetched ${latest.length} news item(s) for ${symbol}, translating to Arabic…`);
+
+      const articles = await Promise.all(latest.map(async a => {
+        const [headlineAr, summaryAr] = await Promise.all([
+          translateToArabic(a.headline),
+          translateToArabic(a.summary)
+        ]);
+        return {
+          source: a.source,
+          epochSecond: a.epochSecond,
+          headline: headlineAr.text,
+          headlineTranslated: headlineAr.translated,
+          headlineVia: headlineAr.via,
+          summary: summaryAr.text,
+          summaryTranslated: summaryAr.translated,
+          headlineOriginal: a.headline
+        };
+      }));
+
+      newsCache[symbol] = { articles, fetchedAt: Date.now() };
+      const translatedCount = articles.filter(a => a.headlineTranslated).length;
+      const viaGoogle = articles.filter(a => a.headlineVia === "Google").length;
+      const viaMyMemory = articles.filter(a => a.headlineVia === "MyMemory").length;
+      logLine(`Translated ${translatedCount}/${articles.length} headline(s) to Arabic (${viaGoogle} via Google, ${viaMyMemory} via MyMemory).`, "good");
+    }catch(e){
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel
+        ? " (This is a network-level rejection — likely CORS or the browser blocking a request from a local file/edge://external-file origin, rather than a server error. Try hosting this file at a real https:// URL, or test on a different browser/device.)"
+        : "";
+      newsCache[symbol] = { error: e.message + hint };
+      logLine(`News fetch failed for ${symbol}: ${e.message}${hint}`, "bad");
+    }
+    if(btn) btn.classList.remove("spinning");
+    updateNewsSectionDom(symbol);
+  }
+
+  async function fetchBorrowFeeLive(symbol){
+    const el = document.getElementById("borrowFeeLive");
+    if(!el) return;
+
+    const exchange = findMetricAcrossTables(symbol, ["sourceinfo", "exchange"]);
+    const url = buildChartExchangeBorrowLink(symbol, exchange?.value);
+    if(!url) return;
+
+    try{
+      const res = await fetch(url);
+      const text = await res.text();
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const m = text.match(/As of ([^,]+), there were ([\d,]+) shares available with a fee of ([\d.]+)%/i);
+      if(!m) throw new Error("Expected summary sentence not found in the page (wording may have changed)");
+
+      if(currentModalSymbol !== symbol) return;
+
+      const [, dateStr, availableStr, feeStr] = m;
+      el.innerHTML = `<div class="borrow-fee-live">
+        <div><span class="bf-label">As of</span><span class="bf-date">${escapeHtml(dateStr.trim())}</span></div>
+        <div><span class="bf-label">Fee</span><span class="bf-fee">${escapeHtml(feeStr)}%</span></div>
+        <div><span class="bf-label">Available</span><span class="bf-avail">${escapeHtml(availableStr)}</span></div>
+      </div>`;
+      logLine(`ChartExchange borrow-fee live data loaded for ${symbol}.`, "good");
+    }catch(e){
+      const isNetworkLevel = e instanceof TypeError;
+      const hint = isNetworkLevel ? " (likely CORS — this page wasn't built for third-party fetching)" : "";
+      logLine(`ChartExchange borrow-fee fetch failed for ${symbol}: ${e.message}${hint} — link above still works.`, "warn");
+    }
+  }
+
+  const RS_SPLIT_DAYS = 20;
+
+  // Fast index: symbol -> days since split, built ONLY from the Split
+  // table's own rows. Rebuilt only when the Split table itself updates
+  // (see the table6 branch in the ToplistUpdate handler below), not on
+  // every render — resolveDaysSinceSplit() checks this first (an O(1)
+  // lookup) before ever falling back to the expensive cross-table scan.
+  let recentSplitsMap = new Map();
+
+  function rebuildRecentSplitsMap(){
+    recentSplitsMap = new Map();
+    const rows = displayed["table6"] || [];
+    const key = findColumnKey("table6", "Days Since Split");
+    if(!key) return;
+    rows.forEach(row => {
+      const col = (row.columns || []).find(c => c.key === key);
+      const days = parseDaysSinceSplitValue(col ? col.value : null);
+      if(days !== null && row.symbol) recentSplitsMap.set(row.symbol, days);
+    });
+  }
+
+  function parseDaysSinceSplitValue(raw){
+    if(raw === null || raw === undefined || raw === "") return null;
+    const n = parseFloat(String(raw).replace(/,/g, "").match(/-?\d+(\.\d+)?/)?.[0]);
+    return isNaN(n) ? null : n;
+  }
+
+  function resolveDaysSinceSplit(symbol, row){
+    // Fast path: pre-built index from the Split table
+    if(symbol && recentSplitsMap.has(symbol)) return recentSplitsMap.get(symbol);
+
+    // Covers the case where `row` itself IS a Split-table row
+    if(row){
+      const direct = parseDaysSinceSplitValue(row.daysSinceSplit);
+      if(direct !== null) return direct;
+      const col = (row.columns || []).find(c => metricKeyMatches(c.key, ["dayssincesplitnooption", "dayssincesplit"]));
+      const fromRow = parseDaysSinceSplitValue(col ? col.value : null);
+      if(fromRow !== null) return fromRow;
+    }
+
+    // Rare fallback only — e.g. before the Split table has loaded at all
+    if(!symbol) return null;
+    const found = findMetricAcrossTables(symbol, ["dayssincesplitnooption", "dayssincesplit"], ["table6"]);
+    if(!found || found.empty) return null;
+    return parseDaysSinceSplitValue(found.value);
+  }
+
+  function isRecentReverseSplit(symbol, row){
+    const days = resolveDaysSinceSplit(symbol, row);
+    return days !== null && days < RS_SPLIT_DAYS;
+  }
+
+  function splitRsBadgeHtml(){
+    return `<span class="split-badge-rs" title="Days since split &lt; ${RS_SPLIT_DAYS}">R:S</span>`;
+  }
+
+  function hasRecentReverseSplit(symbol){
+    return isRecentReverseSplit(symbol, null);
+  }
+
+  function updateModalHeaderBadges(symbol){
+    if(currentModalSymbol !== symbol) return;
+    const el = document.getElementById("modalHeaderBadges");
+    if(!el) return;
+    el.innerHTML = "";
+  }
+
+  function renderStockModal(symbol){
+    const found = findAnyRow(symbol);
+
+    document.getElementById("modalSym").textContent = symbol;
+    const universeName = allSymbolsMap ? allSymbolsMap.get(symbol.toUpperCase()) : null;
+    const tableNameGuess = findMetricAcrossTables(symbol, ["companyname", "company"]);
+    const companyNameVal = universeName || tableNameGuess?.value || null;
+
+    const exchange = findMetricAcrossTables(symbol, ["sourceinfo", "exchange"]);
+    const sector = findMetricAcrossTables(symbol, ["sectorinfo", "sector"]);
+    const industry = findMetricAcrossTables(symbol, ["industryinfo", "industry"]);
+    const country = found ? findColumnKey(found.tableKey, "Country") : null;
+    const countryVal = found && country ? (found.row.columns || []).find(c => c.key === country)?.value : null;
+
+    const line1Parts = [companyNameVal, countryVal].filter(Boolean);
+    const symbolIsRecognized = !allSymbolsMap || allSymbolsMap.size === 0 || allSymbolsMap.has(symbol.toUpperCase());
+    const line1El = document.getElementById("modalLine1");
+    const rsBadge = isRecentReverseSplit(symbol, found?.row) ? splitRsBadgeHtml() : "";
+    if(line1Parts.length){
+      line1El.innerHTML = `${line1Parts.map(p => escapeHtml(p)).join(" | ")}${rsBadge}`;
+    } else {
+      line1El.textContent = symbolIsRecognized
+        ? "Company info not available in connected feeds"
+        : "Symbol not found in ChartsWatcher's universe";
+    }
+
+    const line2Parts = [
+      exchange?.value,
+      sector?.value ? translateSectorTerm(sector.value) : null,
+      industry?.value ? translateSectorTerm(industry.value) : null
+    ].filter(Boolean);
+    document.getElementById("modalLine2").textContent = line2Parts.length
+      ? line2Parts.join(" | ")
+      : "Exchange / sector data not available in connected feeds";
+
+    const priceKey = found ? findColumnKey(found.tableKey, "Price ($)") : null;
+    const priceVal = found && priceKey ? (found.row.columns || []).find(c => c.key === priceKey)?.value : null;
+
+    const changeKey = found ? findColumnKey(found.tableKey, "% Change") : null;
+    const changeVal = found && changeKey ? (found.row.columns || []).find(c => c.key === changeKey)?.value : null;
+
+    const hoursSinceNews = findMetricAcrossTables(symbol, ["hourssincenewsnooption", "hourssincenews"]);
+
+    let bodyHtml = `<div class="modal-section msec-news">
+      <div class="modal-section-head">
+        <h4><span class="modal-section-icon">📰</span>Recent News (آخر 3 أخبار)${hoursSinceNews?.value ? ` <span class="hours-since-news-badge${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? " hot" : ""}">${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? "🔥 " : ""}${escapeHtml(hoursSinceNews.value)}h ago</span>` : ""}</h4>
+        <button class="news-refresh-btn" data-refresh-news="1" title="Refresh news" aria-label="Refresh news">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+      <div class="news-translate-note">Auto-translated to Arabic (Google, with MyMemory fallback) — original headline shown below each for reference</div>
+      <div id="newsList">${newsListHtml(symbol)}</div>
+    </div>`;
+
+    bodyHtml += `<div class="modal-section msec-sec">
+      <div class="modal-section-head"><h4><span class="modal-section-icon">📄</span>SEC Filings (S-1 / S-3)</h4></div>
+      <div class="news-translate-note">SEC's filing APIs don't allow direct browser access from this app (CORS) — the EDGAR links open a symbol-specific search on sec.gov directly. The BamSEC link opens the company's page directly on BamSEC.</div>
+      <div class="sec-links">${secFilingsSectionHtml(symbol)}</div>
+    </div>`;
+
+    bodyHtml += `<div class="modal-section msec-short">
+      <div class="modal-section-head"><h4><span class="modal-section-icon">🔻</span>Short / Borrow Data</h4></div>
+      <div class="news-translate-note">Fee, rebate, and shares-available data requires your own logged-in session on shortablestocks.com — this opens their page for ${escapeHtml(symbol)} directly in a new tab, rather than pulling the data through this app. ChartExchange's borrow-fee page is free/no-login — attempting to pull its latest reading directly below.</div>
+      <div class="sec-links">${shortDataSectionHtml(symbol, exchange?.value)}</div>
+      <div id="borrowFeeLive"></div>
+    </div>`;
+
+    const changeDir = changeVal ? directionClass(changeVal) : "";
+    const modalSymEl = document.getElementById("modalSym");
+    if(modalSymEl){
+      modalSymEl.classList.remove("dir-up", "dir-down");
+      if(changeDir === "num-up") modalSymEl.classList.add("dir-up");
+      else if(changeDir === "num-down") modalSymEl.classList.add("dir-down");
+    }
+    const heroClass = changeDir === "num-up" ? "hero-up" : changeDir === "num-down" ? "hero-down" : "";
+    bodyHtml += `<div class="modal-section msec-price">
+      <div class="modal-section-head"><h4><span class="modal-section-icon">📊</span>Overview</h4></div>
+      <div class="modal-hero-grid">
+        <div class="modal-hero-stat ${heroClass}">
+          <div class="modal-hero-label">Price ($)</div>
+          ${priceVal ? `<div class="modal-hero-value mono">${escapeHtml(priceVal)}</div>` : `<div class="modal-hero-value na">—</div>`}
+        </div>
+        <div class="modal-hero-stat ${heroClass}">
+          <div class="modal-hero-label">% Change</div>
+          ${changeVal ? `<div class="modal-hero-value mono">${escapeHtml(changeVal)}</div>` : `<div class="modal-hero-value na">—</div>`}
+        </div>
+      </div>
+    </div>`;
+
+    const GROUP_ICONS = {
+      "Float & Ownership": { icon: "🏢", cls: "msec-float" },
+      "Short Interest": { icon: "📉", cls: "msec-shortint" },
+      "Trading Activity": { icon: "⚡", cls: "msec-activity" },
+      "Corporate Actions": { icon: "🏛️", cls: "msec-corp" },
+      "Price Levels": { icon: "🎯", cls: "msec-price" }
+    };
+
+    METRIC_GROUPS.forEach(group => {
+      const meta = GROUP_ICONS[group.title] || { icon: "📌", cls: "" };
+      bodyHtml += `<div class="modal-section ${meta.cls}">
+        <div class="modal-section-head"><h4><span class="modal-section-icon">${meta.icon}</span>${escapeHtml(group.title)}</h4></div>
+        <div class="modal-grid">`;
+      group.metrics.forEach(metric => {
+        const result = findMetricAcrossTables(symbol, metric.hints, metric.preferTables);
+        bodyHtml += `<div class="modal-metric"><div class="modal-metric-label">${escapeHtml(metric.label)}</div>${metricValueHtml(result)}</div>`;
+      });
+      bodyHtml += `</div></div>`;
+    });
+    document.getElementById("modalBody").innerHTML = bodyHtml;
+    updateModalHeaderBadges(symbol);
+  }
+
+  function openStockModal(symbol){
+    currentModalSymbol = symbol;
+    renderStockModal(symbol);
+    document.getElementById("stockModalOverlay").classList.remove("hidden");
+    fetchNews(symbol);
+    fetchBorrowFeeLive(symbol);
+  }
+
+  function closeStockModal(){
+    currentModalSymbol = null;
+    document.getElementById("stockModalOverlay").classList.add("hidden");
+  }
+
+  function refreshModalIfOpen(){
+    if(currentModalSymbol) renderStockModal(currentModalSymbol);
+  }
+
+  function renderChartTimeframeButtons(){
+    const wrap = document.getElementById("chartPageTimeframes");
+    if(!wrap) return;
+    wrap.innerHTML = CHART_TIMEFRAMES.map(tf =>
+      `<button class="chart-tf-btn${tf.interval === currentChartInterval ? " active" : ""}" data-chart-interval="${escapeHtml(tf.interval)}">${escapeHtml(tf.label)}</button>`
+    ).join("");
+  }
+
+  let tvChartReadyForSymbol = null;
+
+  function loadTradingViewChart(symbol, interval){
+    const container = document.getElementById("chartPageWidgetContainer");
+    const emptyEl = document.getElementById("chartPageEmpty");
+    if(!container) return;
+
+    if(typeof TradingView === "undefined" || !TradingView.widget){
+      // tv.js hasn't finished loading yet — retry shortly.
+      setTimeout(() => loadTradingViewChart(symbol, interval), 250);
+      return;
+    }
+
+    if(emptyEl) emptyEl.style.display = "none";
+    tvChartReadyForSymbol = null;
+    container.innerHTML = "";
+    tvWidgetInstance = new TradingView.widget({
+      container_id: "chartPageWidgetContainer",
+      autosize: true,
+      symbol: symbol,
+      interval: interval,
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      toolbar_bg: "#1a2a45",
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
+      // Always show pre/after-market candles, not just the regular session.
+      extended_hours: true,
+      studies: [
+        "MAExp@tv-basicstudies",
+        "Volume@tv-basicstudies",
+        "VWAP@tv-basicstudies"
+      ],
+      // Locks the EMA study to a length of 9 specifically (its default
+      // length isn't guaranteed to be 9), and re-styles VWAP to orange
+      // with a slightly thicker line, so every chart opens pre-set this way.
+      studies_overrides: {
+        "moving average exponential.length": 9,
+        "vwap.color": "#ffb347",
+        "vwap.linewidth": 2,
+        "vwap.vwap.color": "#ffb347",
+        "vwap.vwap.linewidth": 2
+      }
+    });
+    // Once the chart is fully constructed we can call its API (e.g. to
+    // switch resolution) WITHOUT tearing the widget down — tearing it
+    // down is what wipes any drawings/indicators the user just added.
+    tvWidgetInstance.onChartReady(() => {
+      tvChartReadyForSymbol = symbol;
+      // Belt-and-braces: force the VWAP line's style directly through the
+      // study API too, in case the studies_overrides keys above don't
+      // match this widget build's internal plot naming.
+      try{
+        const chart = tvWidgetInstance.chart();
+        const vwapStudy = chart.getAllStudies().find(s => /vwap/i.test(s.name || ""));
+        if(vwapStudy){
+          const studyApi = chart.getStudyById(vwapStudy.id);
+          if(studyApi && typeof studyApi.applyOverrides === "function"){
+            studyApi.applyOverrides({
+              "vwap.color": "#ffb347",
+              "vwap.linewidth": 2
+            });
+          }
+        }
+      }catch(err){
+        // Non-fatal — API surface can vary slightly between widget builds.
+      }
+    });
+  }
+
+  function openChartPage(symbol){
+    currentChartSymbol = symbol ? symbol.toUpperCase() : null;
+    currentChartInterval = DEFAULT_CHART_INTERVAL;
+    document.getElementById("chartPageOverlay").classList.remove("hidden");
+    document.getElementById("chartPageSymbolInput").value = currentChartSymbol || "";
+    renderChartTimeframeButtons();
+    if(currentChartSymbol){
+      loadTradingViewChart(currentChartSymbol, currentChartInterval);
+    } else {
+      document.getElementById("chartPageWidgetContainer").innerHTML = "";
+      const emptyEl = document.getElementById("chartPageEmpty");
+      if(emptyEl) emptyEl.style.display = "flex";
+    }
+  }
+
+  function closeChartPage(){
+    document.getElementById("chartPageOverlay").classList.add("hidden");
+  }
+
+  document.addEventListener("click", (e) => {
+    const chartIcon = e.target.closest("[data-chart-symbol]");
+    if(chartIcon){
+      e.stopPropagation();
+      e.preventDefault();
+      const symbol = chartIcon.getAttribute("data-chart-symbol");
+      if(symbol) openChartPage(symbol);
+      return;
+    }
+    const previewRow = e.target.closest(".card-preview-row-toplist");
+    if(!previewRow) return;
+    e.stopPropagation();
+    const symbol = previewRow.dataset.symbol || previewRow.querySelector(".cp-symbol")?.textContent?.trim();
+    if(symbol && symbol !== "—") openStockModal(symbol);
+  }, true);
+
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest(".sym-link");
+    if(link && link.dataset.symbol){
+      openStockModal(link.dataset.symbol);
+      return;
+    }
+    const newsRefreshBtn = e.target.closest("[data-refresh-news]");
+    if(newsRefreshBtn && currentModalSymbol){
+      fetchNews(currentModalSymbol);
+      return;
+    }
+    if(e.target === document.getElementById("stockModalOverlay") || e.target.closest("#modalCloseBtn")){
+      closeStockModal();
+    }
+    if(e.target.closest("#modalChartBtn") && currentModalSymbol){
+      const sym = currentModalSymbol;
+      closeStockModal();
+      openChartPage(sym);
+      return;
+    }
+    if(e.target.closest("#openChartPageBtn")){
+      openChartPage(currentChartSymbol);
+      return;
+    }
+    if(e.target.closest("#chartPageBackBtn")){
+      closeChartPage();
+      return;
+    }
+    if(e.target.closest("#openResourcesPageBtn")){
+      document.getElementById("resourcesPageOverlay").classList.remove("hidden");
+      return;
+    }
+    if(e.target.closest("#resourcesPageBackBtn")){
+      document.getElementById("resourcesPageOverlay").classList.add("hidden");
+      return;
+    }
+    const tfBtn = e.target.closest("[data-chart-interval]");
+    if(tfBtn){
+      currentChartInterval = tfBtn.getAttribute("data-chart-interval");
+      renderChartTimeframeButtons();
+      if(currentChartSymbol){
+        if(tvWidgetInstance && tvChartReadyForSymbol === currentChartSymbol){
+          // Switch resolution on the live chart instance so any drawings
+          // or indicators the user added stay in place.
+          try{
+            tvWidgetInstance.chart().setResolution(currentChartInterval);
+          }catch(err){
+            loadTradingViewChart(currentChartSymbol, currentChartInterval);
+          }
+        } else {
+          loadTradingViewChart(currentChartSymbol, currentChartInterval);
+        }
+      }
+      return;
+    }
+  });
+
+  document.getElementById("chartPageSymbolForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = document.getElementById("chartPageSymbolInput").value.trim();
+    if(!raw) return;
+    openChartPage(raw);
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeStockModal();
+  });
+
+  function connect(){
+    clearTimeout(reconnectTimer);
+    setConnStatus("connecting", "Connecting…");
+    logLine(`Connecting to wss://${BASE_URL}/api/v1/websocket …`);
+
+    try{
+      ws = new WebSocket(WS_URL);
+    }catch(e){
+      setConnStatus("error", "Connection failed");
+      logLine(`Failed to construct WebSocket: ${e.message}`, "bad");
+      scheduleReconnect();
+      return;
+    }
+
+    ws.onopen = () => {
+      reconnectDelay = 1500;
+      setConnStatus("live", "Live");
+      logLine("Connected.", "good");
+      TABLES.forEach((t, i) => {
+        setTimeout(() => {
+          if(ws.readyState !== WebSocket.OPEN) return;
+          ws.send(JSON.stringify({ "@type": "Toplist", "config_id": t.configId, "action": "subscribe" }));
+          logLine(`Subscribing to "${t.name}" (config ${t.configId})`);
+
+          clearTimeout(confirmTimers[t.key]);
+          confirmTimers[t.key] = setTimeout(() => {
+            if(!columnMapping[t.key]){
+              logLine(`No confirmation received yet for "${t.name}" (config ${t.configId}) after 8s — the config ID, a per-account subscription limit, or a slow server response could be the cause.`, "warn");
+            }
+          }, 8000);
+        }, i * 250);
+      });
+
+      ALERT_CONFIGS.forEach((a, i) => {
+        setTimeout(() => {
+          if(ws.readyState !== WebSocket.OPEN) return;
+          ws.send(JSON.stringify({ "@type": "Alert", "config_id": a.configId, "action": "subscribe" }));
+          logLine(`Subscribing to Alert config "${a.name}" (${a.configId})`);
+
+          clearTimeout(confirmTimers[a.key]);
+          confirmTimers[a.key] = setTimeout(() => {
+            if(!alertConfirmed[a.key]){
+              logLine(`No confirmation received yet for Alert "${a.name}" (${a.configId}) after 8s — the Alert message schema may differ from our best-guess ("Alert"/"AlertConfirm"/"AlertUpdate"), or the config ID/subscription limit could be the cause.`, "warn");
+            }
+          }, 8000);
+        }, (TABLES.length + i) * 250);
+      });
+
+      ALERT_CONFIGS.forEach(seedInitialAlerts);
+
+      setTimeout(() => {
+        if(ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({ "@type": "Toplist", "config_id": SPY_TOPLIST_CONFIG_ID, "action": "subscribe" }));
+        logLine(`Subscribing to SPY/QQQ Toplist (config ${SPY_TOPLIST_CONFIG_ID})`);
+      }, (TABLES.length + ALERT_CONFIGS.length) * 250);
+    };
+
+    ws.onmessage = (evt) => {
+      let msg;
+      try{ msg = JSON.parse(evt.data); }
+      catch(e){ logLine("Received a message that wasn't valid JSON.", "warn"); return; }
+
+      if(msg["@type"] === "KeepAlive"){
+        return;
+      }
+
+      if(msg.config_id === SPY_TOPLIST_CONFIG_ID){
+        if(msg["@type"] === "ToplistConfirm" && msg.action === "subscribe"){
+          if(msg.success === false){
+            logLine(`SPY/QQQ Toplist subscription failed: ${msg.msg || "unknown reason"}`, "bad");
+          } else if(Array.isArray(msg.column_desc)){
+            resolveSpyColumns(msg.column_desc);
+          }
+        } else if(msg["@type"] === "ToplistUpdate"){
+          const rows = Array.isArray(msg.rows) ? msg.rows : [];
+          const spyRow = rows.find(r => r.symbol === "SPY");
+          const qqqRow = rows.find(r => r.symbol === "QQQ");
+          const diaRow = rows.find(r => r.symbol === "DIA");
+          if(spyRow) updateIndexWidgetFromChartsWatcher(spyRow, "spy");
+          if(qqqRow) updateIndexWidgetFromChartsWatcher(qqqRow, "qqq");
+          if(diaRow) updateIndexWidgetFromChartsWatcher(diaRow, "dia");
+          if(!spyRow && !qqqRow && !diaRow) logLine("SPY/QQQ/DIA Toplist update arrived but none of the three symbols were found in its rows.", "warn");
+        }
+        return;
+      }
+
+      if(msg["@type"] === "ToplistConfirm"){
+        const key = configToKey[msg.config_id];
+        if(!key){
+          logLine(`Received ToplistConfirm for an unrecognized config_id "${msg.config_id}" — doesn't match any configured table.`, "warn");
+          return;
+        }
+        clearTimeout(confirmTimers[key]);
+        const tableName = TABLES.find(t=>t.key===key).name;
+        if(msg.action === "subscribe"){
+          if(msg.success === false){
+            lastError[key] = msg.msg || "Subscription failed.";
+            logLine(`Subscription to "${tableName}" failed: ${msg.msg || "unknown reason"}`, "bad");
+          } else if(Array.isArray(msg.column_desc)){
+            lastError[key] = null;
+            rawColumnDescs[key] = msg.column_desc;
+            columnMapping[key] = buildColumnMapping(TABLES.find(t=>t.key===key).columns, msg.column_desc, key);
+          }
+          const confirmEl = document.getElementById("raw" + key.replace("table","") + "confirm");
+          if(confirmEl) confirmEl.textContent = JSON.stringify(msg, null, 2);
+        }
+        renderTable(TABLES.find(t => t.key === key));
+        return;
+      }
+
+      if(msg["@type"] === "ToplistUpdate"){
+        const key = configToKey[msg.config_id];
+        if(!key){
+          logLine(`Received ToplistUpdate for an unrecognized config_id "${msg.config_id}" — doesn't match any configured table.`, "warn");
+          return;
+        }
+        const rows = Array.isArray(msg.rows) ? msg.rows : [];
+
+        displayed[key] = rows;
+        renderTable(TABLES.find(t => t.key === key));
+        refreshModalIfOpen();
+        if(key === "table1") recomputeMarketPulse();
+        if(key === "table6") rebuildRecentSplitsMap();
+
+        const updateEl = document.getElementById("raw" + key.replace("table","") + "update");
+        if(updateEl) updateEl.textContent = JSON.stringify(msg, null, 2).slice(0, 4000);
+
+        const now = new Date();
+        statusText.textContent = `Live · last update ${now.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" })}`;
+        return;
+      }
+
+      if(msg["@type"] === "AlertConfirm"){
+        const keys = configToAlertKeys[msg.config_id];
+        if(!keys || keys.length === 0){
+          logLine(`Received AlertConfirm for an unrecognized config_id "${msg.config_id}".`, "warn");
+          return;
+        }
+        keys.forEach(key => {
+          clearTimeout(confirmTimers[key]);
+          const alertName = ALERT_CONFIGS.find(a => a.key === key).name;
+          if(msg.success === false){
+            logLine(`Alert subscription to "${alertName}" failed: ${msg.msg || "unknown reason"}`, "bad");
+          } else {
+            alertConfirmed[key] = true;
+            logLine(`Alert "${alertName}" subscribed successfully.`, "good");
+          }
+          const confirmEl = document.getElementById("rawAlert" + key.replace("alert","") + "confirm");
+          if(confirmEl) confirmEl.textContent = JSON.stringify(msg, null, 2);
+        });
+        return;
+      }
+
+      if(msg["@type"] === "NewAlert" || msg["@type"] === "AlertUpdate"){
+        let keys = configToAlertKeys[msg.config_id];
+        if((!keys || keys.length === 0) && ALERT_CONFIGS.length === 1) keys = [ALERT_CONFIGS[0].key];
+        if(!keys || keys.length === 0){
+          logLine(`Received "${msg["@type"]}" but couldn't resolve which Alert config it belongs to (config_id: ${msg.config_id}).`, "warn");
+          return;
+        }
+
+        keys.forEach(key => {
+          clearTimeout(confirmTimers[key]);
+          alertConfirmed[key] = true;
+          const alertCfg = ALERT_CONFIGS.find(a => a.key === key);
+          const alertName = alertCfg.name;
+
+          const items = Array.isArray(msg.alerts) ? msg.alerts
+                       : Array.isArray(msg.data) ? msg.data
+                       : Array.isArray(msg.rows) ? msg.rows
+                       : [msg];
+          if(alertCfg.special === "halts"){
+            items.forEach(item => pushHaltEvent(item));
+          } else if(alertCfg.special === "screening"){
+            items.forEach(item => pushScreeningEvent(item, key));
+          } else {
+            items.forEach(item => pushAlertItem(key, item));
+          }
+          logLine(`Alert "${alertName}" — ${items.length} new event${items.length === 1 ? "" : "s"}.`, "good");
+        });
+        return;
+      }
+
+      logLine(`Received unrecognized message type "${msg["@type"] || "Unknown"}".`, "warn");
+    };
+
+    ws.onerror = () => {
+      setConnStatus("error", "Connection error");
+      logLine("WebSocket error event fired.", "bad");
+    };
+
+    ws.onclose = (event) => {
+      logLine(`Closed — code ${event.code}${event.reason ? `, reason: "${event.reason}"` : " (no reason given)"}`, "bad");
+      if(unloading) return;
+      setConnStatus("connecting", "Reconnecting…");
+      scheduleReconnect();
+    };
+  }
+
+  function scheduleReconnect(){
+    clearTimeout(reconnectTimer);
+    logLine(`Reconnecting in ${Math.round(reconnectDelay/1000)}s…`, "warn");
+    reconnectTimer = setTimeout(() => {
+      reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
+      connect();
+    }, reconnectDelay);
+  }
+
+  refreshBtn.addEventListener("click", () => {
+    refreshBtn.classList.add("spinning");
+    logLine("Manual refresh requested — forcing reconnect…");
+    clearTimeout(reconnectTimer);
+    reconnectDelay = 1000;
+    if(ws){ try{ ws.close(); }catch(e){} }
+    connect();
+    fetchIndexWidgets();
+    setTimeout(() => refreshBtn.classList.remove("spinning"), 500);
+  });
+
+  document.addEventListener("click", (e) => {
+    if(e.target.closest("#notifToggleBtn")){
+      toggleBrowserNotifications();
+      return;
+    }
+    const head = e.target.closest("[data-fold]");
+    if(!head) return;
+    const id = head.getAttribute("data-fold");
+
+    if(id === "debug"){
+      const debugPanel = document.getElementById("debugPanel");
+      if(debugPanel) debugPanel.classList.toggle("collapsed");
+      return;
+    }
+
+    const panel = document.getElementById("panel-" + id);
+    if(!panel) return;
+
+    const isOpening = panel.classList.contains("collapsed");
+    if(isOpening){
+      document.querySelectorAll(".panel:not(.collapsed)").forEach(p => {
+        if(p !== panel) p.classList.add("collapsed");
+      });
+    }
+    panel.classList.toggle("collapsed");
+    document.body.classList.toggle("panel-fullscreen-active", !panel.classList.contains("collapsed"));
+  });
+
+  window.addEventListener("beforeunload", () => {
+    unloading = true;
+    if(ws) ws.close();
+  });
+
+  // Back-to-top: only appears once the person has scrolled a bit, since
+  // showing it right away would just be visual clutter near the topbar.
+  const backToTopBtn = document.getElementById("backToTopBtn");
+  if(backToTopBtn){
+    window.addEventListener("scroll", () => {
+      backToTopBtn.classList.toggle("visible", window.scrollY > 600);
+    }, { passive: true });
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  // ===================== QUICK SYMBOL SEARCH (Ctrl/Cmd+K) =====================
+  const cmdkOverlay = document.getElementById("cmdkOverlay");
+  const cmdkInput = document.getElementById("cmdkInput");
+  const cmdkResultsEl = document.getElementById("cmdkResults");
+  let cmdkActiveIndex = -1;
+  let cmdkMatches = [];
+
+  function openCmdk(){
+    if(!cmdkOverlay) return;
+    cmdkOverlay.classList.remove("hidden");
+    cmdkInput.value = "";
+    renderCmdkResults([]);
+    setTimeout(() => cmdkInput.focus(), 10);
+  }
+
+  function closeCmdk(){
+    if(!cmdkOverlay) return;
+    cmdkOverlay.classList.add("hidden");
+  }
+
+  function renderCmdkResults(matches){
+    cmdkMatches = matches;
+    cmdkActiveIndex = matches.length ? 0 : -1;
+    if(!matches.length){
+      cmdkResultsEl.innerHTML = `<div class="cmdk-empty">Type a ticker or company name…</div>`;
+      return;
+    }
+    cmdkResultsEl.innerHTML = matches.map((m, i) =>
+      `<div class="cmdk-result${i === 0 ? " active" : ""}" data-index="${i}">
+        <span class="cmdk-result-symbol">${escapeHtml(m.symbol)}</span>
+        <span class="cmdk-result-name">${escapeHtml(m.name || "")}</span>
+      </div>`
+    ).join("");
+  }
+
+  function updateCmdkActiveHighlight(){
+    cmdkResultsEl.querySelectorAll(".cmdk-result").forEach((el, i) => {
+      el.classList.toggle("active", i === cmdkActiveIndex);
+    });
+    const activeEl = cmdkResultsEl.querySelector(".cmdk-result.active");
+    if(activeEl) activeEl.scrollIntoView({ block: "nearest" });
+  }
+
+  function selectCmdkMatch(index){
+    const match = cmdkMatches[index];
+    if(!match) return;
+    closeCmdk();
+    openChartPage(match.symbol);
+  }
+
+  if(cmdkInput){
+    cmdkInput.addEventListener("input", () => {
+      const q = cmdkInput.value.trim().toUpperCase();
+      if(!q){ renderCmdkResults([]); return; }
+      const matches = [];
+      if(allSymbolsMap){
+        for(const [symbol, name] of allSymbolsMap){
+          if(symbol.startsWith(q) || (name && name.toUpperCase().includes(q))){
+            matches.push({ symbol, name });
+            if(matches.length >= 8) break;
+          }
+        }
+      }
+      // Exact/prefix ticker matches should always float to the top.
+      matches.sort((a, b) => {
+        const aStarts = a.symbol.startsWith(q) ? 0 : 1;
+        const bStarts = b.symbol.startsWith(q) ? 0 : 1;
+        return aStarts - bStarts;
+      });
+      renderCmdkResults(matches);
+    });
+
+    cmdkInput.addEventListener("keydown", (e) => {
+      if(e.key === "ArrowDown"){
+        e.preventDefault();
+        if(cmdkMatches.length){
+          cmdkActiveIndex = (cmdkActiveIndex + 1) % cmdkMatches.length;
+          updateCmdkActiveHighlight();
+        }
+      } else if(e.key === "ArrowUp"){
+        e.preventDefault();
+        if(cmdkMatches.length){
+          cmdkActiveIndex = (cmdkActiveIndex - 1 + cmdkMatches.length) % cmdkMatches.length;
+          updateCmdkActiveHighlight();
+        }
+      } else if(e.key === "Enter"){
+        e.preventDefault();
+        if(cmdkActiveIndex >= 0) selectCmdkMatch(cmdkActiveIndex);
+      } else if(e.key === "Escape"){
+        closeCmdk();
+      }
+    });
+  }
+
+  if(cmdkResultsEl){
+    cmdkResultsEl.addEventListener("click", (e) => {
+      const item = e.target.closest(".cmdk-result");
+      if(item) selectCmdkMatch(parseInt(item.getAttribute("data-index"), 10));
+    });
+  }
+
+  document.getElementById("cmdkTriggerBtn")?.addEventListener("click", openCmdk);
+
+  document.addEventListener("click", (e) => {
+    if(e.target === cmdkOverlay) closeCmdk();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k"){
+      e.preventDefault();
+      if(cmdkOverlay && cmdkOverlay.classList.contains("hidden")){
+        openCmdk();
+      } else {
+        closeCmdk();
+      }
+    }
+  });
+
+  applyLanguage();
+  connect();
+
+})();
+</script>
+
+</body>
+</html>
