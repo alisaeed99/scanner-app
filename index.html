@@ -862,6 +862,12 @@
   }
   .modal-hero-label{ font-size:10.5px; color: var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px; }
   .modal-hero-value{ font-size:24px; font-weight:800; line-height:1.15; }
+  .modal-hero-subline{
+    display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; padding-top:8px;
+    border-top:1px solid var(--border-soft);
+  }
+  .modal-hero-sub-label{ font-size:10px; color: var(--muted); text-transform:uppercase; letter-spacing:0.03em; }
+  .modal-hero-sub-value{ font-size:13px; font-weight:700; color: var(--header-text); }
   .modal-hero-stat.hero-up{ background: linear-gradient(160deg, rgba(34,197,94,0.14), rgba(34,197,94,0.02)); border-color: rgba(34,197,94,0.35); box-shadow: 0 0 18px rgba(34,197,94,0.14); }
   .modal-hero-stat.hero-up .modal-hero-value{ color: var(--up); text-shadow: 0 0 12px var(--up-glow); }
   .modal-hero-stat.hero-down{ background: linear-gradient(160deg, rgba(255,68,104,0.14), rgba(255,68,104,0.02)); border-color: rgba(255,68,104,0.35); box-shadow: 0 0 18px rgba(255,68,104,0.14); }
@@ -879,6 +885,7 @@
   }
   .ti-card:hover{ transform: translateY(-2px); }
   .ti-label{ font-size:10px; color: var(--muted); margin-bottom:4px; }
+  .ti-label.ti-label-orange{ color: #ffb347 !important; }
   .ti-value{ font-size:15px; font-weight:800; margin-bottom:3px; }
   .ti-tag{ font-size:10px; font-weight:700; letter-spacing:0.02em; text-transform:uppercase; opacity:0.85; }
   .ti-card.ti-positive{ border-color: rgba(34,197,94,0.4); background: linear-gradient(160deg, rgba(34,197,94,0.12), rgba(34,197,94,0.02)); }
@@ -891,6 +898,44 @@
   .ti-card.ti-negative .ti-tag{ color: var(--down); }
   .ti-card.ti-neutral .ti-value{ color: var(--header-text); }
   .ti-card.ti-neutral .ti-tag{ color: var(--muted); }
+
+  /* Trend Score — a single wide summary card sitting above the individual
+     indicator grid, with a -100..+100 horizontal gauge. */
+  .trend-score-card{
+    border-radius:12px; padding:14px 16px; margin-bottom:12px; background: var(--card-2);
+    border:1px solid var(--border-soft); transition: box-shadow .25s ease, border-color .25s ease;
+  }
+  .trend-score-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .trend-score-title{ font-size:12.5px; font-weight:800; color: var(--header-text); }
+  .trend-score-value{ font-size:20px; font-weight:800; }
+  .trend-score-bar-track{ position:relative; height:8px; border-radius:5px; background: rgba(255,255,255,0.07); overflow:hidden; margin-bottom:9px; }
+  .trend-score-bar-center{ position:absolute; left:50%; top:0; bottom:0; width:1px; background: rgba(255,255,255,0.25); z-index:1; }
+  .trend-score-bar-fill{ position:absolute; top:0; bottom:0; border-radius:5px; transition: left .4s ease, width .4s ease, background .3s ease; }
+  .trend-score-band{ font-size:11.5px; font-weight:700; text-align:center; letter-spacing:0.02em; text-transform:uppercase; }
+
+  .trend-score-card.ts-strong-up{ border-color: rgba(34,197,94,0.5); box-shadow: 0 0 18px rgba(34,197,94,0.2); }
+  .trend-score-card.ts-strong-up .trend-score-value,
+  .trend-score-card.ts-strong-up .trend-score-band{ color: var(--up); text-shadow: 0 0 8px var(--up-glow); }
+  .trend-score-card.ts-strong-up .trend-score-bar-fill{ background: #22c55e; box-shadow: 0 0 10px rgba(34,197,94,0.6); }
+
+  .trend-score-card.ts-up{ border-color: rgba(34,197,94,0.3); }
+  .trend-score-card.ts-up .trend-score-value,
+  .trend-score-card.ts-up .trend-score-band{ color: var(--up); }
+  .trend-score-card.ts-up .trend-score-bar-fill{ background: rgba(34,197,94,0.75); }
+
+  .trend-score-card.ts-neutral .trend-score-value,
+  .trend-score-card.ts-neutral .trend-score-band{ color: #eab308; }
+  .trend-score-card.ts-neutral .trend-score-bar-fill{ background: #eab308; }
+
+  .trend-score-card.ts-down{ border-color: rgba(255,68,104,0.3); }
+  .trend-score-card.ts-down .trend-score-value,
+  .trend-score-card.ts-down .trend-score-band{ color: var(--down); }
+  .trend-score-card.ts-down .trend-score-bar-fill{ background: rgba(255,68,104,0.75); }
+
+  .trend-score-card.ts-strong-down{ border-color: rgba(255,68,104,0.5); box-shadow: 0 0 18px rgba(255,68,104,0.2); }
+  .trend-score-card.ts-strong-down .trend-score-value,
+  .trend-score-card.ts-strong-down .trend-score-band{ color: var(--down); text-shadow: 0 0 8px var(--down-glow); }
+  .trend-score-card.ts-strong-down .trend-score-bar-fill{ background: var(--down); box-shadow: 0 0 10px rgba(255,68,104,0.6); }
   .modal-metric-value.na{ color:#3a3f47; font-weight:500; }
   .modal-metric-source{ font-size:9px; color:#4b5563; margin-top:2px; }
 
@@ -1571,13 +1616,6 @@
           <span class="quick-link-title" data-i18n="stockSelection">Stock Selection</span>
           <span class="quick-link-arrow">→</span>
         </a>
-        <a class="quick-link-card" href="https://youtu.be/DP4ayEWhmvM?si=786akr4Ah8InalDt" target="_blank" rel="noopener noreferrer">
-          <span class="quick-link-icon icon-green">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </span>
-          <span class="quick-link-title" data-i18n="bullFlagStrategy">Bull Flag Strategy</span>
-          <span class="quick-link-arrow">→</span>
-        </a>
         <a class="quick-link-card" href="https://youtu.be/BZwJFPk3cBM?si=3xInciInAfhL7LLl" target="_blank" rel="noopener noreferrer">
           <span class="quick-link-icon icon-blue">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -1597,6 +1635,20 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </span>
           <span class="quick-link-title" data-i18n="technicalAnalysisGuide">Complete Technical Analysis Guide</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+      </div>
+
+      <!-- ===================== STRATEGIES ===================== -->
+      <div class="section-heading main-section-heading">
+        <h3 data-i18n="strategies">Strategies</h3>
+      </div>
+      <div class="quick-link-row">
+        <a class="quick-link-card" href="https://youtu.be/DP4ayEWhmvM?si=786akr4Ah8InalDt" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-green">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="bullFlagStrategy">Bull Flag Strategy</span>
           <span class="quick-link-arrow">→</span>
         </a>
         <a class="quick-link-card" href="https://youtu.be/js25lIZMUSY?si=WtQiqCb0Tp-sZdT2" target="_blank" rel="noopener noreferrer">
@@ -1706,6 +1758,7 @@
       alerts: "Alerts",
       general: "General",
       education: "Education",
+      strategies: "Strategies",
       topGainers: "Top Gainers",
       momentum: "Momentum",
       volumePressure: "Volume Pressure",
@@ -1761,6 +1814,7 @@
       alerts: "التنبيهات",
       general: "عام",
       education: "التعليم",
+      strategies: "الاستراتيجيات",
       topGainers: "الأكثر ارتفاعاً",
       momentum: "الزخم",
       volumePressure: "ضغط الحجم",
@@ -3954,6 +4008,102 @@
     }
   }
 
+  // ===================== MODAL TRANSLATIONS =====================
+  // The rest of the dashboard uses data-i18n + TRANSLATIONS since its HTML
+  // is static. This modal's body is fully rebuilt from JS on every render,
+  // so instead each hardcoded English string just gets wrapped in L(...)
+  // here, which swaps in the Arabic line when the page is in Arabic mode.
+  const MODAL_AR = {
+    "Float & Ownership": "الفلوت والملكية",
+    "Shares Outstanding": "الأسهم القائمة",
+    "Market Cap": "القيمة السوقية",
+    "Float Rotation": "دوران الفلوت",
+    "Float": "الفلوت",
+    "Institutional Ownership": "ملكية المؤسسات",
+    "Short Interest": "الفائدة القصيرة",
+    "Shares Short": "الأسهم المباعة على المكشوف",
+    "Short Ratio": "نسبة الشورت",
+    "Short Interest (%)": "نسبة الفائدة القصيرة (%)",
+    "Trading Activity": "النشاط التداولي",
+    "5 Min Volume": "حجم 5 دقائق",
+    "5 Min Trade Count": "عدد صفقات 5 دقائق",
+    "Relative 5 Min Trade Count (%)": "نسبة صفقات 5 دقائق النسبية (%)",
+    "Relative Daily Volume (%)": "الحجم اليومي النسبي (%)",
+    "Corporate Actions": "إجراءات الشركة",
+    "Days Since IPO": "أيام منذ الطرح",
+    "Days Since Split": "أيام منذ التجزئة",
+    "Split Ratio": "نسبة التجزئة",
+    "Price Levels": "مستويات السعر",
+    "Low of Day": "أدنى سعر اليوم",
+    "Previous Day's Close ($)": "إغلاق اليوم السابق ($)",
+    "Alerts": "التنبيهات",
+    "Alert Counter": "عداد التنبيهات",
+    "Overview": "نظرة عامة",
+    "Price ($)": "السعر ($)",
+    "% Change": "نسبة التغيير",
+    "High of Day": "أعلى سعر اليوم",
+    "Technical Indicators": "المؤشرات الفنية",
+    "Recent News": "آخر الأخبار",
+    "SEC Filings (S-1 / S-3)": "إفصاحات SEC (S-1 / S-3)",
+    "Short / Borrow Data": "بيانات الشورت / الاستعارة",
+    "Distance from VWAP ($)": "المسافة عن VWAP ($)",
+    "Distance from EMA(9) 1 Min (%)": "المسافة عن EMA 9 (1 د) (%)",
+    "Distance from EMA(20) 1 Min (%)": "المسافة عن EMA 20 (1 د) (%)",
+    "Distance from EMA(9) 5 Min (%)": "المسافة عن EMA 9 (5 د) (%)",
+    "Distance from EMA(9) 15 Min (%)": "المسافة عن EMA 9 (15 د) (%)",
+    "Distance from EMA(200) Daily (%)": "المسافة عن EMA 200 (يومي) (%)",
+    "Above VWAP": "فوق VWAP",
+    "Below VWAP": "تحت VWAP",
+    "At VWAP": "عند VWAP",
+    "Above EMA9 (1m)": "فوق EMA 9 (1 د)",
+    "Below EMA9 (1m)": "تحت EMA 9 (1 د)",
+    "At EMA9 (1m)": "عند EMA 9 (1 د)",
+    "Above EMA20 (1m)": "فوق EMA 20 (1 د)",
+    "Below EMA20 (1m)": "تحت EMA 20 (1 د)",
+    "At EMA20 (1m)": "عند EMA 20 (1 د)",
+    "Above EMA9 (5m)": "فوق EMA 9 (5 د)",
+    "Below EMA9 (5m)": "تحت EMA 9 (5 د)",
+    "At EMA9 (5m)": "عند EMA 9 (5 د)",
+    "Above EMA9 (15m)": "فوق EMA 9 (15 د)",
+    "Below EMA9 (15m)": "تحت EMA 9 (15 د)",
+    "At EMA9 (15m)": "عند EMA 9 (15 د)",
+    "Above EMA200": "فوق EMA 200 (يومي)",
+    "Below EMA200": "تحت EMA 200 (يومي)",
+    "At EMA200": "عند EMA 200 (يومي)",
+    "Not available": "غير متوفر",
+    "Not available in connected feeds": "غير متوفر بالمصادر المتصلة",
+    "Strong Uptrend": "اتجاه صاعد قوي",
+    "Mild Uptrend": "صعود خفيف",
+    "Choppy / No Clear Trend": "تذبذب / بدون اتجاه واضح",
+    "Mild Downtrend": "هبوط خفيف",
+    "Strong Downtrend": "اتجاه هابط قوي",
+    "Not enough data yet": "لا توجد بيانات كافية بعد",
+    "Loading news…": "جاري تحميل الأخبار…",
+    "Couldn't load news.": "تعذر تحميل الأخبار.",
+    "No recent news found for": "لا توجد أخبار حديثة لـ",
+    "via": "عبر",
+    "Auto-translated to Arabic (Google, with MyMemory fallback) — original headline shown below each for reference":
+      "مترجم تلقائيًا للعربية (Google، مع MyMemory كبديل) — العنوان الأصلي معروض أسفل كل خبر للمرجعية",
+    "SEC's filing APIs don't allow direct browser access from this app (CORS) — the EDGAR links open a symbol-specific search on sec.gov directly. The BamSEC link opens the company's page directly on BamSEC.":
+      "واجهة SEC البرمجية لا تسمح بالوصول المباشر من المتصفح (CORS) — روابط EDGAR تفتح بحثًا خاصًا بالرمز على sec.gov مباشرة. رابط BamSEC يفتح صفحة الشركة مباشرة على BamSEC.",
+    "Fee, rebate, and shares-available data requires your own logged-in session on shortablestocks.com — this opens their page for":
+      "بيانات الرسوم والريبات والأسهم المتاحة تحتاج جلسة دخول خاصة فيك على shortablestocks.com — هذا يفتح صفحتهم لـ",
+    "directly in a new tab, rather than pulling the data through this app. ChartExchange's borrow-fee page is free/no-login — attempting to pull its latest reading directly below.":
+      "مباشرة بتبويب جديد، بدل سحب البيانات عبر هذا التطبيق. صفحة رسوم الاستعارة بـChartExchange مجانية وبدون تسجيل دخول — يحاول الكود يجيب آخر قراءة لها مباشرة بالأسفل.",
+    "Search EDGAR for S-1 / S-3": "ابحث في EDGAR عن S-1 / S-3",
+    "Browse all EDGAR filings for": "تصفح كل إفصاحات EDGAR لـ",
+    "Open": "افتح",
+    "on BamSEC": "على BamSEC",
+    "Borrow Fee on ChartExchange (free, no login)": "رسوم الاستعارة على ChartExchange (مجاني، بدون تسجيل)",
+    "on Shortable Stocks": "على Shortable Stocks",
+    "Trend Score": "درجة الاتجاه"
+  };
+
+  function L(text){
+    if(currentLanguage === "ar" && MODAL_AR[text]) return MODAL_AR[text];
+    return text;
+  }
+
   const METRIC_GROUPS = [
     {
       title: "Float & Ownership",
@@ -3993,7 +4143,6 @@
     {
       title: "Price Levels",
       metrics: [
-        { label: "High of Day",                          hints: ["highcolumn"] },
         { label: "Low of Day",                             hints: ["lowcolumn"] },
         { label: "Previous Day's Close ($)",              hints: ["previousdaysclosenooption", "previousdaysclose"] }
       ]
@@ -4016,26 +4165,9 @@
   // above/below-zero read, for instance.
   const TECHNICAL_INDICATORS = [
     {
-      label: "RSI (14) Daily",
-      hints: ["rsi14daily", "rsidaily", "rsi14d"],
-      evaluate(n){
-        if(n >= 70) return { cls: "ti-positive", tag: "Strong / Overbought" };
-        if(n <= 30) return { cls: "ti-negative", tag: "Weak / Oversold" };
-        return { cls: "ti-neutral", tag: "Neutral" };
-      }
-    },
-    {
-      label: "RSI (14) 1 Min",
-      hints: ["rsi141min", "rsi1min", "rsimin"],
-      evaluate(n){
-        if(n >= 70) return { cls: "ti-positive", tag: "Strong / Overbought" };
-        if(n <= 30) return { cls: "ti-negative", tag: "Weak / Oversold" };
-        return { cls: "ti-neutral", tag: "Neutral" };
-      }
-    },
-    {
       label: "Distance from VWAP ($)",
-      hints: ["distancefromvwap", "vwapdistance"],
+      hints: ["distancefromvwapprz", "distancefromvwap", "vwapdistance"],
+      orangeValue: true,
       evaluate(n){
         if(n > 0) return { cls: "ti-positive", tag: "Above VWAP" };
         if(n < 0) return { cls: "ti-negative", tag: "Below VWAP" };
@@ -4043,41 +4175,139 @@
       }
     },
     {
+      label: "Distance from EMA(9) 1 Min (%)",
+      hints: ["distancefrommovingaverageema9min1", "distancefrommovingaverageema9", "distancefromema91min"],
+      evaluate(n){
+        if(n > 0) return { cls: "ti-positive", tag: "Above EMA9 (1m)" };
+        if(n < 0) return { cls: "ti-negative", tag: "Below EMA9 (1m)" };
+        return { cls: "ti-neutral", tag: "At EMA9 (1m)" };
+      }
+    },
+    {
+      label: "Distance from EMA(20) 1 Min (%)",
+      hints: ["distancefrommovingaverageema20", "distancefrommovingaverageema201min", "distancefromema201min"],
+      evaluate(n){
+        if(n > 0) return { cls: "ti-positive", tag: "Above EMA20 (1m)" };
+        if(n < 0) return { cls: "ti-negative", tag: "Below EMA20 (1m)" };
+        return { cls: "ti-neutral", tag: "At EMA20 (1m)" };
+      }
+    },
+    {
+      label: "Distance from EMA(9) 5 Min (%)",
+      hints: ["distancefrommovingaverageema9min5", "distancefrommovingaverageema95min", "distancefromema95min"],
+      evaluate(n){
+        if(n > 0) return { cls: "ti-positive", tag: "Above EMA9 (5m)" };
+        if(n < 0) return { cls: "ti-negative", tag: "Below EMA9 (5m)" };
+        return { cls: "ti-neutral", tag: "At EMA9 (5m)" };
+      }
+    },
+    {
+      label: "Distance from EMA(9) 15 Min (%)",
+      hints: ["distancefrommovingaverageema9min15", "distancefrommovingaverageema915min", "distancefromema915min"],
+      evaluate(n){
+        if(n > 0) return { cls: "ti-positive", tag: "Above EMA9 (15m)" };
+        if(n < 0) return { cls: "ti-negative", tag: "Below EMA9 (15m)" };
+        return { cls: "ti-neutral", tag: "At EMA9 (15m)" };
+      }
+    },
+    {
       label: "Distance from EMA(200) Daily (%)",
-      hints: ["distancefrommovingaverageema200d"],
+      hints: ["distancefrommovingaverageema200d", "distancefrommovingaverageema200"],
       evaluate(n){
         if(n > 0) return { cls: "ti-positive", tag: "Above EMA200" };
         if(n < 0) return { cls: "ti-negative", tag: "Below EMA200" };
         return { cls: "ti-neutral", tag: "At EMA200" };
-      }
-    },
-    {
-      label: "20 Day Change (%)",
-      hints: ["20daychange", "twentydaychange", "change20day"],
-      evaluate(n){
-        if(n > 0) return { cls: "ti-positive", tag: "Up over 20d" };
-        if(n < 0) return { cls: "ti-negative", tag: "Down over 20d" };
-        return { cls: "ti-neutral", tag: "Flat" };
       }
     }
   ];
 
   function technicalIndicatorCardHtml(symbol, ind){
     const result = findMetricAcrossTables(symbol, ind.hints, ind.preferTables);
+    const labelClass = ind.orangeValue ? "ti-label ti-label-orange" : "ti-label";
     if(!result){
       return `<div class="ti-card ti-neutral">
-        <div class="ti-label">${escapeHtml(ind.label)}</div>
+        <div class="${labelClass}">${escapeHtml(L(ind.label))}</div>
         <div class="ti-value na">—</div>
-        <div class="ti-tag">Not available</div>
+        <div class="ti-tag">${L("Not available")}</div>
       </div>`;
     }
     const n = parseFloat(String(result.value).replace(/[^0-9.\-]/g, ""));
     const sentiment = isNaN(n) ? { cls: "ti-neutral", tag: "—" } : ind.evaluate(n);
     const icon = sentiment.cls === "ti-positive" ? "▲" : sentiment.cls === "ti-negative" ? "▼" : "◆";
+    const valueClass = "ti-value mono";
     return `<div class="ti-card ${sentiment.cls}">
-      <div class="ti-label">${escapeHtml(ind.label)}</div>
-      <div class="ti-value mono">${icon} ${escapeHtml(result.value)}</div>
-      <div class="ti-tag">${escapeHtml(sentiment.tag)}</div>
+      <div class="${labelClass}">${escapeHtml(L(ind.label))}</div>
+      <div class="${valueClass}">${icon} ${escapeHtml(result.value)}</div>
+      <div class="ti-tag">${escapeHtml(L(sentiment.tag))}</div>
+    </div>`;
+  }
+
+  // ===================== TREND SCORE =====================
+  // Combines the 5 VWAP/EMA "distance" readings above into a single -100
+  // to +100 read. Longer timeframes get more weight on the theory that
+  // they're steadier / less noisy than the 1-minute reads. This is a
+  // judgment call, not a validated formula — treat it as a quick summary
+  // of which way the short-term averages are leaning, not a signal.
+  const TREND_SCORE_COMPONENTS = [
+    { hints: ["distancefromvwapprz", "distancefromvwap", "vwapdistance"], weight: 0.30 },
+    { hints: ["distancefrommovingaverageema9min15", "distancefrommovingaverageema915min", "distancefromema915min"], weight: 0.25 },
+    { hints: ["distancefrommovingaverageema9min5", "distancefrommovingaverageema95min", "distancefromema95min"], weight: 0.20 },
+    { hints: ["distancefrommovingaverageema20", "distancefrommovingaverageema201min", "distancefromema201min"], weight: 0.15 },
+    { hints: ["distancefrommovingaverageema9min1", "distancefrommovingaverageema9", "distancefromema91min"], weight: 0.10 }
+  ];
+
+  function computeTrendScore(symbol){
+    let weightedSum = 0;
+    let availableWeight = 0;
+    TREND_SCORE_COMPONENTS.forEach(comp => {
+      const result = findMetricAcrossTables(symbol, comp.hints);
+      if(!result) return;
+      const n = parseFloat(String(result.value).replace(/[^0-9.\-]/g, ""));
+      if(isNaN(n)) return;
+      const signal = n > 0 ? 1 : n < 0 ? -1 : 0;
+      weightedSum += signal * comp.weight;
+      availableWeight += comp.weight;
+    });
+    if(availableWeight === 0) return null;
+    // Rescale by the weight we actually had data for, so a couple of
+    // missing feeds don't just silently drag the score toward zero.
+    return (weightedSum / availableWeight) * 100;
+  }
+
+  function trendScoreBand(score){
+    if(score >= 60) return { cls: "ts-strong-up", label: "Strong Uptrend" };
+    if(score >= 20) return { cls: "ts-up", label: "Mild Uptrend" };
+    if(score > -20) return { cls: "ts-neutral", label: "Choppy / No Clear Trend" };
+    if(score > -60) return { cls: "ts-down", label: "Mild Downtrend" };
+    return { cls: "ts-strong-down", label: "Strong Downtrend" };
+  }
+
+  function trendScoreCardHtml(symbol){
+    const score = computeTrendScore(symbol);
+    if(score === null){
+      return `<div class="trend-score-card ts-neutral">
+        <div class="trend-score-head">
+          <span class="trend-score-title">📐 ${L("Trend Score")}</span>
+          <span class="trend-score-value na">—</span>
+        </div>
+        <div class="trend-score-band">${L("Not enough data yet")}</div>
+      </div>`;
+    }
+    const band = trendScoreBand(score);
+    const clamped = Math.max(-100, Math.min(100, score));
+    const width = Math.abs(clamped) / 2; // 200-unit range → % of track
+    const left = clamped >= 0 ? 50 : 50 - width;
+    const sign = score > 0 ? "+" : "";
+    return `<div class="trend-score-card ${band.cls}">
+      <div class="trend-score-head">
+        <span class="trend-score-title">📐 ${L("Trend Score")}</span>
+        <span class="trend-score-value mono">${sign}${Math.round(score)}</span>
+      </div>
+      <div class="trend-score-bar-track">
+        <div class="trend-score-bar-center"></div>
+        <div class="trend-score-bar-fill" style="left:${left}%; width:${width}%;"></div>
+      </div>
+      <div class="trend-score-band">${escapeHtml(L(band.label))}</div>
     </div>`;
   }
 
@@ -4171,9 +4401,9 @@
 
   function metricValueHtml(result){
     if(!result){
-      return `<div class="modal-metric-value na">Not available in connected feeds</div>`;
+      return `<div class="modal-metric-value na">${L("Not available in connected feeds")}</div>`;
     }
-    return `<div class="modal-metric-value mono">${escapeHtml(result.value)}</div><div class="modal-metric-source">via ${escapeHtml(result.source)}</div>`;
+    return `<div class="modal-metric-value mono">${escapeHtml(result.value)}</div><div class="modal-metric-source">${L("via")} ${escapeHtml(result.source)}</div>`;
   }
 
   let currentModalSymbol = null;
@@ -4243,13 +4473,13 @@
   function newsListHtml(symbol){
     const cache = newsCache[symbol];
     if(!cache){
-      return `<div class="news-loading"><span class="dot-pulse"></span>Loading news…</div>`;
+      return `<div class="news-loading"><span class="dot-pulse"></span>${L("Loading news…")}</div>`;
     }
     if(cache.error){
-      return `<div class="news-error">Couldn't load news.<div class="details">${escapeHtml(cache.error)}</div></div>`;
+      return `<div class="news-error">${L("Couldn't load news.")}<div class="details">${escapeHtml(cache.error)}</div></div>`;
     }
     if(!cache.articles || cache.articles.length === 0){
-      return `<div class="news-empty">No recent news found for ${escapeHtml(symbol)}.</div>`;
+      return `<div class="news-empty">${L("No recent news found for")} ${escapeHtml(symbol)}.</div>`;
     }
     return cache.articles.map(a => `
       <div class="news-card">
@@ -4542,13 +4772,13 @@
     const bamSecLink = buildBamSecCompanyLink(symbol);
     return `
       <a class="sec-link-btn" href="${escapeHtml(buildSecSearchLink(symbol))}" target="_blank" rel="noopener noreferrer">
-        Search EDGAR for S-1 / S-3 →
+        ${L("Search EDGAR for S-1 / S-3")} →
       </a>
       <a class="sec-link-btn secondary" href="${escapeHtml(buildSecBrowseLink(symbol))}" target="_blank" rel="noopener noreferrer">
-        Browse all EDGAR filings for ${escapeHtml(symbol)} →
+        ${L("Browse all EDGAR filings for")} ${escapeHtml(symbol)} →
       </a>
       <a class="sec-link-btn secondary" href="${escapeHtml(bamSecLink)}" target="_blank" rel="noopener noreferrer">
-        Open ${escapeHtml(symbol)} on BamSEC →
+        ${L("Open")} ${escapeHtml(symbol)} ${L("on BamSEC")} →
       </a>
     `;
   }
@@ -4578,9 +4808,9 @@
     const ceLink = buildChartExchangeBorrowLink(symbol, exchangeRaw);
     const links = [];
     if(ceLink){
-      links.push(`<a class="sec-link-btn" href="${escapeHtml(ceLink)}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(symbol)} Borrow Fee on ChartExchange (free, no login) →</a>`);
+      links.push(`<a class="sec-link-btn" href="${escapeHtml(ceLink)}" target="_blank" rel="noopener noreferrer">${L("Open")} ${escapeHtml(symbol)} ${L("Borrow Fee on ChartExchange (free, no login)")} →</a>`);
     }
-    links.push(`<a class="sec-link-btn${ceLink ? " secondary" : ""}" href="${escapeHtml(buildShortDataLink(symbol))}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(symbol)} on Shortable Stocks →</a>`);
+    links.push(`<a class="sec-link-btn${ceLink ? " secondary" : ""}" href="${escapeHtml(buildShortDataLink(symbol))}" target="_blank" rel="noopener noreferrer">${L("Open")} ${escapeHtml(symbol)} ${L("on Shortable Stocks")} →</a>`);
     return links.join("\n");
   }
 
@@ -4785,24 +5015,24 @@
 
     let bodyHtml = `<div class="modal-section msec-news">
       <div class="modal-section-head">
-        <h4><span class="modal-section-icon">📰</span>Recent News (آخر 3 أخبار)${hoursSinceNews?.value ? ` <span class="hours-since-news-badge${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? " hot" : ""}">${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? "🔥 " : ""}${escapeHtml(hoursSinceNews.value)}h ago</span>` : ""}</h4>
+        <h4><span class="modal-section-icon">📰</span>${L("Recent News")}${hoursSinceNews?.value ? ` <span class="hours-since-news-badge${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? " hot" : ""}">${parseFloat(hoursSinceNews.value) < NEWS_FRESH_HOURS ? "🔥 " : ""}${escapeHtml(hoursSinceNews.value)}h ago</span>` : ""}</h4>
         <button class="news-refresh-btn" data-refresh-news="1" title="Refresh news" aria-label="Refresh news">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         </button>
       </div>
-      <div class="news-translate-note">Auto-translated to Arabic (Google, with MyMemory fallback) — original headline shown below each for reference</div>
+      <div class="news-translate-note">${L("Auto-translated to Arabic (Google, with MyMemory fallback) — original headline shown below each for reference")}</div>
       <div id="newsList">${newsListHtml(symbol)}</div>
     </div>`;
 
     bodyHtml += `<div class="modal-section msec-sec">
-      <div class="modal-section-head"><h4><span class="modal-section-icon">📄</span>SEC Filings (S-1 / S-3)</h4></div>
-      <div class="news-translate-note">SEC's filing APIs don't allow direct browser access from this app (CORS) — the EDGAR links open a symbol-specific search on sec.gov directly. The BamSEC link opens the company's page directly on BamSEC.</div>
+      <div class="modal-section-head"><h4><span class="modal-section-icon">📄</span>${L("SEC Filings (S-1 / S-3)")}</h4></div>
+      <div class="news-translate-note">${L("SEC's filing APIs don't allow direct browser access from this app (CORS) — the EDGAR links open a symbol-specific search on sec.gov directly. The BamSEC link opens the company's page directly on BamSEC.")}</div>
       <div class="sec-links">${secFilingsSectionHtml(symbol)}</div>
     </div>`;
 
     bodyHtml += `<div class="modal-section msec-short">
-      <div class="modal-section-head"><h4><span class="modal-section-icon">🔻</span>Short / Borrow Data</h4></div>
-      <div class="news-translate-note">Fee, rebate, and shares-available data requires your own logged-in session on shortablestocks.com — this opens their page for ${escapeHtml(symbol)} directly in a new tab, rather than pulling the data through this app. ChartExchange's borrow-fee page is free/no-login — attempting to pull its latest reading directly below.</div>
+      <div class="modal-section-head"><h4><span class="modal-section-icon">🔻</span>${L("Short / Borrow Data")}</h4></div>
+      <div class="news-translate-note">${L("Fee, rebate, and shares-available data requires your own logged-in session on shortablestocks.com — this opens their page for")} ${escapeHtml(symbol)} ${L("directly in a new tab, rather than pulling the data through this app. ChartExchange's borrow-fee page is free/no-login — attempting to pull its latest reading directly below.")}</div>
       <div class="sec-links">${shortDataSectionHtml(symbol, exchange?.value)}</div>
       <div id="borrowFeeLive"></div>
     </div>`;
@@ -4815,22 +5045,28 @@
       else if(changeDir === "num-down") modalSymEl.classList.add("dir-down");
     }
     const heroClass = changeDir === "num-up" ? "hero-up" : changeDir === "num-down" ? "hero-down" : "";
+    const highOfDayResult = findMetricAcrossTables(symbol, ["highcolumn"]);
     bodyHtml += `<div class="modal-section msec-price">
-      <div class="modal-section-head"><h4><span class="modal-section-icon">📊</span>Overview</h4></div>
+      <div class="modal-section-head"><h4><span class="modal-section-icon">📊</span>${L("Overview")}</h4></div>
       <div class="modal-hero-grid">
         <div class="modal-hero-stat ${heroClass}">
-          <div class="modal-hero-label">Price ($)</div>
+          <div class="modal-hero-label">${L("Price ($)")}</div>
           ${priceVal ? `<div class="modal-hero-value mono">${escapeHtml(priceVal)}</div>` : `<div class="modal-hero-value na">—</div>`}
+          <div class="modal-hero-subline">
+            <span class="modal-hero-sub-label">${L("High of Day")}</span>
+            <span class="modal-hero-sub-value mono">${highOfDayResult ? escapeHtml(highOfDayResult.value) : "—"}</span>
+          </div>
         </div>
         <div class="modal-hero-stat ${heroClass}">
-          <div class="modal-hero-label">% Change</div>
+          <div class="modal-hero-label">${L("% Change")}</div>
           ${changeVal ? `<div class="modal-hero-value mono">${escapeHtml(changeVal)}</div>` : `<div class="modal-hero-value na">—</div>`}
         </div>
       </div>
     </div>`;
 
     bodyHtml += `<div class="modal-section msec-tech">
-      <div class="modal-section-head"><h4><span class="modal-section-icon">🧭</span>Technical Indicators</h4></div>
+      <div class="modal-section-head"><h4><span class="modal-section-icon">🧭</span>${L("Technical Indicators")}</h4></div>
+      ${trendScoreCardHtml(symbol)}
       <div class="ti-grid">
         ${TECHNICAL_INDICATORS.map(ind => technicalIndicatorCardHtml(symbol, ind)).join("")}
       </div>
@@ -4847,11 +5083,11 @@
     METRIC_GROUPS.forEach(group => {
       const meta = GROUP_ICONS[group.title] || { icon: "📌", cls: "" };
       bodyHtml += `<div class="modal-section ${meta.cls}">
-        <div class="modal-section-head"><h4><span class="modal-section-icon">${meta.icon}</span>${escapeHtml(group.title)}</h4></div>
+        <div class="modal-section-head"><h4><span class="modal-section-icon">${meta.icon}</span>${escapeHtml(L(group.title))}</h4></div>
         <div class="modal-grid">`;
       group.metrics.forEach(metric => {
         const result = findMetricAcrossTables(symbol, metric.hints, metric.preferTables);
-        bodyHtml += `<div class="modal-metric"><div class="modal-metric-label">${escapeHtml(metric.label)}</div>${metricValueHtml(result)}</div>`;
+        bodyHtml += `<div class="modal-metric"><div class="modal-metric-label">${escapeHtml(L(metric.label))}</div>${metricValueHtml(result)}</div>`;
       });
       bodyHtml += `</div></div>`;
     });
