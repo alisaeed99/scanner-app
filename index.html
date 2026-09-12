@@ -679,6 +679,8 @@
   .chart-tf-btn:hover{ background: rgba(255,255,255,0.08); }
   .chart-tf-btn.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
   .chart-page-body{ flex:1; min-height:0; position:relative; }
+  .resources-page-body{ overflow-y:auto; }
+  .resources-page-title{ font-size:15px; font-weight:700; color: var(--header-text); }
   #chartPageWidgetContainer{ position:absolute; inset:0; }
   .chart-page-empty{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -954,6 +956,10 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
       <span data-i18n="chartNav">Chart</span>
     </button>
+    <button class="refresh" id="openResourcesPageBtn" title="Open resources page">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span data-i18n="resources">Resources</span>
+    </button>
     <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       <span data-i18n="refresh">Refresh</span>
@@ -1196,55 +1202,6 @@
   </div>
   </div>
 
-  <!-- ===================== GENERAL ===================== -->
-  <div class="section-heading main-section-heading">
-    <h3 data-i18n="general">General</h3>
-  </div>
-  <div class="quick-link-row">
-    <a class="quick-link-card" href="https://sa.investing.com/economic-calendar" target="_blank" rel="noopener noreferrer">
-      <span class="quick-link-icon icon-blue">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      </span>
-      <span class="quick-link-title" data-i18n="economicCalendar">Economic Calendar</span>
-      <span class="quick-link-arrow">→</span>
-    </a>
-    <a class="quick-link-card" href="https://www.nasdaq.com/market-activity/ipos" target="_blank" rel="noopener noreferrer">
-      <span class="quick-link-icon icon-orange">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2s7 8.5 7 13a7 7 0 0 1-14 0c0-4.5 7-13 7-13z"/></svg>
-      </span>
-      <span class="quick-link-title" data-i18n="ipoCalendar">IPOs</span>
-      <span class="quick-link-arrow">→</span>
-    </a>
-    <a class="quick-link-card" href="https://earningshub.com/earnings-calendar/this-week" target="_blank" rel="noopener noreferrer">
-      <span class="quick-link-icon icon-green">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      </span>
-      <span class="quick-link-title" data-i18n="thisWeeksEarnings">This Week's Earnings</span>
-      <span class="quick-link-arrow">→</span>
-    </a>
-    <a class="quick-link-card" id="trendingNewsLink" href="https://www.stocktitan.net/news/trending.html" target="_blank" rel="noopener noreferrer">
-      <span class="quick-link-icon icon-blue">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-      </span>
-      <span class="quick-link-title" data-i18n="trendingNews">Trending News</span>
-      <span class="quick-link-arrow">→</span>
-    </a>
-  </div>
-
-  <!-- ===================== EDUCATION ===================== -->
-  <div class="section-heading main-section-heading">
-    <h3 data-i18n="education">Education</h3>
-  </div>
-  <div class="quick-link-row">
-    <a class="quick-link-card" href="ChartPatternsv2.pdf" target="_blank" rel="noopener noreferrer">
-      <span class="quick-link-icon icon-red">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2-2 2 2 2-3"/></svg>
-      </span>
-      <span class="quick-link-title" data-i18n="chartPatterns">Chart Patterns</span>
-      <span class="quick-link-arrow">→</span>
-    </a>
-  </div>
-
   <!-- ===== Debug Panel ===== -->
   <div class="debug-panel collapsed" id="debugPanel">
     <div class="debug-head" data-fold="debug">
@@ -1336,6 +1293,96 @@
   </div>
 </div>
 
+<!-- ===================== RESOURCES PAGE (General + Education) ===================== -->
+<div class="chart-page-overlay hidden" id="resourcesPageOverlay">
+  <div class="chart-page-head">
+    <button class="chart-page-back" id="resourcesPageBackBtn" aria-label="Back" title="Back to dashboard">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="resources-page-title" data-i18n="resources">Resources</span>
+  </div>
+  <div class="chart-page-body resources-page-body">
+    <div class="app" style="padding:20px 18px 40px;">
+      <!-- ===================== GENERAL ===================== -->
+      <div class="section-heading main-section-heading">
+        <h3 data-i18n="general">General</h3>
+      </div>
+      <div class="quick-link-row">
+        <a class="quick-link-card" href="https://sa.investing.com/economic-calendar" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-blue">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="economicCalendar">Economic Calendar</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" href="https://www.nasdaq.com/market-activity/ipos" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-orange">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2s7 8.5 7 13a7 7 0 0 1-14 0c0-4.5 7-13 7-13z"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="ipoCalendar">IPOs</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" href="https://earningshub.com/earnings-calendar/this-week" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-green">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="thisWeeksEarnings">This Week's Earnings</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" id="trendingNewsLink" href="https://www.stocktitan.net/news/trending.html" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-blue">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="trendingNews">Trending News</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+      </div>
+
+      <!-- ===================== EDUCATION ===================== -->
+      <div class="section-heading main-section-heading">
+        <h3 data-i18n="education">Education</h3>
+      </div>
+      <div class="quick-link-row">
+        <a class="quick-link-card" href="ChartPatternsv2.pdf" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-red">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2-2 2 2 2-3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="chartPatterns">Chart Patterns</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" href="https://youtu.be/XqLj6VYzN5c?si=OB2DAmdeHnY1QE2H" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-orange">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="stockSelection">Stock Selection</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" href="https://youtu.be/DP4ayEWhmvM?si=786akr4Ah8InalDt" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-green">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="bullFlagStrategy">Bull Flag Strategy</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" href="https://youtu.be/BZwJFPk3cBM?si=3xInciInAfhL7LLl" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-blue">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="premarketTrading">Premarket Trading</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" href="https://youtu.be/5AV2OLWD1gc?si=xCD-b3ti-8_Hl3b5" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-red">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="top5LosingReasons">Top 5 Reasons Traders Lose</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   // TradingView's free embeddable charting widget — no API key needed, renders
   // client-side in the visitor's browser. Loaded once, reused for every symbol.
@@ -1406,6 +1453,7 @@
     en: {
       refresh: "Refresh",
       chartNav: "Chart",
+      resources: "Resources",
       viewDesktop: "Desktop View",
       viewMobile: "Mobile View",
       notifEnable: "Enable Notifications",
@@ -1445,6 +1493,10 @@
       thisWeeksEarnings: "This Week's Earnings",
       trendingNews: "Trending News",
       chartPatterns: "Chart Patterns",
+      stockSelection: "Stock Selection",
+      bullFlagStrategy: "Bull Flag Strategy",
+      premarketTrading: "Premarket Trading",
+      top5LosingReasons: "Top 5 Reasons Traders Lose",
       openEarningsCalendar: "Open This Week's Earnings Calendar →",
       economicCalendar: "Economic Calendar",
       ipoCalendar: "IPOs",
@@ -1491,11 +1543,16 @@
       thisWeeksEarnings: "إعلانات هذا الأسبوع",
       trendingNews: "الأخبار الرائجة",
       chartPatterns: "أنماط التداول",
+      stockSelection: "اختيار السهم",
+      bullFlagStrategy: "استراتيجية Bull Flag",
+      premarketTrading: "تداول البري ماركت",
+      top5LosingReasons: "أهم 5 أسباب وراء خسارة المتداولين",
       openEarningsCalendar: "افتح تقويم إعلانات هذا الأسبوع ←",
       economicCalendar: "التقويم الاقتصادي",
       ipoCalendar: "الاكتتابات",
       langToggleLabel: "EN",
-      chartNav: "الشارت"
+      chartNav: "الشارت",
+      resources: "المرجع"
     }
   };
 
@@ -4540,6 +4597,14 @@
     }
     if(e.target.closest("#chartPageBackBtn")){
       closeChartPage();
+      return;
+    }
+    if(e.target.closest("#openResourcesPageBtn")){
+      document.getElementById("resourcesPageOverlay").classList.remove("hidden");
+      return;
+    }
+    if(e.target.closest("#resourcesPageBackBtn")){
+      document.getElementById("resourcesPageOverlay").classList.add("hidden");
       return;
     }
     const tfBtn = e.target.closest("[data-chart-interval]");
