@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ChartsWatcher Dashboard</title>
+<title>نبض | Live Scanner Terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -324,6 +324,28 @@
   .mp-health-label.mh-weak{ color:#f97316; }
   .mp-health-label.mh-dead{ color: var(--down); }
 
+  /* Trading-stance banner — turns the raw Market Pulse score into a
+     one-line "what to actually do" readout, so the score isn't just a
+     number to glance at with no bearing on behavior. */
+  .mp-stance-banner{
+    padding:11px 16px; border-radius:10px; margin-bottom:16px;
+    font-size:13px; font-weight:600; line-height:1.5; border:1px solid var(--border-soft); background: var(--card-2);
+    transition: background .3s ease, border-color .3s ease, color .3s ease;
+  }
+  .mp-stance-main{ display:flex; align-items:center; gap:10px; }
+  .mp-checklist{ display:grid; grid-template-columns: repeat(2, 1fr); gap:6px 16px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); }
+  @media (max-width: 640px){ .mp-checklist{ grid-template-columns: 1fr; } }
+  .mp-check-item{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; opacity:0.9; }
+  .mp-check-icon{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; font-size:10px; flex-shrink:0; }
+  .mp-check-item.passed .mp-check-icon{ background: rgba(34,197,94,0.25); color: var(--up); }
+  .mp-check-item.failed .mp-check-icon{ background: rgba(255,68,104,0.2); color: var(--down); }
+  .mp-check-item.failed{ opacity:0.65; }
+  .mp-stance-banner.mh-burst{ background: linear-gradient(135deg, rgba(34,211,238,0.14), rgba(34,197,94,0.08)); border-color: rgba(34,211,238,0.4); color:#a5f3fc; }
+  .mp-stance-banner.mh-bull{ background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.35); color: var(--up); }
+  .mp-stance-banner.mh-consolidation{ background: rgba(234,179,8,0.1); border-color: rgba(234,179,8,0.35); color:#eab308; }
+  .mp-stance-banner.mh-weak{ background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.35); color:#f97316; }
+  .mp-stance-banner.mh-dead{ background: rgba(255,68,104,0.1); border-color: rgba(255,68,104,0.35); color: var(--down); }
+
   .mp-health-gauge{ position:relative; width:76px; height:76px; flex-shrink:0; }
   .mp-gauge-track{ fill:none; stroke: rgba(255,255,255,0.08); stroke-width:6; }
   .mp-gauge-fill{
@@ -458,9 +480,15 @@
   .iw-change.neg{ background: rgba(255,68,104,0.15); color: var(--down); }
   .iw-change.flat{ color: var(--muted); background: rgba(255,255,255,0.05); }
   .brand{ display:flex; align-items:center; gap:10px; }
-  .brand .mark{ width:34px;height:34px;border-radius:9px; background: linear-gradient(135deg, var(--accent), var(--accent-orange)); display:flex; align-items:center; justify-content:center; box-shadow: 0 0 16px rgba(76,158,255,0.35); flex-shrink:0; }
+  .brand .mark{
+    width:34px;height:34px;border-radius:9px; background: linear-gradient(135deg, var(--accent), var(--accent-orange));
+    display:flex; align-items:center; justify-content:center; box-shadow: 0 0 16px rgba(76,158,255,0.35); flex-shrink:0;
+    animation: brandMarkPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes brandMarkPulse{ 0%,100%{ box-shadow: 0 0 16px rgba(76,158,255,0.35); } 50%{ box-shadow: 0 0 22px rgba(76,158,255,0.6), 0 0 10px rgba(255,179,71,0.3); } }
   .brand .mark svg{ width:18px;height:18px; }
-  .brand h1{ font-size: 19px; font-weight:700; margin:0; color: var(--header-text); letter-spacing:-0.01em; }
+  .brand h1{ font-size: 19px; font-weight:700; margin:0; color: var(--header-text); letter-spacing:-0.01em; display:flex; align-items:baseline; gap:7px; }
+  .brand-latin{ font-size:10.5px; font-weight:700; letter-spacing:0.14em; color: var(--muted); }
   .brand .tag{ color:var(--muted); font-size:11.5px; letter-spacing: 0.03em; text-transform:uppercase; }
 
   button.refresh{ display:flex; align-items:center; gap:7px; background: var(--card); border: 1px solid var(--border); color: var(--header-text); padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 13.5px; cursor:pointer; transition: border-color .15s ease, background .15s ease, transform .1s ease; white-space: nowrap; }
@@ -705,6 +733,7 @@
   details.raw pre{ background:#08090b; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:10.5px; color:#8b94a5; max-height:160px; overflow:auto; white-space:pre-wrap; word-break:break-word; }
 
   .footnote{ color: var(--muted); font-size: 11px; text-align:center; margin-top: 14px; line-height:1.6; }
+  .footnote-credit{ display:inline-flex; align-items:center; gap:6px; opacity:0.75; }
 
   .sym-link{ cursor:pointer; border-bottom:1px dashed rgba(59,130,246,0.4); transition: color .15s ease; }
   .sym-link:hover{ color: var(--accent); border-bottom-color: var(--accent); }
@@ -718,6 +747,17 @@
   .alert-sym-badge + .chart-icon-link{ margin-left:6px; }
 
   .sparkline{ display:inline-block; vertical-align:middle; margin-left:7px; opacity:0.9; }
+
+  /* Trend dot next to the symbol in Top Lists tables — same 5-band read
+     as the Trend Score card in the symbol modal (strong/mild up, neutral,
+     mild/strong down), just condensed into a single colored, glowing dot. */
+  .trend-dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-left:7px; vertical-align:middle; flex-shrink:0; }
+  .cp-ticker-group .trend-dot{ width:7px; height:7px; margin-left:0; margin-right:6px; }
+  .trend-dot.dot-ts-strong-up{ background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.8), 0 0 12px rgba(34,197,94,0.5); }
+  .trend-dot.dot-ts-up{ background: #22c55e; }
+  .trend-dot.dot-ts-neutral{ background: #eab308; }
+  .trend-dot.dot-ts-down{ background: var(--down); }
+  .trend-dot.dot-ts-strong-down{ background: var(--down); box-shadow: 0 0 6px rgba(255,68,104,0.8), 0 0 12px rgba(255,68,104,0.5); }
 
   /* ===================== CHART PAGE ===================== */
   .modal-chart-btn{
@@ -1117,10 +1157,10 @@
   <div class="topbar">
     <div class="brand">
       <span class="mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-7 4 14 3-11 2 4h5"/></svg>
       </span>
       <div>
-        <h1>ChartsWatcher</h1>
+        <h1>نبض<span class="brand-latin">NABD</span></h1>
         <div class="tag">Live Scanner Terminal</div>
       </div>
     </div>
@@ -1200,19 +1240,20 @@
       <div class="mp-health-label" id="mpHealthLabel">—</div>
     </div>
   </div>
+  <div class="mp-stance-banner" id="mpStanceBanner">—</div>
   <div class="market-pulse-grid always-ltr">
     <div class="mp-card">
-      <div class="mp-label" data-i18n="momentum">Momentum</div>
+      <div class="mp-label" data-i18n="strongGainersLabel">Strong Gainers (≥50%)</div>
       <div class="mp-value" id="mpMomentumValue">—</div>
       <div class="mp-trend" id="mpMomentumTrend">—</div>
     </div>
     <div class="mp-card">
-      <div class="mp-label" data-i18n="volumePressure">Volume Pressure</div>
+      <div class="mp-label" data-i18n="highRvolBreadthLabel">High RVOL Breadth</div>
       <div class="mp-value" id="mpVolumeValue">—</div>
       <div class="mp-trend" id="mpVolumeTrend">—</div>
     </div>
     <div class="mp-card">
-      <div class="mp-label" data-i18n="floatVelocity">Float Velocity</div>
+      <div class="mp-label" data-i18n="activeListQualityLabel">Active List Quality</div>
       <div class="mp-value" id="mpFloatValue">—</div>
       <div class="mp-trend" id="mpFloatTrend">—</div>
     </div>
@@ -1491,8 +1532,10 @@
   </div>
 
   <div class="footnote">
-    Data streams live over WebSocket and updates automatically as it arrives · Refresh forces a clean reconnect<br/>
-    Only one connection per ChartsWatcher account is allowed — opening this elsewhere will disconnect this session
+    <span class="footnote-credit">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
+      <span data-i18n="dataProvidedBy">Data provided by ChartsWatcher</span>
+    </span>
   </div>
 
 </div>
@@ -1658,6 +1701,20 @@
           <span class="quick-link-title" data-i18n="simplestDayTradingStrategies">Simplest Day Trading Strategies</span>
           <span class="quick-link-arrow">→</span>
         </a>
+        <a class="quick-link-card" href="https://youtu.be/ORWJzImSTdE?si=YpS_3_W-m3aNnoub" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-blue">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="buyTheDipStrategy">Buy The Dip Strategy</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
+        <a class="quick-link-card" href="https://youtu.be/p1W8Mjl4kWs?si=zBDZmRTjIXS_Pjzd" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-icon icon-red">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </span>
+          <span class="quick-link-title" data-i18n="fastTradingStrategy">Fast Trading Strategy</span>
+          <span class="quick-link-arrow">→</span>
+        </a>
       </div>
     </div>
   </div>
@@ -1746,6 +1803,7 @@
       refresh: "Refresh",
       chartNav: "Chart",
       resources: "Resources",
+      dataProvidedBy: "Data provided by ChartsWatcher",
       quickSearch: "Search",
       viewDesktop: "Desktop View",
       viewMobile: "Mobile View",
@@ -1763,6 +1821,9 @@
       momentum: "Momentum",
       volumePressure: "Volume Pressure",
       floatVelocity: "Breadth (Most Active)",
+      strongGainersLabel: "Strong Gainers (≥50%)",
+      highRvolBreadthLabel: "High RVOL Breadth",
+      activeListQualityLabel: "Active List Quality",
       catalystPulse: "Catalyst Pulse",
       session_closedWeekend: "Closed (Weekend)",
       session_closed: "Closed",
@@ -1796,6 +1857,8 @@
       top5LosingReasons: "Top 5 Reasons Traders Lose",
       technicalAnalysisGuide: "Complete Technical Analysis Guide",
       simplestDayTradingStrategies: "Simplest Day Trading Strategies",
+      buyTheDipStrategy: "Buy The Dip Strategy",
+      fastTradingStrategy: "Fast Trading Strategy",
       openEarningsCalendar: "Open This Week's Earnings Calendar →",
       economicCalendar: "Economic Calendar",
       ipoCalendar: "IPOs",
@@ -1819,6 +1882,9 @@
       momentum: "الزخم",
       volumePressure: "ضغط الحجم",
       floatVelocity: "اتساع السوق (الأكثر نشاطًا)",
+      strongGainersLabel: "أسهم قوية (50%+)",
+      highRvolBreadthLabel: "اتساع الحجم النسبي المرتفع",
+      activeListQualityLabel: "جودة قائمة الأكثر نشاطًا",
       catalystPulse: "نبض المحفزات",
       session_closedWeekend: "مغلق (نهاية الأسبوع)",
       session_closed: "مغلق",
@@ -1852,12 +1918,15 @@
       top5LosingReasons: "أهم 5 أسباب وراء خسارة المتداولين",
       technicalAnalysisGuide: "الدليل الشامل للتحليل الفني",
       simplestDayTradingStrategies: "أبسط الاستراتيجيات للتداول اليومي",
+      buyTheDipStrategy: "استراتيجية Buy The Dip",
+      fastTradingStrategy: "استراتيجية التداول السريع",
       openEarningsCalendar: "افتح تقويم إعلانات هذا الأسبوع ←",
       economicCalendar: "التقويم الاقتصادي",
       ipoCalendar: "الاكتتابات",
       langToggleLabel: "EN",
       chartNav: "الشارت",
       resources: "المرجع",
+      dataProvidedBy: "البيانات مقدمة من ChartsWatcher",
       quickSearch: "بحث"
     }
   };
@@ -2362,8 +2431,10 @@
       if(mode === "toplist"){
         const f = extractPreviewFields(tableKeyForLookup, row, true);
         const rankBadge = previewRankChgBadge(rankInfoBySymbol ? rankInfoBySymbol[f.symbol] : null);
+        const previewColMap = {};
+        (row.columns || []).forEach(c => { previewColMap[c.key] = c.value; });
         html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
-          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}${rankBadge}${chartIconHtml(f.symbol)}</span>
+          <span class="cp-ticker-group">${trendDotHtml(previewColMap)}<span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}${rankBadge}${chartIconHtml(f.symbol)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
@@ -2444,6 +2515,33 @@
     const s = escapeHtml(symbol || "");
     if(!s) return "";
     return `<span class="chart-icon-link" data-chart-symbol="${s}" role="button" title="Open chart for ${s}" aria-label="Open chart for ${s}">📈</span>`;
+  }
+
+  // Small dot next to the symbol in the Top Lists tables — a compact
+  // read of the same VWAP/EMA "Trend Score" shown in the symbol modal,
+  // computed directly from this row's own columns (no extra lookups).
+  function computeRowTrendScore(colMap){
+    let weightedSum = 0, availableWeight = 0;
+    TREND_SCORE_COMPONENTS.forEach(comp => {
+      const matchedKey = Object.keys(colMap).find(k => metricKeyMatches(k, comp.hints));
+      if(!matchedKey) return;
+      const raw = colMap[matchedKey];
+      if(isBlankMetricValue(raw)) return;
+      const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ""));
+      if(isNaN(n)) return;
+      const signal = n > 0 ? 1 : n < 0 ? -1 : 0;
+      weightedSum += signal * comp.weight;
+      availableWeight += comp.weight;
+    });
+    if(availableWeight === 0) return null;
+    return (weightedSum / availableWeight) * 100;
+  }
+
+  function trendDotHtml(colMap){
+    const score = computeRowTrendScore(colMap);
+    if(score === null) return "";
+    const band = trendScoreBand(score);
+    return `<span class="trend-dot dot-${band.cls}" title="Trend Score: ${score > 0 ? "+" : ""}${Math.round(score)} (${band.label})"></span>`;
   }
 
   const ALIASES = { chg:"change", pct:"percent", rel:"relative", vol:"volume", min:"minute", mins:"minute", cty:"country", shs:"shares", shrs:"shares", cnt:"count" };
@@ -2999,7 +3097,7 @@
       html += "<tr>";
       mapping.forEach((m, idx) => {
         if(m.render === "symbol"){
-          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${chartIconHtml(row.symbol)}</td>`;
+          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${trendDotHtml(colMap)}${chartIconHtml(row.symbol)}</td>`;
           return;
         }
         if(!m.matchedKey){
@@ -3244,7 +3342,7 @@
       browserNotifsEnabled = true;
       localStorage.setItem("browserNotifsEnabled", "true");
       logLine("Browser notifications enabled for Alerts (Halts, Screening, Running Up, Small Cap - High of Day Momentum).", "good");
-      new Notification("ChartsWatcher Dashboard", { body: "Notifications are now enabled for new alerts." });
+      new Notification("نبض", { body: "Notifications are now enabled for new alerts." });
     } else {
       logLine("Notification permission was not granted.", "warn");
     }
@@ -3405,28 +3503,31 @@
   const CATALYST_PULSE_WINDOW_MS = 200 * 60 * 1000;
   const marketPulseHistory = [];
 
-  function resolveRowField(row, hints){
-    const reserved = new Set(["symbol", "columns", "color"]);
-    for(const key of Object.keys(row)){
-      if(reserved.has(key)) continue;
-      const val = row[key];
-      if(val === null || val === undefined || val === "") continue;
-      const norm = normalizeLabel(key);
-      if(hints.some(h => norm === h || norm.includes(h) || h.includes(norm))) return val;
-    }
-    for(const col of (row.columns || [])){
-      const norm = normalizeLabel(col.key);
-      if(hints.some(h => norm === h || norm.includes(h) || h.includes(norm))) return col.value;
-    }
-    return null;
-  }
+  // ===================== PRE-MARKET / LIVE ACTIVITY CHECKLIST =====================
+  // Replaces the earlier weighted 0-100 formula with a rule-based checklist
+  // built directly from the user's own real-time criteria for "is the
+  // market actually active right now" — not a backtested or historically
+  // calibrated model, just the 4 conditions stated explicitly:
+  //   1. At least 3 stocks in Top Gainers up 50%+ WITH real volume behind them
+  //   2. At least one catalyst present (news/halt/screening hit) — doesn't
+  //      need to be most stocks, just present
+  //   3. High relative volume across most of the Top Gainers list
+  //   4. Most Active isn't just one ticker or a pile of sub-$1 names
+  const STRONG_GAIN_THRESHOLD_PCT = 50;
+  const STRONG_GAIN_MIN_TRADE_COUNT_5M = 200;
+  const TRADE_COUNT_5M_HINTS = ["5mintradecount", "fiveminutetradecount", "tradecountfiltermin5", "min5"];
+  const STRONG_GAIN_MIN_COUNT = 3;
+  const HIGH_RVOL_THRESHOLD_PCT = 300; // 3x
+  const HIGH_RVOL_BREADTH_MIN_PCT = 50; // "most" of the gainers list
+  const ACTIVE_LIST_MIN_UNIQUE_SYMBOLS = 3;
+  const ACTIVE_LIST_MIN_ABOVE_DOLLAR_PCT = 50;
 
   function computeMarketPulseMetrics(){
     const gainersRows = (displayed["table1"] || []).slice(0, 15);
-    let fiveMinHighLowFound = false;
 
-    const stockMomentums = [];
-    const stockRvols = [];
+    let strongGainersCount = 0;
+    let highRvolCount = 0;
+    let gainersWithRvolData = 0;
 
     gainersRows.forEach(row => {
       const colMap = {};
@@ -3437,53 +3538,24 @@
       };
       const num = (v) => { const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, "")); return isNaN(n) ? null : n; };
 
-      const price = num(get("Price ($)"));
-      const fiveMinHigh = num(resolveRowField(row, ["5minhigh", "fiveminutehigh", "high5min"]));
-      const fiveMinLow = num(resolveRowField(row, ["5minlow", "fiveminutelow", "low5min"]));
-      let stockMomentum;
-      if(fiveMinHigh !== null && fiveMinLow !== null && fiveMinHigh !== fiveMinLow && price !== null){
-        fiveMinHighLowFound = true;
-        stockMomentum = ((price - fiveMinLow) / (fiveMinHigh - fiveMinLow)) * 100;
-      } else {
-        const changePct = num(get("% Change"));
-        stockMomentum = changePct !== null ? Math.max(0, changePct) : null;
+      const changePct = num(get("% Change"));
+      // Daily Volume is a poor liquidity check — it accumulates from the
+      // open regardless of whether the stock is trading right now. 5-minute
+      // trade count reflects actual live activity instead.
+      const tradeCount5mKey = Object.keys(colMap).find(k => metricKeyMatches(k, TRADE_COUNT_5M_HINTS));
+      const tradeCount5m = tradeCount5mKey ? num(colMap[tradeCount5mKey]) : null;
+      if(changePct !== null && changePct >= STRONG_GAIN_THRESHOLD_PCT && tradeCount5m !== null && tradeCount5m >= STRONG_GAIN_MIN_TRADE_COUNT_5M){
+        strongGainersCount++;
       }
-      if(stockMomentum !== null && !isNaN(stockMomentum)) stockMomentums.push(stockMomentum);
 
       const rvolPct = num(get("Relative Daily Volume (%)"));
-      if(rvolPct !== null) stockRvols.push(Math.min(2000, rvolPct));
+      if(rvolPct !== null){
+        gainersWithRvolData++;
+        if(rvolPct >= HIGH_RVOL_THRESHOLD_PCT) highRvolCount++;
+      }
     });
 
-    if(gainersRows.length > 0 && !fiveMinHighLowFound){
-      logLine("Market Pulse: no 5-minute High/Low field found on Top Gainers rows — Momentum is using the daily % Change fallback instead.", "warn");
-    }
-
-    const momentum = stockMomentums.length
-      ? Math.min(100, stockMomentums.reduce((a, b) => a + b, 0) / stockMomentums.length)
-      : 0;
-
-    const avgRvolPercent = stockRvols.length ? stockRvols.reduce((a, b) => a + b, 0) / stockRvols.length : 0;
-    const volumePressureX = avgRvolPercent / 100;
-
-    // Breadth: unlike Momentum/Volume above (which only look at the Top
-    // Gainers list — already a winners-only sample by definition), Breadth
-    // is read from the Most Active list, which includes both advancing and
-    // declining names. That gives a rough read on whether strength is
-    // widespread across active tickers or confined to a handful of gainers.
-    const activeRows = displayed["table2"] || [];
-    let advancers = 0, decliners = 0;
-    activeRows.forEach(row => {
-      const colMap = {};
-      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
-      const key = findColumnKey("table2", "% Change");
-      const raw = key ? colMap[key] : null;
-      if(raw === null || raw === undefined || raw === "") return;
-      const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ""));
-      if(isNaN(n)) return;
-      if(n > 0) advancers++; else if(n < 0) decliners++;
-    });
-    const breadthTotal = advancers + decliners;
-    const breadthPercent = breadthTotal > 0 ? (advancers / breadthTotal) * 100 : null;
+    const highRvolBreadthPercent = gainersWithRvolData > 0 ? (highRvolCount / gainersWithRvolData) * 100 : null;
 
     const catalystCutoffMs = Date.now() - CATALYST_PULSE_WINDOW_MS;
     let catalystPulseCount = 0;
@@ -3506,7 +3578,41 @@
       if(!isNaN(minutesSinceNews) && minutesSinceNews <= 200) catalystPulseCount++;
     });
 
-    return { momentum, volumePressureX, breadthPercent, catalystPulseCount };
+    // Most Active: symbol diversity + not dominated by sub-$1 names.
+    const activeRows = displayed["table2"] || [];
+    const uniqueSymbols = new Set();
+    let activeWithPrice = 0, activeAboveDollar = 0;
+    activeRows.forEach(row => {
+      if(row.symbol) uniqueSymbols.add(row.symbol);
+      const colMap = {};
+      (row.columns || []).forEach(c => { colMap[c.key] = c.value; });
+      const key = findColumnKey("table2", "Price ($)");
+      const raw = key ? colMap[key] : null;
+      if(raw === null || raw === undefined || raw === "") return;
+      const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ""));
+      if(isNaN(n)) return;
+      activeWithPrice++;
+      if(n > 1) activeAboveDollar++;
+    });
+
+    return {
+      strongGainersCount,
+      highRvolBreadthPercent,
+      catalystPulseCount,
+      activeListUniqueCount: uniqueSymbols.size,
+      activeListAboveDollarPercent: activeWithPrice > 0 ? (activeAboveDollar / activeWithPrice) * 100 : null
+    };
+  }
+
+  function computeMarketPulseChecklist(m){
+    const checks = [
+      { key: "gainers",       passed: m.strongGainersCount >= STRONG_GAIN_MIN_COUNT },
+      { key: "catalysts",     passed: m.catalystPulseCount >= 1 },
+      { key: "rvol",          passed: m.highRvolBreadthPercent !== null && m.highRvolBreadthPercent >= HIGH_RVOL_BREADTH_MIN_PCT },
+      { key: "activeQuality", passed: m.activeListUniqueCount >= ACTIVE_LIST_MIN_UNIQUE_SYMBOLS &&
+                                       (m.activeListAboveDollarPercent === null || m.activeListAboveDollarPercent >= ACTIVE_LIST_MIN_ABOVE_DOLLAR_PCT) }
+    ];
+    return { checks, passedCount: checks.filter(c => c.passed).length };
   }
 
   function pctChangeVs(curr, prev){
@@ -3555,43 +3661,58 @@
     }
   };
 
-  const VOLUME_SCORE_CEILING_X = 10;
-  const CATALYST_SCORE_CEILING = 10;
-
-  // Weights: Momentum + Volume together are Top-Gainers-only signals (a
-  // winners-only sample by construction), so they're capped at 60% combined.
-  // Breadth reads the Most Active list instead — advancers vs decliners —
-  // so it's the only component that can tell a broad rally apart from a
-  // handful of gainers moving in isolation.
-  function computeMarketHealthScore(m){
-    const momentumScore = Math.min(100, Math.max(0, m.momentum));
-    const volumeScore = Math.min(100, (m.volumePressureX / VOLUME_SCORE_CEILING_X) * 100);
-    const catalystScore = Math.min(100, (m.catalystPulseCount / CATALYST_SCORE_CEILING) * 100);
-
-    if(m.breadthPercent === null){
-      // No Most Active data yet (e.g. right after page load) — fall back to
-      // the other three components with their weights scaled back up so
-      // they still sum to 100%, rather than silently treating breadth as 0.
-      return (momentumScore * (0.40 / 0.85)) + (volumeScore * (0.30 / 0.85)) + (catalystScore * (0.15 / 0.85));
+  // The stance banner turns the score into a one-line behavioral read —
+  // what today's conditions actually suggest doing, not just a label.
+  const MARKET_STANCE_TEXT = {
+    en: {
+      burst: "Momentum is broad and volume is heavy — normal position sizing, every alert is worth a look.",
+      bull: "Healthy trending conditions — trade your normal setups as usual.",
+      consolidation: "Mixed conditions — be selective, favor only your highest-conviction setups (strong RVOL + a clear catalyst).",
+      weak: "Weak conditions — size down and take fewer trades; secondary alerts are more likely to be false starts than usual.",
+      dead: "Very quiet market — consider stepping back or waiting; most moves right now lack real volume behind them."
+    },
+    ar: {
+      burst: "زخم واسع وحجم تداول قوي — حجم صفقات طبيعي، كل تنبيه يستاهل نظرة.",
+      bull: "سوق صاعد وصحي — تداول إعداداتك المعتادة بشكل طبيعي.",
+      consolidation: "ظروف متذبذبة — كن انتقائيًا، ركّز بس على أقوى الإعدادات (RVOL قوي + محفز واضح).",
+      weak: "ظروف ضعيفة — قلل حجم الصفقات وعدد المحاولات؛ التنبيهات الثانوية احتمال تكون إشارات كاذبة أكثر من المعتاد.",
+      dead: "سوق هادئ جدًا — يفضل التقليل من التداول أو الانتظار؛ أغلب الحركة الآن بدون حجم حقيقي خلفها."
     }
+  };
 
-    const breadthScore = Math.min(100, Math.max(0, m.breadthPercent));
-    return (momentumScore * 0.35) + (volumeScore * 0.25) + (breadthScore * 0.25) + (catalystScore * 0.15);
+  const MARKET_CHECK_LABELS = {
+    en: {
+      gainers: "3+ gainers up 50%+ with 200+ trades in 5min",
+      catalysts: "At least one catalyst present",
+      rvol: "High relative volume across most gainers",
+      activeQuality: "Most Active isn't 1 ticker or mostly sub-$1 names"
+    },
+    ar: {
+      gainers: "3 أسهم أو أكثر فوق 50% و200+ صفقة خلال 5 دقائق",
+      catalysts: "وجود محفز واحد على الأقل",
+      rvol: "حجم نسبي مرتفع بأغلب الأسهم الرابحة",
+      activeQuality: "الأكثر نشاطًا مو سهم واحد أو غالبها أقل من دولار"
+    }
+  };
+
+  function computeMarketHealthScore(checklist){
+    return checklist.passedCount * 25;
   }
 
   function getMarketHealthBand(score){
-    if(score >= 80) return "burst";
-    if(score >= 60) return "bull";
-    if(score >= 40) return "consolidation";
-    if(score >= 20) return "weak";
+    if(score >= 100) return "burst";
+    if(score >= 75) return "bull";
+    if(score >= 50) return "consolidation";
+    if(score >= 25) return "weak";
     return "dead";
   }
 
-  function renderMarketHealthBar(score){
+  function renderMarketHealthBar(score, checklist){
     const fillEl = document.getElementById("mpHealthBarFill");
     const labelEl = document.getElementById("mpHealthLabel");
     const gaugeFillEl = document.getElementById("mpHealthGaugeFill");
     const gaugeValueEl = document.getElementById("mpHealthGaugeValue");
+    const stanceEl = document.getElementById("mpStanceBanner");
     if(!fillEl || !labelEl) return;
     const band = getMarketHealthBand(score);
     const label = (MARKET_HEALTH_LABELS[currentLanguage] || MARKET_HEALTH_LABELS.en)[band];
@@ -3599,14 +3720,27 @@
 
     fillEl.style.width = `${clamped}%`;
     fillEl.className = "mp-health-bar-fill mh-" + band;
-    labelEl.textContent = `${label} (${Math.round(score)}/100)`;
+    labelEl.textContent = checklist ? `${label} (${checklist.passedCount}/4)` : `${label} (${Math.round(score)}/100)`;
     labelEl.className = "mp-health-label mh-" + band;
 
     if(gaugeFillEl && gaugeValueEl){
       const circumference = 201.06; // 2 * PI * r(32)
       gaugeFillEl.style.strokeDashoffset = String(circumference * (1 - clamped / 100));
       gaugeFillEl.setAttribute("class", "mp-gauge-fill mh-" + band);
-      gaugeValueEl.textContent = String(Math.round(score));
+      gaugeValueEl.textContent = checklist ? `${checklist.passedCount}/4` : String(Math.round(score));
+    }
+
+    if(stanceEl){
+      const stanceText = (MARKET_STANCE_TEXT[currentLanguage] || MARKET_STANCE_TEXT.en)[band];
+      const stanceIcon = { burst: "🔥", bull: "📈", consolidation: "⏳", weak: "⚠️", dead: "🧊" }[band];
+      const checkLabels = MARKET_CHECK_LABELS[currentLanguage] || MARKET_CHECK_LABELS.en;
+      const checklistHtml = checklist
+        ? `<div class="mp-checklist">${checklist.checks.map(c =>
+            `<div class="mp-check-item ${c.passed ? "passed" : "failed"}"><span class="mp-check-icon">${c.passed ? "✓" : "✗"}</span>${escapeHtml(checkLabels[c.key])}</div>`
+          ).join("")}</div>`
+        : "";
+      stanceEl.innerHTML = `<div class="mp-stance-main"><span>${stanceIcon}</span><span>${escapeHtml(stanceText)}</span></div>${checklistHtml}`;
+      stanceEl.className = "mp-stance-banner mh-" + band;
     }
   }
 
@@ -3614,6 +3748,7 @@
 
   function recomputeMarketPulse(){
     const m = computeMarketPulseMetrics();
+    const checklist = computeMarketPulseChecklist(m);
     const now = Date.now();
     marketPulseHistory.push({ t: now, ...m });
     const maxWindow = Math.max(TREND_WINDOW_MS, MARKET_PULSE_WINDOW_MS);
@@ -3624,11 +3759,12 @@
     // Smooth the displayed score over the last ~60s (4 readings @ 15s each)
     // instead of showing the raw instantaneous value — a single stock
     // rotating in/out of the Top Gainers list shouldn't visibly jerk the
-    // gauge from one reading to the next.
-    scoreHistoryForSmoothing.push(computeMarketHealthScore(m));
+    // gauge from one reading to the next. The checklist breakdown itself
+    // always shows the current (non-smoothed) pass/fail state.
+    scoreHistoryForSmoothing.push(computeMarketHealthScore(checklist));
     if(scoreHistoryForSmoothing.length > 4) scoreHistoryForSmoothing.shift();
     const smoothedScore = scoreHistoryForSmoothing.reduce((a, b) => a + b, 0) / scoreHistoryForSmoothing.length;
-    renderMarketHealthBar(smoothedScore);
+    renderMarketHealthBar(smoothedScore, checklist);
 
     const prevSnap15m = findPrevSnapshot(now, TREND_WINDOW_MS);
     const prevSnap5m = findPrevSnapshot(now, MARKET_PULSE_WINDOW_MS);
@@ -3637,14 +3773,16 @@
     const volumeEl = document.getElementById("mpVolumeValue");
     const floatEl = document.getElementById("mpFloatValue");
     const catalystEl = document.getElementById("mpCatalystValue");
-    if(momentumEl) momentumEl.innerHTML = `${Math.round(m.momentum)}<span class="mp-suffix">/100</span>`;
-    if(volumeEl) volumeEl.textContent = `${m.volumePressureX.toFixed(1)}x RVOL`;
-    if(floatEl) floatEl.textContent = m.breadthPercent === null ? "—" : `${m.breadthPercent.toFixed(0)}%`;
+    if(momentumEl) momentumEl.innerHTML = `${m.strongGainersCount}<span class="mp-suffix"> stocks</span>`;
+    if(volumeEl) volumeEl.textContent = m.highRvolBreadthPercent === null ? "—" : `${m.highRvolBreadthPercent.toFixed(0)}%`;
+    if(floatEl) floatEl.textContent = m.activeListAboveDollarPercent === null
+      ? `${m.activeListUniqueCount} syms`
+      : `${m.activeListUniqueCount} · ${m.activeListAboveDollarPercent.toFixed(0)}%>$1`;
     if(catalystEl) catalystEl.textContent = m.catalystPulseCount;
 
-    renderTrendEl("mpMomentumTrend", m.momentum, prevSnap15m ? prevSnap15m.momentum : null, "15m");
-    renderTrendEl("mpVolumeTrend", m.volumePressureX, prevSnap15m ? prevSnap15m.volumePressureX : null, "15m");
-    renderTrendEl("mpFloatTrend", m.breadthPercent, prevSnap15m ? prevSnap15m.breadthPercent : null, "15m");
+    renderTrendEl("mpMomentumTrend", m.strongGainersCount, prevSnap15m ? prevSnap15m.strongGainersCount : null, "15m");
+    renderTrendEl("mpVolumeTrend", m.highRvolBreadthPercent, prevSnap15m ? prevSnap15m.highRvolBreadthPercent : null, "15m");
+    renderTrendEl("mpFloatTrend", m.activeListUniqueCount, prevSnap15m ? prevSnap15m.activeListUniqueCount : null, "15m");
     renderTrendEl("mpCatalystTrend", m.catalystPulseCount, prevSnap5m ? prevSnap5m.catalystPulseCount : null, "5m");
   }
 
