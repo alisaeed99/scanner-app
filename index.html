@@ -391,6 +391,17 @@
   .ms-divider{ width:1px; align-self:stretch; min-height:22px; background: var(--border); flex-shrink:0; }
   @media (max-width: 900px){ .ms-divider{ display:none; } }
 
+  .ms-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  @media (max-width: 700px){
+    .market-status-bar{ flex-direction:column; align-items:stretch; justify-content:flex-start; }
+    .market-status-left{ justify-content:center; }
+    .index-widgets{ justify-content:center; }
+    .ms-actions{
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap:8px; width:100%;
+    }
+    .ms-actions button{ width:100%; justify-content:center; }
+  }
+
   .cmdk-trigger-btn{
     display:flex; align-items:center; gap:7px; background: var(--card); border:1px solid var(--border); color: var(--header-text);
     padding: 10px 12px; border-radius: 8px; font-weight:600; font-size:13.5px; cursor:pointer;
@@ -855,6 +866,31 @@
   .modal-hero-stat.hero-up .modal-hero-value{ color: var(--up); text-shadow: 0 0 12px var(--up-glow); }
   .modal-hero-stat.hero-down{ background: linear-gradient(160deg, rgba(255,68,104,0.14), rgba(255,68,104,0.02)); border-color: rgba(255,68,104,0.35); box-shadow: 0 0 18px rgba(255,68,104,0.14); }
   .modal-hero-stat.hero-down .modal-hero-value{ color: var(--down); text-shadow: 0 0 12px var(--down-glow); }
+
+  /* Technical Indicators — each card carries its own bullish/bearish/
+     neutral read (color + icon + short tag), and reacts on hover like
+     everything else in this modal. */
+  .modal-section.msec-tech{ border-inline-start-color: #a78bfa; }
+  .ti-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
+  @media (max-width: 460px){ .ti-grid{ grid-template-columns: 1fr; } }
+  .ti-card{
+    border-radius:10px; padding:10px 12px; background: var(--card-2); border:1px solid var(--border-soft);
+    transition: transform .15s ease, box-shadow .2s ease, border-color .15s ease;
+  }
+  .ti-card:hover{ transform: translateY(-2px); }
+  .ti-label{ font-size:10px; color: var(--muted); margin-bottom:4px; }
+  .ti-value{ font-size:15px; font-weight:800; margin-bottom:3px; }
+  .ti-tag{ font-size:10px; font-weight:700; letter-spacing:0.02em; text-transform:uppercase; opacity:0.85; }
+  .ti-card.ti-positive{ border-color: rgba(34,197,94,0.4); background: linear-gradient(160deg, rgba(34,197,94,0.12), rgba(34,197,94,0.02)); }
+  .ti-card.ti-positive:hover{ box-shadow: 0 0 16px rgba(34,197,94,0.25); }
+  .ti-card.ti-positive .ti-value{ color: var(--up); text-shadow: 0 0 8px var(--up-glow); }
+  .ti-card.ti-positive .ti-tag{ color: var(--up); }
+  .ti-card.ti-negative{ border-color: rgba(255,68,104,0.4); background: linear-gradient(160deg, rgba(255,68,104,0.12), rgba(255,68,104,0.02)); }
+  .ti-card.ti-negative:hover{ box-shadow: 0 0 16px rgba(255,68,104,0.25); }
+  .ti-card.ti-negative .ti-value{ color: var(--down); text-shadow: 0 0 8px var(--down-glow); }
+  .ti-card.ti-negative .ti-tag{ color: var(--down); }
+  .ti-card.ti-neutral .ti-value{ color: var(--header-text); }
+  .ti-card.ti-neutral .ti-tag{ color: var(--muted); }
   .modal-metric-value.na{ color:#3a3f47; font-weight:500; }
   .modal-metric-source{ font-size:9px; color:#4b5563; margin-top:2px; }
 
@@ -1075,29 +1111,28 @@
       </div>
     </div>
     <span class="ms-divider" aria-hidden="true"></span>
-    <button class="cmdk-trigger-btn" id="cmdkTriggerBtn" title="Quick symbol search (Ctrl/Cmd+K)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <span data-i18n="quickSearch">Search</span>
-      <span class="cmdk-trigger-kbd">⌘K</span>
-    </button>
-    <span class="ms-divider" aria-hidden="true"></span>
-    <button class="refresh" id="openChartPageBtn" title="Open full chart page">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
-      <span data-i18n="chartNav">Chart</span>
-    </button>
-    <button class="refresh" id="openResourcesPageBtn" title="Open resources page">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      <span data-i18n="resources">Resources</span>
-    </button>
-    <span class="ms-divider" aria-hidden="true"></span>
-    <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      <span data-i18n="refresh">Refresh</span>
-    </button>
-    <span class="ms-divider" aria-hidden="true"></span>
-    <button class="lang-toggle-btn" id="langToggleBtn" title="Switch language / تبديل اللغة">
-      <span id="langToggleLabel">العربية</span>
-    </button>
+    <div class="ms-actions">
+      <button class="cmdk-trigger-btn" id="cmdkTriggerBtn" title="Quick symbol search (Ctrl/Cmd+K)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span data-i18n="quickSearch">Search</span>
+        <span class="cmdk-trigger-kbd">⌘K</span>
+      </button>
+      <button class="refresh" id="openChartPageBtn" title="Open full chart page">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
+        <span data-i18n="chartNav">Chart</span>
+      </button>
+      <button class="refresh" id="openResourcesPageBtn" title="Open resources page">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span data-i18n="resources">Resources</span>
+      </button>
+      <button class="refresh" id="refreshBtn" title="Force a fresh reconnect &amp; re-subscribe">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <span data-i18n="refresh">Refresh</span>
+      </button>
+      <button class="lang-toggle-btn" id="langToggleBtn" title="Switch language / تبديل اللغة">
+        <span id="langToggleLabel">العربية</span>
+      </button>
+    </div>
   </div>
 
 
@@ -3960,9 +3995,7 @@
       metrics: [
         { label: "High of Day",                          hints: ["highcolumn"] },
         { label: "Low of Day",                             hints: ["lowcolumn"] },
-        { label: "Previous Day's Close ($)",              hints: ["previousdaysclosenooption", "previousdaysclose"] },
-        { label: "Distance from VWAP ($)",                hints: ["distancefromvwap", "vwapdistance"] },
-        { label: "Distance from EMA(200) Daily (%)",     hints: ["distancefrommovingaverageema200d"] }
+        { label: "Previous Day's Close ($)",              hints: ["previousdaysclosenooption", "previousdaysclose"] }
       ]
     },
     {
@@ -3972,6 +4005,81 @@
       ]
     }
   ];
+
+  // ===================== TECHNICAL INDICATORS (modal) =====================
+  // Same findMetricAcrossTables lookup as everything else in the modal —
+  // these values live as ordinary columns on the Top Gainers table (or
+  // wherever else the symbol happens to appear), we're just reading them
+  // with a directional read attached. `evaluate` turns the raw number into
+  // a sentiment (bullish/bearish/neutral) using thresholds that make sense
+  // for that specific indicator — RSI's bands are different from a plain
+  // above/below-zero read, for instance.
+  const TECHNICAL_INDICATORS = [
+    {
+      label: "RSI (14) Daily",
+      hints: ["rsi14daily", "rsidaily", "rsi14d"],
+      evaluate(n){
+        if(n >= 70) return { cls: "ti-positive", tag: "Strong / Overbought" };
+        if(n <= 30) return { cls: "ti-negative", tag: "Weak / Oversold" };
+        return { cls: "ti-neutral", tag: "Neutral" };
+      }
+    },
+    {
+      label: "RSI (14) 1 Min",
+      hints: ["rsi141min", "rsi1min", "rsimin"],
+      evaluate(n){
+        if(n >= 70) return { cls: "ti-positive", tag: "Strong / Overbought" };
+        if(n <= 30) return { cls: "ti-negative", tag: "Weak / Oversold" };
+        return { cls: "ti-neutral", tag: "Neutral" };
+      }
+    },
+    {
+      label: "Distance from VWAP ($)",
+      hints: ["distancefromvwap", "vwapdistance"],
+      evaluate(n){
+        if(n > 0) return { cls: "ti-positive", tag: "Above VWAP" };
+        if(n < 0) return { cls: "ti-negative", tag: "Below VWAP" };
+        return { cls: "ti-neutral", tag: "At VWAP" };
+      }
+    },
+    {
+      label: "Distance from EMA(200) Daily (%)",
+      hints: ["distancefrommovingaverageema200d"],
+      evaluate(n){
+        if(n > 0) return { cls: "ti-positive", tag: "Above EMA200" };
+        if(n < 0) return { cls: "ti-negative", tag: "Below EMA200" };
+        return { cls: "ti-neutral", tag: "At EMA200" };
+      }
+    },
+    {
+      label: "20 Day Change (%)",
+      hints: ["20daychange", "twentydaychange", "change20day"],
+      evaluate(n){
+        if(n > 0) return { cls: "ti-positive", tag: "Up over 20d" };
+        if(n < 0) return { cls: "ti-negative", tag: "Down over 20d" };
+        return { cls: "ti-neutral", tag: "Flat" };
+      }
+    }
+  ];
+
+  function technicalIndicatorCardHtml(symbol, ind){
+    const result = findMetricAcrossTables(symbol, ind.hints, ind.preferTables);
+    if(!result){
+      return `<div class="ti-card ti-neutral">
+        <div class="ti-label">${escapeHtml(ind.label)}</div>
+        <div class="ti-value na">—</div>
+        <div class="ti-tag">Not available</div>
+      </div>`;
+    }
+    const n = parseFloat(String(result.value).replace(/[^0-9.\-]/g, ""));
+    const sentiment = isNaN(n) ? { cls: "ti-neutral", tag: "—" } : ind.evaluate(n);
+    const icon = sentiment.cls === "ti-positive" ? "▲" : sentiment.cls === "ti-negative" ? "▼" : "◆";
+    return `<div class="ti-card ${sentiment.cls}">
+      <div class="ti-label">${escapeHtml(ind.label)}</div>
+      <div class="ti-value mono">${icon} ${escapeHtml(result.value)}</div>
+      <div class="ti-tag">${escapeHtml(sentiment.tag)}</div>
+    </div>`;
+  }
 
   function metricLookupTokens(raw){
     const full = normalizeLabel(raw);
@@ -4718,6 +4826,13 @@
           <div class="modal-hero-label">% Change</div>
           ${changeVal ? `<div class="modal-hero-value mono">${escapeHtml(changeVal)}</div>` : `<div class="modal-hero-value na">—</div>`}
         </div>
+      </div>
+    </div>`;
+
+    bodyHtml += `<div class="modal-section msec-tech">
+      <div class="modal-section-head"><h4><span class="modal-section-icon">🧭</span>Technical Indicators</h4></div>
+      <div class="ti-grid">
+        ${TECHNICAL_INDICATORS.map(ind => technicalIndicatorCardHtml(symbol, ind)).join("")}
       </div>
     </div>`;
 
