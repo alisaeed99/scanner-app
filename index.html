@@ -80,18 +80,79 @@
   .lang-toggle-btn:hover{ background: rgba(255,255,255,0.08); border-color: var(--accent); }
   .view-toggle-btn:hover{ background: rgba(255,255,255,0.08); }
 
-  .view-desktop #topListsContainer,
-  .view-desktop #alertsContainer{
-    display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:18px; align-items:start;
+  .view-desktop #unifiedWorkspaceGrid{
+    display:flex; flex-wrap:wrap; gap:16px; margin-bottom:18px; align-items:stretch;
   }
-  @media (max-width: 1200px){
-    .view-desktop #topListsContainer, .view-desktop #alertsContainer{ grid-template-columns: repeat(2, 1fr); }
+  .view-desktop #unifiedWorkspaceGrid .panel{ margin-bottom:0; }
+
+  /* Every panel in the unified workspace stays a normal in-flow card —
+     the old "click header to go fullscreen, collapse everything else"
+     behavior never applies here (no data-fold on these headers anymore),
+     so this override exists just in case anything still tries to drop
+     the .collapsed class on one of them. Each panel's own width is set
+     inline (flex-basis, in px) by the resize script below — position
+     stays relative so the drag handle on its right edge can be
+     absolutely positioned against it. */
+  .view-desktop #unifiedWorkspaceGrid .panel{
+    position:relative !important; inset:auto !important; z-index:auto !important; margin:0 !important;
+    flex-shrink:0 !important;
+    display:flex !important; flex-direction:column !important; box-sizing:border-box;
   }
+  .view-desktop #unifiedWorkspaceGrid .panel-head{ position:static !important; padding-right:17px !important; }
+  .view-desktop #unifiedWorkspaceGrid .table-scroll{
+    display:block !important; flex:1 1 auto; min-height:0; overflow:auto;
+  }
+
+  .drag-handle{
+    display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:5px;
+    color: var(--muted); cursor:grab; flex-shrink:0; transition: background .15s ease, color .15s ease;
+  }
+  .drag-handle:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
+  .panel-head[draggable="true"]{ cursor:grab; }
+  .panel.drag-over-before{ box-shadow: inset 0 3px 0 var(--accent); }
+  .panel.drag-over-after{ box-shadow: inset 0 -3px 0 var(--accent); }
+  .panel.dragging{ opacity:0.4; }
+
   @media (max-width: 700px){
-    .view-desktop #topListsContainer, .view-desktop #alertsContainer{ grid-template-columns: 1fr; }
+    .view-desktop #unifiedWorkspaceGrid .panel{ flex-basis:100% !important; width:100% !important; }
   }
-  .view-desktop #topListsContainer .panel,
-  .view-desktop #alertsContainer .panel{ margin-bottom:0; }
+
+  /* Border-drag resize handles on each panel's edges — dragging the right
+     edge resizes width, the bottom edge resizes height. Either one moves
+     every other panel that shares that same boundary line, across every
+     row/column it runs through, not just the one panel next to it — that's
+     the "Day Dash" style tiled resize. Kept fully inside the panel's own
+     box (not straddling the border) because .panel has overflow:hidden for
+     its rounded corners — a child sitting partly outside that box would
+     get clipped and silently stop being clickable in the clipped area. */
+  .panel-resize-handle{
+    position:absolute; top:0; right:0; width:10px; height:100%; cursor:col-resize; z-index:6;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .panel-resize-handle::after{
+    content:""; width:2px; height:100%; background: var(--border); transition: background .15s ease, width .15s ease;
+  }
+  .panel-resize-handle:hover::after, .panel-resize-handle.active::after{ background: var(--accent); width:3px; }
+  .panel-resize-handle-v{
+    position:absolute; left:0; bottom:0; height:10px; width:100%; cursor:row-resize; z-index:6;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .panel-resize-handle-v::after{
+    content:""; height:2px; width:100%; background: var(--border); transition: background .15s ease, height .15s ease;
+  }
+  .panel-resize-handle-v:hover::after, .panel-resize-handle-v.active::after{ background: var(--accent); height:3px; }
+  body.panel-resizing{ cursor: col-resize !important; user-select: none; }
+  body.panel-resizing *{ cursor: col-resize !important; }
+  body.panel-resizing-v{ cursor: row-resize !important; user-select: none; }
+  body.panel-resizing-v *{ cursor: row-resize !important; }
+  .view-mobile .panel-resize-handle, .view-mobile .panel-resize-handle-v{ display:none; }
+
+  /* Panel header content wraps instead of overflowing when a column
+     gets dragged narrow. */
+  .panel-head{ flex-wrap:wrap; row-gap:6px; }
+  .panel-head-left{ flex-wrap:wrap; row-gap:4px; }
+  .panel-head-right{ flex-wrap:wrap; row-gap:4px; }
+
 
   .panel-close-btn{ display:none; position:absolute; top:12px; right:16px; align-items:center; justify-content:center; width:28px; height:28px; border-radius:7px; color: var(--muted); z-index:3; }
   .panel-close-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
@@ -108,7 +169,7 @@
   .card-preview-empty{ padding:6px 0; font-size:11px; color: var(--muted); text-align:center; }
 
   .card-preview-row-toplist{
-    grid-template-columns: minmax(95px, 1.3fr) minmax(48px, 0.75fr) minmax(55px, 0.85fr) minmax(50px, 0.8fr) minmax(48px, 0.8fr) minmax(42px, 0.75fr);
+    grid-template-columns: minmax(95px, 1.3fr) minmax(48px, 0.75fr) minmax(55px, 0.85fr) minmax(50px, 0.8fr) minmax(48px, 0.8fr) minmax(48px, 0.8fr) minmax(42px, 0.75fr);
     gap: 0;
     align-items: stretch;
     min-height: 24px;
@@ -275,40 +336,48 @@
   .toplist-tab-btn{ flex-shrink:0; background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--muted); font-family:inherit; font-size:12px; font-weight:700; padding:8px 14px; border-radius:20px; cursor:pointer; white-space:nowrap; transition: all .15s ease; }
   .toplist-tab-btn:hover{ color: var(--header-text); }
   .toplist-tab-btn.active{ background: var(--accent-dim); color: var(--accent); border-color: rgba(76,158,255,0.35); }
-  .view-mobile #topListsContainer .panel{ display:none; }
-  .view-mobile #topListsContainer .panel.mobile-tab-active{ display:block; }
-  .view-mobile #topListsContainer .panel.mobile-tab-active:not(.collapsed){
+  .view-mobile #unifiedWorkspaceGrid{
+    display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom:16px;
+  }
+  .view-mobile #unifiedWorkspaceGrid .tl-panel{ display:none; }
+  .view-mobile #unifiedWorkspaceGrid .tl-panel.mobile-tab-active{ display:block; grid-column: 1 / -1; }
+  .view-mobile #unifiedWorkspaceGrid .tl-panel.mobile-tab-active:not(.collapsed){
     position:static; inset:auto; z-index:auto; margin:0 0 16px; width:auto; height:auto; max-height:none;
     display:block; border-radius:12px;
   }
-  .view-mobile #topListsContainer .panel.mobile-tab-active .panel-head{ display:none; }
+  .view-mobile #unifiedWorkspaceGrid .tl-panel.mobile-tab-active .panel-head{ display:none; }
 
-  .view-mobile #alertsContainer{
-    display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom:16px;
-  }
-  .view-mobile #alertsContainer .panel{ margin-bottom:0; }
-  .view-mobile #alertsContainer .panel-head{ padding:9px 10px; flex-wrap:wrap; gap:4px; }
-  .view-mobile #alertsContainer .panel-head h2{ font-size:11.5px; }
-  .view-mobile #alertsContainer .panel-head-icon{ width:20px; height:20px; }
-  .view-mobile #alertsContainer .panel-head .count{ font-size:9.5px; }
+  .view-mobile #unifiedWorkspaceGrid .alert-panel{ margin-bottom:0; }
+  .view-mobile #unifiedWorkspaceGrid .alert-panel .panel-head{ padding:9px 10px; flex-wrap:wrap; gap:4px; }
+  .view-mobile #unifiedWorkspaceGrid .alert-panel .panel-head h2{ font-size:11.5px; }
+  .view-mobile #unifiedWorkspaceGrid .alert-panel .panel-head-icon{ width:20px; height:20px; }
+  .view-mobile #unifiedWorkspaceGrid .alert-panel .panel-head .count{ font-size:9.5px; }
+  .view-mobile .drag-handle{ display:none; }
 
-  .market-pulse-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom: 8px; }
-  @media (min-width: 700px){
-    .market-pulse-grid{ grid-template-columns: repeat(4, 1fr); }
+  /* Two-column layout: health gauge/bar on the left, 2x2 metric cards on
+     the right — same visual weight on both sides. */
+  .mp-layout{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:stretch; margin-bottom:12px; }
+  @media (max-width: 700px){ .mp-layout{ grid-template-columns: 1fr; } }
+
+  .mp-health-card{
+    background: linear-gradient(155deg, rgba(30,45,74,0.75), rgba(19,27,46,0.65)); border:1px solid var(--border);
+    border-radius:10px; padding:14px; display:flex; flex-direction:column; justify-content:center; gap:12px;
   }
-  .mp-card{ background: linear-gradient(155deg, rgba(30,45,74,0.75), rgba(19,27,46,0.65)); border:1px solid var(--border); border-radius:10px; padding:14px 16px; transition: box-shadow .2s ease, transform .2s ease; }
+
+  .market-pulse-grid{ display:grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap:10px; margin-bottom:0; }
+  .mp-card{ background: linear-gradient(155deg, rgba(30,45,74,0.75), rgba(19,27,46,0.65)); border:1px solid var(--border); border-radius:10px; padding:11px 14px; transition: box-shadow .2s ease, transform .2s ease; }
   .mp-card:has(.mp-trend.up){ border-top:2px solid var(--up); }
   .mp-card:has(.mp-trend.down){ border-top:2px solid var(--down); }
   .mp-card:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
-  .mp-label{ font-size:10px; color: var(--muted); font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:8px; }
-  .mp-value{ font-size:22px; font-weight:800; color: var(--header-text); margin-bottom:5px; font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  .mp-label{ font-size:10px; color: var(--muted); font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:6px; }
+  .mp-value{ font-size:19px; font-weight:800; color: var(--header-text); margin-bottom:4px; font-family:'IBM Plex Mono', ui-monospace, monospace; }
   .mp-suffix{ font-size:13px; font-weight:600; color: var(--muted); opacity:0.7; margin-left:2px; }
   .mp-trend{ font-size:11px; font-weight:700; }
   .mp-trend.up{ color: var(--up); }
   .mp-trend.down{ color: var(--down); }
   .mp-trend.flat{ color: var(--muted); }
 
-  .mp-health-row{ display:flex; align-items:center; gap:18px; margin: 2px 0 14px; }
+  .mp-health-row{ display:flex; align-items:center; gap:18px; width:100%; }
   .mp-health-bar-wrap{ flex:1; min-width:0; }
   .mp-health-bar-track{ width:100%; height:10px; border-radius:6px; background: rgba(255,255,255,0.06); overflow:hidden; margin-bottom:7px; }
   .mp-health-bar-fill{ height:100%; border-radius:6px; width:0%; transition: width .5s ease, background .4s ease; }
@@ -326,17 +395,18 @@
 
   /* Trading-stance banner — turns the raw Market Pulse score into a
      one-line "what to actually do" readout, so the score isn't just a
-     number to glance at with no bearing on behavior. */
+     number to glance at with no bearing on behavior. Lives nested inside
+     .mp-health-card now, so no bottom margin (the card's gap handles it)
+     and slightly tighter padding since it's sharing the card's own edges. */
   .mp-stance-banner{
-    padding:11px 16px; border-radius:10px; margin-bottom:16px;
-    font-size:13px; font-weight:600; line-height:1.5; border:1px solid var(--border-soft); background: var(--card-2);
+    padding:8px 12px; border-radius:8px;
+    font-size:11.5px; font-weight:600; line-height:1.35; border:1px solid var(--border-soft); background: rgba(255,255,255,0.03);
     transition: background .3s ease, border-color .3s ease, color .3s ease;
   }
-  .mp-stance-main{ display:flex; align-items:center; gap:10px; }
-  .mp-checklist{ display:grid; grid-template-columns: repeat(2, 1fr); gap:6px 16px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); }
-  @media (max-width: 640px){ .mp-checklist{ grid-template-columns: 1fr; } }
-  .mp-check-item{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; opacity:0.9; }
-  .mp-check-icon{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; font-size:10px; flex-shrink:0; }
+  .mp-stance-main{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .mp-checklist{ display:flex; flex-wrap:wrap; gap:3px 14px; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.08); }
+  .mp-check-item{ display:flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; opacity:0.9; white-space:nowrap; }
+  .mp-check-icon{ display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; font-size:8.5px; flex-shrink:0; }
   .mp-check-item.passed .mp-check-icon{ background: rgba(34,197,94,0.25); color: var(--up); }
   .mp-check-item.failed .mp-check-icon{ background: rgba(255,68,104,0.2); color: var(--down); }
   .mp-check-item.failed{ opacity:0.65; }
@@ -367,6 +437,28 @@
   .notif-toggle-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
   .notif-toggle-btn.enabled{ background: rgba(110,219,143,0.12); color: var(--up); border-color: rgba(110,219,143,0.35); }
   .notif-toggle-btn.denied{ background: rgba(255,68,104,0.1); color: var(--down); border-color: rgba(255,68,104,0.3); cursor:not-allowed; }
+
+  .workspace-fullscreen-btn{
+    display:flex; align-items:center; justify-content:center; width:30px; height:30px;
+    background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--muted);
+    border-radius:8px; cursor:pointer; transition: all .15s ease; flex-shrink:0;
+  }
+  .workspace-fullscreen-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
+  .workspace-fullscreen-btn.active{ background: var(--accent-dim); color: var(--accent); border-color: rgba(76,158,255,0.4); }
+
+  /* Workspace fullscreen/focus mode — everything above it (brand bar,
+     market status ticker, Market Pulse) hides, and the Workspace section
+     takes over the full viewport. */
+  body.workspace-fullscreen-mode .topbar,
+  body.workspace-fullscreen-mode #marketStatusBar,
+  body.workspace-fullscreen-mode #marketPulseSection{
+    display:none !important;
+  }
+  body.workspace-fullscreen-mode{ overflow:hidden; }
+  body.workspace-fullscreen-mode #workspaceSection{
+    position:fixed; inset:0; z-index:250; background: var(--bg);
+    overflow-y:auto; padding:16px 18px 24px; margin:0;
+  }
 
   .icon-badge, .panel-head-icon{ width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13.5px; transition: transform .15s ease; }
   .icon-blue{ background: var(--accent-dim); color: var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
@@ -737,14 +829,6 @@
 
   .sym-link{ cursor:pointer; border-bottom:1px dashed rgba(59,130,246,0.4); transition: color .15s ease; }
   .sym-link:hover{ color: var(--accent); border-bottom-color: var(--accent); }
-  .chart-icon-link{
-    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
-    font-size:11px; margin-left:5px; opacity:0.75; transition: opacity .15s ease, transform .15s ease;
-    vertical-align:middle;
-  }
-  .chart-icon-link:hover{ opacity:1; transform:scale(1.15); }
-  .cp-ticker-group .chart-icon-link{ font-size:9px; margin-left:3px; flex-shrink:0; }
-  .alert-sym-badge + .chart-icon-link{ margin-left:6px; }
 
   .sparkline{ display:inline-block; vertical-align:middle; margin-left:7px; opacity:0.9; }
 
@@ -759,14 +843,7 @@
   .trend-dot.dot-ts-down{ background: var(--down); }
   .trend-dot.dot-ts-strong-down{ background: var(--down); box-shadow: 0 0 6px rgba(255,68,104,0.8), 0 0 12px rgba(255,68,104,0.5); }
 
-  /* ===================== CHART PAGE ===================== */
-  .modal-chart-btn{
-    background: var(--accent-dim); border:1px solid rgba(76,158,255,0.35); border-radius:7px;
-    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
-    color: var(--accent); cursor:pointer; flex-shrink:0; font-size:14px;
-  }
-  .modal-chart-btn:hover{ background: rgba(76,158,255,0.28); }
-
+  /* ===================== RESOURCES / CHART-STYLE FULL PAGE (shared) ===================== */
   .chart-page-overlay{
     position: fixed; inset:0; z-index:300; background: var(--bg);
     display:flex; flex-direction:column;
@@ -782,34 +859,9 @@
     display:flex; align-items:center; justify-content:center; color: var(--text); cursor:pointer; flex-shrink:0;
   }
   .chart-page-back:hover{ background:#20242c; color: var(--header-text); }
-  .chart-page-symbol-form{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
-  .chart-page-symbol-input{
-    background: var(--card); border:1px solid var(--border); color: var(--header-text);
-    font-family:'IBM Plex Mono', ui-monospace, monospace; font-weight:700; font-size:14px;
-    text-transform:uppercase; padding:7px 10px; border-radius:7px; width:110px; letter-spacing:0.03em;
-  }
-  .chart-page-symbol-input:focus{ outline:none; border-color: var(--accent); }
-  .chart-page-go-btn{
-    background: var(--accent); border:none; color:#06111f; font-weight:700; font-size:12.5px;
-    padding:8px 14px; border-radius:7px; cursor:pointer; white-space:nowrap;
-  }
-  .chart-page-go-btn:hover{ filter:brightness(1.08); }
-  .chart-page-timeframes{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-inline-start:auto; }
-  .chart-tf-btn{
-    background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--text);
-    font-family:inherit; font-size:11.5px; font-weight:700; padding:7px 11px; border-radius:7px;
-    cursor:pointer; transition: all .15s ease;
-  }
-  .chart-tf-btn:hover{ background: rgba(255,255,255,0.08); }
-  .chart-tf-btn.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
   .chart-page-body{ flex:1; min-height:0; position:relative; }
   .resources-page-body{ overflow-y:auto; }
   .resources-page-title{ font-size:15px; font-weight:700; color: var(--header-text); }
-  #chartPageWidgetContainer{ position:absolute; inset:0; }
-  .chart-page-empty{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    color: var(--muted); font-size:13px; text-align:center; padding:0 20px;
-  }
 
   .modal-overlay{
     position: fixed; inset:0; z-index:200; background: rgba(3,5,8,0.72);
@@ -1202,10 +1254,6 @@
         <span data-i18n="quickSearch">Search</span>
         <span class="cmdk-trigger-kbd">⌘K</span>
       </button>
-      <button class="refresh" id="openChartPageBtn" title="Open full chart page">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
-        <span data-i18n="chartNav">Chart</span>
-      </button>
       <button class="refresh" id="openResourcesPageBtn" title="Open resources page">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span data-i18n="resources">Resources</span>
@@ -1222,69 +1270,81 @@
 
 
   <!-- ===================== MARKET PULSE ===================== -->
+  <div id="marketPulseSection">
   <div class="section-heading main-section-heading">
     <h3 data-i18n="marketPulse">Market Pulse</h3>
   </div>
-  <div class="mp-health-row">
-    <div class="mp-health-gauge">
-      <svg viewBox="0 0 76 76" width="76" height="76">
-        <circle class="mp-gauge-track" cx="38" cy="38" r="32"/>
-        <circle class="mp-gauge-fill" id="mpHealthGaugeFill" cx="38" cy="38" r="32" transform="rotate(-90 38 38)"/>
-      </svg>
-      <div class="mp-health-gauge-value" id="mpHealthGaugeValue">—</div>
-    </div>
-    <div class="mp-health-bar-wrap">
-      <div class="mp-health-bar-track">
-        <div class="mp-health-bar-fill" id="mpHealthBarFill" style="width:0%;"></div>
+  <div class="mp-layout">
+    <div class="mp-health-card">
+      <div class="mp-health-row">
+        <div class="mp-health-gauge">
+          <svg viewBox="0 0 76 76" width="76" height="76">
+            <circle class="mp-gauge-track" cx="38" cy="38" r="32"/>
+            <circle class="mp-gauge-fill" id="mpHealthGaugeFill" cx="38" cy="38" r="32" transform="rotate(-90 38 38)"/>
+          </svg>
+          <div class="mp-health-gauge-value" id="mpHealthGaugeValue">—</div>
+        </div>
+        <div class="mp-health-bar-wrap">
+          <div class="mp-health-bar-track">
+            <div class="mp-health-bar-fill" id="mpHealthBarFill" style="width:0%;"></div>
+          </div>
+          <div class="mp-health-label" id="mpHealthLabel">—</div>
+        </div>
       </div>
-      <div class="mp-health-label" id="mpHealthLabel">—</div>
+      <div class="mp-stance-banner" id="mpStanceBanner">—</div>
+    </div>
+    <div class="market-pulse-grid always-ltr">
+      <div class="mp-card">
+        <div class="mp-label" data-i18n="strongGainersLabel">Strong Gainers (≥50%)</div>
+        <div class="mp-value" id="mpMomentumValue">—</div>
+        <div class="mp-trend" id="mpMomentumTrend">—</div>
+      </div>
+      <div class="mp-card">
+        <div class="mp-label" data-i18n="highRvolBreadthLabel">High RVOL Breadth</div>
+        <div class="mp-value" id="mpVolumeValue">—</div>
+        <div class="mp-trend" id="mpVolumeTrend">—</div>
+      </div>
+      <div class="mp-card">
+        <div class="mp-label" data-i18n="activeListQualityLabel">Active List Quality</div>
+        <div class="mp-value" id="mpFloatValue">—</div>
+        <div class="mp-trend" id="mpFloatTrend">—</div>
+      </div>
+      <div class="mp-card">
+        <div class="mp-label" data-i18n="catalystPulse">Catalyst Pulse</div>
+        <div class="mp-value" id="mpCatalystValue">—</div>
+        <div class="mp-trend" id="mpCatalystTrend">—</div>
+      </div>
     </div>
   </div>
-  <div class="mp-stance-banner" id="mpStanceBanner">—</div>
-  <div class="market-pulse-grid always-ltr">
-    <div class="mp-card">
-      <div class="mp-label" data-i18n="strongGainersLabel">Strong Gainers (≥50%)</div>
-      <div class="mp-value" id="mpMomentumValue">—</div>
-      <div class="mp-trend" id="mpMomentumTrend">—</div>
-    </div>
-    <div class="mp-card">
-      <div class="mp-label" data-i18n="highRvolBreadthLabel">High RVOL Breadth</div>
-      <div class="mp-value" id="mpVolumeValue">—</div>
-      <div class="mp-trend" id="mpVolumeTrend">—</div>
-    </div>
-    <div class="mp-card">
-      <div class="mp-label" data-i18n="activeListQualityLabel">Active List Quality</div>
-      <div class="mp-value" id="mpFloatValue">—</div>
-      <div class="mp-trend" id="mpFloatTrend">—</div>
-    </div>
-    <div class="mp-card">
-      <div class="mp-label" data-i18n="catalystPulse">Catalyst Pulse</div>
-      <div class="mp-value" id="mpCatalystValue">—</div>
-      <div class="mp-trend" id="mpCatalystTrend">—</div>
-    </div>
   </div>
 
-  <!-- ===================== TOP LISTS ===================== -->
+  <!-- ===================== WORKSPACE (Top Lists + Alerts, unified) ===================== -->
+  <div id="workspaceSection">
   <div class="section-heading main-section-heading">
-    <h3 data-i18n="topLists">Top Lists</h3>
+    <h3 data-i18n="workspace" id="workspaceSectionTitle" title="Click to expand Workspace to fullscreen" style="cursor:pointer;">Workspace</h3>
     <div class="header-live-status">
+      <button class="workspace-fullscreen-btn" id="workspaceFullscreenBtn" title="Expand Workspace to fullscreen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
       <button class="view-toggle-btn" id="viewToggleBtn" title="Switch between Desktop grid and Mobile tab view">
         <span id="viewToggleIcon">🖥️</span>
         <span id="viewToggleLabel">Desktop View</span>
+      </button>
+      <button class="notif-toggle-btn" id="notifToggleBtn" title="Enable notifications for new alerts (works while this tab is open)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notifToggleLabel">Enable Notifications</span>
       </button>
       <span class="conn connecting" id="connStatus"><span class="led"></span><span id="connText">Connecting…</span></span>
       <span class="updated mono" id="statusText">Waiting for first update…</span>
     </div>
   </div>
   <div id="topListsTabBar" class="toplist-tab-bar" style="display:none;"></div>
-  <div id="topListsContainer">
+  <div id="unifiedWorkspaceGrid">
   <!-- ===== Section 1: Top Gainers ===== -->
-  <div class="panel collapsed" id="panel-table1">
-    <div class="panel-head" data-fold="table1">
+  <div class="panel tl-panel" id="panel-table1">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Top Gainers" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
         </span>
@@ -1298,12 +1358,10 @@
   </div>
 
   <!-- ===== Section 2: Most Active ===== -->
-  <div class="panel collapsed" id="panel-table2">
-    <div class="panel-head" data-fold="table2">
+  <div class="panel tl-panel" id="panel-table2">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Most Active" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-blue">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         </span>
@@ -1317,12 +1375,10 @@
   </div>
 
   <!-- ===== Section 5: Low Float Top Gainers ===== -->
-  <div class="panel collapsed" id="panel-table5">
-    <div class="panel-head" data-fold="table5">
+  <div class="panel tl-panel" id="panel-table5">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Low Float Top Gainers" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-blue">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2s7 8.5 7 13a7 7 0 0 1-14 0c0-4.5 7-13 7-13z"/></svg>
         </span>
@@ -1336,12 +1392,10 @@
   </div>
 
   <!-- ===== Section 3: After Market ===== -->
-  <div class="panel collapsed" id="panel-table3">
-    <div class="panel-head" data-fold="table3">
+  <div class="panel tl-panel" id="panel-table3">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse After Market" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-green">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
         </span>
@@ -1355,12 +1409,10 @@
   </div>
 
   <!-- ===== Section 4: Top 15-Min Gainers ===== -->
-  <div class="panel collapsed" id="panel-table4">
-    <div class="panel-head" data-fold="table4">
+  <div class="panel tl-panel" id="panel-table4">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Top 15-Min Gainers" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-green">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
         </span>
@@ -1374,12 +1426,10 @@
   </div>
 
   <!-- ===== Section 6: Split ===== -->
-  <div class="panel collapsed" id="panel-table6">
-    <div class="panel-head" data-fold="table6">
+  <div class="panel tl-panel" id="panel-table6">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Split" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
         </span>
@@ -1391,24 +1441,12 @@
       <div class="loading"><span class="dot-pulse"></span>Waiting for data…</div>
     </div>
   </div>
-  </div>
 
-  <!-- ===================== ALERTS ===================== -->
-  <div class="section-heading main-section-heading">
-    <h3 data-i18n="alerts">Alerts</h3>
-    <button class="notif-toggle-btn" id="notifToggleBtn" title="Enable notifications for new alerts (works while this tab is open)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <span id="notifToggleLabel">Enable Notifications</span>
-    </button>
-  </div>
-  <div id="alertsContainer">
   <!-- ===== Section: 🟩 Small Cap - High of Day Momentum ===== -->
-  <div class="panel collapsed" id="panel-hodmomo">
-    <div class="panel-head" data-fold="hodmomo">
+  <div class="panel alert-panel" id="panel-hodmomo">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Small Cap - High of Day Momentum" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-green">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
         </span>
@@ -1425,12 +1463,10 @@
   </div>
 
   <!-- ===== Section: 🥇 RUNNING UP ===== -->
-  <div class="panel collapsed" id="panel-runningup">
-    <div class="panel-head" data-fold="runningup">
+  <div class="panel alert-panel" id="panel-runningup">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Running Up" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
         </span>
@@ -1447,12 +1483,10 @@
   </div>
 
   <!-- ===== Section: 🌅 Pre-Market Bounce ===== -->
-  <div class="panel collapsed" id="panel-premarketbounce">
-    <div class="panel-head" data-fold="premarketbounce">
+  <div class="panel alert-panel" id="panel-premarketbounce">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Pre-Market Bounce" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
         </span>
@@ -1469,12 +1503,10 @@
   </div>
 
   <!-- ===== Section: Halt ===== -->
-  <div class="panel collapsed" id="panel-halts">
-    <div class="panel-head" data-fold="halts">
+  <div class="panel alert-panel" id="panel-halts">
+    <div class="panel-head" draggable="true">
       <div class="panel-head-left">
-        <button class="fold-btn" aria-label="Collapse Halts" tabindex="-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-red">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
         </span>
@@ -1487,15 +1519,16 @@
     </div>
   </div>
   </div>
+  </div>
 
   <!-- ===== Debug Panel ===== -->
   <div class="debug-panel collapsed" id="debugPanel">
     <div class="debug-head" data-fold="debug">
       <h3><span class="led"></span>Debug Panel — Connection &amp; Column Diagnostics</h3>
-      <button class="fold-btn" aria-label="Collapse debug panel" tabindex="-1">
+      <button class="fold-btn" aria-label="Collapse Debug Panel" tabindex="-1">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-    </div>
+        </div>
     <div class="debug-body">
       <div class="debug-section">
         <h4>Connection &amp; Column Mapping Log</h4>
@@ -1556,34 +1589,11 @@
         </div>
         <div class="modal-head-line2" id="modalLine2" dir="auto">—</div>
       </div>
-      <button class="modal-chart-btn" id="modalChartBtn" title="Open full chart" aria-label="Open full chart">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 19V10M10 19V5M16 19V13M22 19V8"/></svg>
-      </button>
       <button class="modal-close" id="modalCloseBtn" aria-label="Close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <div class="modal-body" id="modalBody"></div>
-  </div>
-</div>
-
-<!-- ===================== FULL CHART PAGE ===================== -->
-<div class="chart-page-overlay hidden" id="chartPageOverlay">
-  <div class="chart-page-head">
-    <button class="chart-page-back" id="chartPageBackBtn" aria-label="Back" title="Back to dashboard">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <form class="chart-page-symbol-form" id="chartPageSymbolForm">
-      <input class="chart-page-symbol-input mono" id="chartPageSymbolInput" type="text" placeholder="SYMBOL" autocomplete="off" spellcheck="false" />
-      <button class="chart-page-go-btn" type="submit">Go</button>
-    </form>
-    <!-- Timeframe buttons: add/remove entries in the CHART_TIMEFRAMES array in the script below
-         to change which frames appear here. -->
-    <div class="chart-page-timeframes" id="chartPageTimeframes"></div>
-  </div>
-  <div class="chart-page-body">
-    <div id="chartPageWidgetContainer"></div>
-    <div class="chart-page-empty" id="chartPageEmpty">Enter a symbol above to load its chart.</div>
   </div>
 </div>
 
@@ -1733,17 +1743,6 @@
 </div>
 
 <script>
-  // TradingView's free embeddable charting widget — no API key needed, renders
-  // client-side in the visitor's browser. Loaded once, reused for every symbol.
-  (function(){
-    const s = document.createElement("script");
-    s.src = "https://s3.tradingview.com/tv.js";
-    s.async = true;
-    document.head.appendChild(s);
-  })();
-</script>
-
-<script>
 (function(){
 
   const BASE_URL = "app.chartswatcher.com";
@@ -1801,7 +1800,6 @@
   const TRANSLATIONS = {
     en: {
       refresh: "Refresh",
-      chartNav: "Chart",
       resources: "Resources",
       dataProvidedBy: "Data provided by ChartsWatcher",
       quickSearch: "Search",
@@ -1813,6 +1811,7 @@
       notifUnsupported: "Notifications Unsupported",
       marketPulse: "Market Pulse",
       topLists: "Top Lists",
+      workspace: "Workspace",
       alerts: "Alerts",
       general: "General",
       education: "Education",
@@ -1874,6 +1873,7 @@
       notifUnsupported: "الإشعارات غير مدعومة",
       marketPulse: "نبض السوق",
       topLists: "القوائم الأكثر حركة",
+      workspace: "مساحة العمل",
       alerts: "التنبيهات",
       general: "عام",
       education: "التعليم",
@@ -1924,7 +1924,6 @@
       economicCalendar: "التقويم الاقتصادي",
       ipoCalendar: "الاكتتابات",
       langToggleLabel: "EN",
-      chartNav: "الشارت",
       resources: "المرجع",
       dataProvidedBy: "البيانات مقدمة من ChartsWatcher",
       quickSearch: "بحث"
@@ -1932,6 +1931,19 @@
   };
 
   let currentLanguage = localStorage.getItem("dashboardLanguage") || "en";
+
+  // Declared up here (not down by the rest of the panel-resize code)
+  // because applyViewMode() runs during initial page setup — well before
+  // that section of the script — and already reads this. A `let`
+  // declared later would still be in its temporal dead zone at that
+  // point and throw, aborting everything that runs after it (including
+  // connect()). Learned that the hard way once already — not repeating it.
+  const PANEL_WIDTHS_KEY = "workspacePanelWidths";
+  let panelWidths = {};
+  const PANEL_MIN_WIDTH = 280;
+  const PANEL_HEIGHTS_KEY = "workspacePanelHeights";
+  let panelHeights = {};
+  const PANEL_MIN_HEIGHT = 160;
 
   function tr(key){
     return (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage][key]) || TRANSLATIONS.en[key] || key;
@@ -2026,7 +2038,7 @@
   }
 
   function applyViewMode(){
-    document.querySelectorAll("#topListsContainer .panel, #alertsContainer .panel").forEach(p => {
+    document.querySelectorAll("#unifiedWorkspaceGrid .panel").forEach(p => {
       p.classList.add("collapsed");
       p.classList.remove("mobile-tab-active");
     });
@@ -2045,6 +2057,12 @@
         const panel = document.getElementById("panel-" + t.key);
         if(panel) panel.classList.remove("mobile-tab-active");
       });
+      // Desktop workspace: every panel stays expanded all the time — no
+      // accordion/collapse behavior here, so undo the blanket .collapsed
+      // just added above.
+      document.querySelectorAll("#unifiedWorkspaceGrid .panel").forEach(p => {
+        p.classList.remove("collapsed");
+      });
     } else {
       if(icon) icon.textContent = "📱";
       if(tabBar) tabBar.style.display = "";
@@ -2052,6 +2070,7 @@
       setMobileActiveTable(mobileActiveTableKey);
     }
     refreshViewToggleLabel();
+    if(typeof applyPanelWidths === "function") applyPanelWidths();
   }
 
   document.getElementById("viewToggleBtn").addEventListener("click", () => {
@@ -2063,15 +2082,6 @@
   document.addEventListener("click", (e) => {
     const tabBtn = e.target.closest(".toplist-tab-btn");
     if(tabBtn) setMobileActiveTable(tabBtn.dataset.tabKey);
-  });
-
-  document.querySelectorAll("#topListsContainer .panel-head, #alertsContainer .panel-head").forEach(head => {
-    const closeBtn = document.createElement("span");
-    closeBtn.className = "panel-close-btn";
-    closeBtn.setAttribute("role", "button");
-    closeBtn.setAttribute("aria-label", "Close full-screen view");
-    closeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-    head.appendChild(closeBtn);
   });
 
   applyViewMode();
@@ -2299,6 +2309,7 @@
         change: get("% Change"),
         country: get("Country"),
         float: get("Float"),
+        rvol: get("Relative Daily Volume (%)"),
         fifteenMinChg: get("15 Min Chg"),
         tradeCount: get("5 min trade count"),
         hoursSinceNews: resolveHoursSinceNews(row, tableKey),
@@ -2400,15 +2411,25 @@
     return `<span class="cp-trade-badge ${tierCls}">${escapeHtml(value)}</span>`;
   }
 
-  function cardPreviewHeaderHtml(includeTime){
-    const gridClass = includeTime ? "card-preview-row-toplist card-preview-row-richalert" : "card-preview-row-toplist";
-    return `<div class="card-preview-row ${gridClass} card-preview-header">
-      ${includeTime ? '<span class="cp-h">TIME</span>' : ""}
+  function cardPreviewHeaderHtml(mode){
+    if(mode === "richAlert"){
+      return `<div class="card-preview-row card-preview-row-toplist card-preview-row-richalert card-preview-header">
+        <span class="cp-h">TIME</span>
+        <span class="cp-h">SYM</span>
+        <span class="cp-h">PRICE</span>
+        <span class="cp-h">CHG%</span>
+        <span class="cp-h">FLT</span>
+        <span class="cp-h">RVOL%</span>
+        <span class="cp-h">5M#</span>
+      </div>`;
+    }
+    return `<div class="card-preview-row card-preview-row-toplist card-preview-header">
       <span class="cp-h">SYM</span>
       <span class="cp-h">PRICE</span>
       <span class="cp-h">CHG%</span>
       <span class="cp-h">FLT</span>
-      <span class="cp-h">${includeTime ? "RVOL%" : "15M%"}</span>
+      <span class="cp-h">RVOL%</span>
+      <span class="cp-h">15M%</span>
       <span class="cp-h">5M#</span>
     </div>`;
   }
@@ -2426,7 +2447,7 @@
     const mode = PREVIEW_MODE_BY_KEY[dataKey] || (isToplist ? "toplist" : "simple");
     const rankInfoBySymbol = mode === "toplist" ? computeRankChangeForPreview(tableKeyForLookup, rows) : null;
     const sample = rows.slice(0, 5);
-    let html = mode === "toplist" ? cardPreviewHeaderHtml(false) : mode === "richAlert" ? cardPreviewHeaderHtml(true) : "";
+    let html = mode === "toplist" ? cardPreviewHeaderHtml("toplist") : mode === "richAlert" ? cardPreviewHeaderHtml("richAlert") : "";
     sample.forEach(row => {
       if(mode === "toplist"){
         const f = extractPreviewFields(tableKeyForLookup, row, true);
@@ -2434,10 +2455,11 @@
         const previewColMap = {};
         (row.columns || []).forEach(c => { previewColMap[c.key] = c.value; });
         html += `<div class="card-preview-row card-preview-row-toplist" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
-          <span class="cp-ticker-group">${trendDotHtml(previewColMap)}<span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}${rankBadge}${chartIconHtml(f.symbol)}</span>
+          <span class="cp-ticker-group">${trendDotHtml(previewColMap)}<span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewRsBadge(f.daysSinceSplit)}${previewNewsIndicator(f.hoursSinceNews)}${rankBadge}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
+          ${previewRvolBadge(f.rvol)}
           ${previewChangeBadge(f.fifteenMinChg)}
           ${previewTradeCountBadge(f.tradeCount)}
         </div>`;
@@ -2445,7 +2467,7 @@
         const f = extractRichAlertPreviewFields(row);
         html += `<div class="card-preview-row card-preview-row-toplist card-preview-row-richalert" data-symbol="${escapeHtml(f.symbol || "")}" role="button" title="Open stock details">
           <span class="cp-time mono">${f.time ? escapeHtml(f.time) : "—"}</span>
-          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewNewsIndicator(f.hoursSinceNews)}${chartIconHtml(f.symbol)}</span>
+          <span class="cp-ticker-group"><span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${previewFlagImg(f.country)}${previewNewsIndicator(f.hoursSinceNews)}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
           ${previewFloatBadge(f.float)}
@@ -2455,7 +2477,7 @@
       } else {
         const f = extractPreviewFields(tableKeyForLookup, row, false);
         html += `<div class="card-preview-row">
-          <span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>${chartIconHtml(f.symbol)}
+          <span class="cp-symbol mono">${escapeHtml(f.symbol || "—")}</span>
           <span class="cp-price mono">${f.price ? escapeHtml(f.price) : "—"}</span>
           <span class="cp-change mono ${directionClass(f.change)}">${f.change ? escapeHtml(f.change) : "—"}</span>
         </div>`;
@@ -2509,12 +2531,6 @@
 
   function escapeHtml(str){
     return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-
-  function chartIconHtml(symbol){
-    const s = escapeHtml(symbol || "");
-    if(!s) return "";
-    return `<span class="chart-icon-link" data-chart-symbol="${s}" role="button" title="Open chart for ${s}" aria-label="Open chart for ${s}">📈</span>`;
   }
 
   // Small dot next to the symbol in the Top Lists tables — a compact
@@ -3097,7 +3113,7 @@
       html += "<tr>";
       mapping.forEach((m, idx) => {
         if(m.render === "symbol"){
-          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${trendDotHtml(colMap)}${chartIconHtml(row.symbol)}</td>`;
+          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${trendDotHtml(colMap)}</td>`;
           return;
         }
         if(!m.matchedKey){
@@ -3166,10 +3182,8 @@
       <div class="panel collapsed" id="panel-${a.key}">
         <div class="panel-head" data-fold="${a.key}">
           <div class="panel-head-left">
-            <button class="fold-btn" aria-label="Collapse ${escapeHtml(a.name)}" tabindex="-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <span class="panel-head-icon icon-orange">
+            <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+        <span class="panel-head-icon icon-orange">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </span>
             <h2>${escapeHtml(a.name)}</h2>
@@ -3839,7 +3853,7 @@
         const val = row[label];
         if(label === "Symbol"){
           html += val
-            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span>${chartIconHtml(val)}</td>`
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span></td>`
             : `<td class="na">—</td>`;
         } else if(label === "Price ($)"){
           html += renderPriceCell(val, row["Symbol"]);
@@ -4043,7 +4057,7 @@
         const val = row[label];
         if(label === "Symbol"){
           html += val
-            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span>${chartIconHtml(val)}</td>`
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span></td>`
             : `<td class="na">—</td>`;
         } else if(label === "Price ($)"){
           html += renderPriceCell(val, row["Symbol"]);
@@ -4094,7 +4108,7 @@
             </span>
             <div class="alert-time mono">${escapeHtml(item.time)}</div>
           </div>
-          ${item.symbol ? `<span class="sym sym-link alert-sym-badge" data-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</span>${chartIconHtml(item.symbol)}` : ""}
+          ${item.symbol ? `<span class="sym sym-link alert-sym-badge" data-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</span>` : ""}
         </div>
         <div class="alert-kv-grid">
           ${item.fields.map(f => `
@@ -4545,22 +4559,6 @@
   }
 
   let currentModalSymbol = null;
-  let currentChartSymbol = null;
-  let currentChartInterval = null;
-  let tvWidgetInstance = null;
-
-  // Add, remove, or reorder entries here to change which timeframe buttons
-  // appear on the chart page. `interval` follows TradingView's resolution
-  // format: minutes as a number ("1","5","15"), hours as "60"/"240", or
-  // "D"/"W"/"M" for day/week/month.
-  const CHART_TIMEFRAMES = [
-    { label: "1m",  interval: "1" },
-    { label: "5m",  interval: "5" },
-    { label: "15m", interval: "15" },
-    { label: "1H",  interval: "60" },
-    { label: "1D",  interval: "D" }
-  ];
-  const DEFAULT_CHART_INTERVAL = "5";
 
   let allSymbolsMap = null;
   let allSymbolsLoading = false;
@@ -5250,114 +5248,7 @@
     if(currentModalSymbol) renderStockModal(currentModalSymbol);
   }
 
-  function renderChartTimeframeButtons(){
-    const wrap = document.getElementById("chartPageTimeframes");
-    if(!wrap) return;
-    wrap.innerHTML = CHART_TIMEFRAMES.map(tf =>
-      `<button class="chart-tf-btn${tf.interval === currentChartInterval ? " active" : ""}" data-chart-interval="${escapeHtml(tf.interval)}">${escapeHtml(tf.label)}</button>`
-    ).join("");
-  }
-
-  let tvChartReadyForSymbol = null;
-
-  function loadTradingViewChart(symbol, interval){
-    const container = document.getElementById("chartPageWidgetContainer");
-    const emptyEl = document.getElementById("chartPageEmpty");
-    if(!container) return;
-
-    if(typeof TradingView === "undefined" || !TradingView.widget){
-      // tv.js hasn't finished loading yet — retry shortly.
-      setTimeout(() => loadTradingViewChart(symbol, interval), 250);
-      return;
-    }
-
-    if(emptyEl) emptyEl.style.display = "none";
-    tvChartReadyForSymbol = null;
-    container.innerHTML = "";
-    tvWidgetInstance = new TradingView.widget({
-      container_id: "chartPageWidgetContainer",
-      autosize: true,
-      symbol: symbol,
-      interval: interval,
-      timezone: "Etc/UTC",
-      theme: "dark",
-      style: "1",
-      locale: "en",
-      toolbar_bg: "#1a2a45",
-      hide_side_toolbar: false,
-      allow_symbol_change: true,
-      // Always show pre/after-market candles, not just the regular session.
-      extended_hours: true,
-      studies: [
-        "MAExp@tv-basicstudies",
-        "Volume@tv-basicstudies",
-        "VWAP@tv-basicstudies"
-      ],
-      // Locks the EMA study to a length of 9 specifically (its default
-      // length isn't guaranteed to be 9), and re-styles VWAP to orange
-      // with a slightly thicker line, so every chart opens pre-set this way.
-      studies_overrides: {
-        "moving average exponential.length": 9,
-        "vwap.color": "#ffb347",
-        "vwap.linewidth": 2,
-        "vwap.vwap.color": "#ffb347",
-        "vwap.vwap.linewidth": 2
-      }
-    });
-    // Once the chart is fully constructed we can call its API (e.g. to
-    // switch resolution) WITHOUT tearing the widget down — tearing it
-    // down is what wipes any drawings/indicators the user just added.
-    tvWidgetInstance.onChartReady(() => {
-      tvChartReadyForSymbol = symbol;
-      // Belt-and-braces: force the VWAP line's style directly through the
-      // study API too, in case the studies_overrides keys above don't
-      // match this widget build's internal plot naming.
-      try{
-        const chart = tvWidgetInstance.chart();
-        const vwapStudy = chart.getAllStudies().find(s => /vwap/i.test(s.name || ""));
-        if(vwapStudy){
-          const studyApi = chart.getStudyById(vwapStudy.id);
-          if(studyApi && typeof studyApi.applyOverrides === "function"){
-            studyApi.applyOverrides({
-              "vwap.color": "#ffb347",
-              "vwap.linewidth": 2
-            });
-          }
-        }
-      }catch(err){
-        // Non-fatal — API surface can vary slightly between widget builds.
-      }
-    });
-  }
-
-  function openChartPage(symbol){
-    currentChartSymbol = symbol ? symbol.toUpperCase() : null;
-    currentChartInterval = DEFAULT_CHART_INTERVAL;
-    document.getElementById("chartPageOverlay").classList.remove("hidden");
-    document.getElementById("chartPageSymbolInput").value = currentChartSymbol || "";
-    renderChartTimeframeButtons();
-    if(currentChartSymbol){
-      loadTradingViewChart(currentChartSymbol, currentChartInterval);
-    } else {
-      document.getElementById("chartPageWidgetContainer").innerHTML = "";
-      const emptyEl = document.getElementById("chartPageEmpty");
-      if(emptyEl) emptyEl.style.display = "flex";
-    }
-  }
-
-  function closeChartPage(){
-    document.getElementById("chartPageOverlay").classList.add("hidden");
-  }
-
   document.addEventListener("click", (e) => {
-    const chartIcon = e.target.closest("[data-chart-symbol]");
-    if(chartIcon){
-      e.stopPropagation();
-      e.preventDefault();
-      const symbol = chartIcon.getAttribute("data-chart-symbol");
-      if(symbol) openChartPage(symbol);
-      return;
-    }
     const previewRow = e.target.closest(".card-preview-row-toplist");
     if(!previewRow) return;
     e.stopPropagation();
@@ -5379,20 +5270,6 @@
     if(e.target === document.getElementById("stockModalOverlay") || e.target.closest("#modalCloseBtn")){
       closeStockModal();
     }
-    if(e.target.closest("#modalChartBtn") && currentModalSymbol){
-      const sym = currentModalSymbol;
-      closeStockModal();
-      openChartPage(sym);
-      return;
-    }
-    if(e.target.closest("#openChartPageBtn")){
-      openChartPage(currentChartSymbol);
-      return;
-    }
-    if(e.target.closest("#chartPageBackBtn")){
-      closeChartPage();
-      return;
-    }
     if(e.target.closest("#openResourcesPageBtn")){
       document.getElementById("resourcesPageOverlay").classList.remove("hidden");
       return;
@@ -5401,37 +5278,25 @@
       document.getElementById("resourcesPageOverlay").classList.add("hidden");
       return;
     }
-    const tfBtn = e.target.closest("[data-chart-interval]");
-    if(tfBtn){
-      currentChartInterval = tfBtn.getAttribute("data-chart-interval");
-      renderChartTimeframeButtons();
-      if(currentChartSymbol){
-        if(tvWidgetInstance && tvChartReadyForSymbol === currentChartSymbol){
-          // Switch resolution on the live chart instance so any drawings
-          // or indicators the user added stay in place.
-          try{
-            tvWidgetInstance.chart().setResolution(currentChartInterval);
-          }catch(err){
-            loadTradingViewChart(currentChartSymbol, currentChartInterval);
-          }
-        } else {
-          loadTradingViewChart(currentChartSymbol, currentChartInterval);
-        }
-      }
-      return;
-    }
-  });
-
-  document.getElementById("chartPageSymbolForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const raw = document.getElementById("chartPageSymbolInput").value.trim();
-    if(!raw) return;
-    openChartPage(raw);
   });
 
   document.addEventListener("keydown", (e) => {
-    if(e.key === "Escape") closeStockModal();
+    if(e.key === "Escape"){
+      closeStockModal();
+      if(document.body.classList.contains("workspace-fullscreen-mode")) setWorkspaceFullscreen(false);
+    }
   });
+
+  function setWorkspaceFullscreen(active){
+    document.body.classList.toggle("workspace-fullscreen-mode", active);
+    const btn = document.getElementById("workspaceFullscreenBtn");
+    if(!btn) return;
+    btn.classList.toggle("active", active);
+    btn.title = active ? "Exit fullscreen (Esc)" : "Expand Workspace to fullscreen";
+    btn.innerHTML = active
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M9 3v4a1 1 0 0 1-1 1H4M15 3v4a1 1 0 0 0 1 1h4M9 21v-4a1 1 0 0 0-1-1H4M15 21v-4a1 1 0 0 1 1-1h4"/></svg>`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>`;
+  }
 
   function connect(){
     clearTimeout(reconnectTimer);
@@ -5657,6 +5522,10 @@
       toggleBrowserNotifications();
       return;
     }
+    if(e.target.closest("#workspaceFullscreenBtn") || e.target.closest("#workspaceSectionTitle")){
+      setWorkspaceFullscreen(!document.body.classList.contains("workspace-fullscreen-mode"));
+      return;
+    }
     const head = e.target.closest("[data-fold]");
     if(!head) return;
     const id = head.getAttribute("data-fold");
@@ -5744,7 +5613,7 @@
     const match = cmdkMatches[index];
     if(!match) return;
     closeCmdk();
-    openChartPage(match.symbol);
+    openStockModal(match.symbol);
   }
 
   if(cmdkInput){
@@ -5815,8 +5684,309 @@
     }
   });
 
+  // ===================== UNIFIED WORKSPACE DRAG-AND-DROP =====================
+  // Desktop-only: lets any Top List table or Alert card be dragged into
+  // any slot in the shared grid, with the resulting order saved so it
+  // survives a reload. Mobile view keeps its own tab/2-col layout and
+  // ignores this (drag handles are hidden there via CSS).
+  const UNIFIED_GRID_ORDER_KEY = "unifiedWorkspaceOrder";
+
+  function initUnifiedWorkspaceDragDrop(){
+    const grid = document.getElementById("unifiedWorkspaceGrid");
+    if(!grid) return;
+
+    // Restore a previously saved order, if any — unknown/missing ids are
+    // just skipped, and any panel not mentioned (e.g. a newly added one)
+    // stays wherever it already is in the default markup order.
+    try{
+      const saved = JSON.parse(localStorage.getItem(UNIFIED_GRID_ORDER_KEY) || "null");
+      if(Array.isArray(saved)){
+        saved.forEach(id => {
+          const el = document.getElementById(id);
+          if(el && el.parentElement === grid) grid.appendChild(el);
+        });
+      }
+    }catch(err){
+      // Corrupt/old localStorage value — just keep the default order.
+    }
+
+    function saveOrder(){
+      const order = Array.from(grid.children)
+        .filter(el => el.classList.contains("panel"))
+        .map(el => el.id)
+        .filter(Boolean);
+      try{ localStorage.setItem(UNIFIED_GRID_ORDER_KEY, JSON.stringify(order)); }catch(err){}
+    }
+
+    let draggedPanel = null;
+
+    grid.addEventListener("dragstart", (e) => {
+      const head = e.target.closest(".panel-head[draggable='true']");
+      const panel = head ? head.closest(".panel") : null;
+      if(!panel || panel.parentElement !== grid){ e.preventDefault(); return; }
+      draggedPanel = panel;
+      panel.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      try{ e.dataTransfer.setData("text/plain", panel.id); }catch(err){}
+    });
+
+    grid.addEventListener("dragover", (e) => {
+      if(!draggedPanel) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      const target = e.target.closest(".panel");
+      document.querySelectorAll("#unifiedWorkspaceGrid .panel.drag-over-before, #unifiedWorkspaceGrid .panel.drag-over-after")
+        .forEach(p => p.classList.remove("drag-over-before", "drag-over-after"));
+      if(!target || target === draggedPanel || target.parentElement !== grid) return;
+      const rect = target.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      target.classList.add(before ? "drag-over-before" : "drag-over-after");
+    });
+
+    grid.addEventListener("drop", (e) => {
+      if(!draggedPanel) return;
+      e.preventDefault();
+      const target = e.target.closest(".panel");
+      document.querySelectorAll("#unifiedWorkspaceGrid .panel.drag-over-before, #unifiedWorkspaceGrid .panel.drag-over-after")
+        .forEach(p => p.classList.remove("drag-over-before", "drag-over-after"));
+      if(target && target !== draggedPanel && target.parentElement === grid){
+        const rect = target.getBoundingClientRect();
+        const before = e.clientY < rect.top + rect.height / 2;
+        grid.insertBefore(draggedPanel, before ? target : target.nextSibling);
+      }
+    });
+
+    grid.addEventListener("dragend", () => {
+      if(draggedPanel) draggedPanel.classList.remove("dragging");
+      document.querySelectorAll("#unifiedWorkspaceGrid .panel.drag-over-before, #unifiedWorkspaceGrid .panel.drag-over-after")
+        .forEach(p => p.classList.remove("drag-over-before", "drag-over-after"));
+      draggedPanel = null;
+      saveOrder();
+      if(typeof applyPanelWidths === "function") applyPanelWidths();
+    });
+  }
+
+  // ===================== BORDER-DRAG RESIZE (SHARED BOUNDARY, BOTH AXES) =====================
+  // Each panel gets a handle on its right edge (width) and bottom edge
+  // (height). Dragging either moves that boundary line — every panel
+  // whose edge lines up with it, across every row/column it runs
+  // through (not just the one panel next to it), grows or shrinks
+  // together, matching the "Day Dash" reference: one drag can resize a
+  // whole stack of panels at once, horizontally or vertically.
+  // (panelWidths/panelHeights and their keys/minimums are declared near
+  // the top of the script — see the comment there for why.)
+
+  function loadPanelWidths(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(PANEL_WIDTHS_KEY) || "null");
+      if(saved && typeof saved === "object") panelWidths = saved;
+    }catch(err){
+      // Ignore a corrupt value — panels fall back to their default share.
+    }
+  }
+
+  function loadPanelHeights(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(PANEL_HEIGHTS_KEY) || "null");
+      if(saved && typeof saved === "object") panelHeights = saved;
+    }catch(err){
+      // Ignore a corrupt value — panels fall back to the default height.
+    }
+  }
+
+  function savePanelWidths(){
+    try{ localStorage.setItem(PANEL_WIDTHS_KEY, JSON.stringify(panelWidths)); }catch(err){}
+  }
+
+  function savePanelHeights(){
+    try{ localStorage.setItem(PANEL_HEIGHTS_KEY, JSON.stringify(panelHeights)); }catch(err){}
+  }
+
+  function resizingActive(){
+    return document.body.classList.contains("view-desktop");
+  }
+
+  function applyPanelWidths(){
+    const grid = document.getElementById("unifiedWorkspaceGrid");
+    if(!grid) return;
+    const panels = Array.from(grid.children).filter(el => el.classList.contains("panel"));
+    if(!resizingActive()){
+      panels.forEach(p => { p.style.flex = ""; p.style.width = ""; });
+      return;
+    }
+    // Default share: three even columns worth of the grid's own current
+    // width, used the first time a panel is seen (or after its saved
+    // width no longer fits reasonably, e.g. a much narrower browser).
+    const gridWidth = grid.getBoundingClientRect().width || window.innerWidth;
+    const defaultWidth = Math.max(PANEL_MIN_WIDTH, Math.round((gridWidth - 16 * 2) / 3));
+    panels.forEach(p => {
+      const saved = panelWidths[p.id];
+      const width = (typeof saved === "number" && saved >= PANEL_MIN_WIDTH) ? saved : defaultWidth;
+      p.style.flex = `0 0 ${width}px`;
+      p.style.width = width + "px";
+    });
+  }
+
+  const PANEL_DEFAULT_HEIGHT = 420;
+
+  function applyPanelHeights(){
+    const grid = document.getElementById("unifiedWorkspaceGrid");
+    if(!grid) return;
+    const panels = Array.from(grid.children).filter(el => el.classList.contains("panel"));
+    if(!resizingActive()){
+      panels.forEach(p => { p.style.height = ""; });
+      return;
+    }
+    panels.forEach(p => {
+      const saved = panelHeights[p.id];
+      const height = (typeof saved === "number" && saved >= PANEL_MIN_HEIGHT) ? saved : PANEL_DEFAULT_HEIGHT;
+      p.style.height = height + "px";
+    });
+  }
+
+  function findAlignedGroups(panel, allPanels, axis){
+    // axis "w": boundary is this panel's right edge — panels sharing that
+    // same right edge grow with it, panels starting there shrink.
+    // axis "h": same idea using bottom/top edges instead, for height.
+    const rect = panel.getBoundingClientRect();
+    const boundary = axis === "w" ? Math.round(rect.right) : Math.round(rect.bottom);
+    const tolerance = 4;
+    const beforeGroup = []; // shares the boundary edge — grows with positive delta
+    const afterGroup = [];  // starts right at the boundary — shrinks with positive delta
+    allPanels.forEach(p => {
+      const r = p.getBoundingClientRect();
+      const edgeAtBoundary = axis === "w" ? Math.round(r.right) : Math.round(r.bottom);
+      const edgeAfterBoundary = axis === "w" ? Math.round(r.left) : Math.round(r.top);
+      if(Math.abs(edgeAtBoundary - boundary) <= tolerance) beforeGroup.push(p);
+      else if(Math.abs(edgeAfterBoundary - boundary) <= tolerance) afterGroup.push(p);
+    });
+    if(!beforeGroup.includes(panel)) beforeGroup.push(panel);
+    return { beforeGroup, afterGroup };
+  }
+
+  function startPanelResize(grid, panel, handle, axis, startPos){
+    if(!resizingActive()) return;
+    const isWidth = axis === "w";
+    const minSize = isWidth ? PANEL_MIN_WIDTH : PANEL_MIN_HEIGHT;
+    const store = isWidth ? panelWidths : panelHeights;
+    const resizingClass = isWidth ? "panel-resizing" : "panel-resizing-v";
+
+    const allPanels = Array.from(grid.children).filter(el => el.classList.contains("panel"));
+    const { beforeGroup, afterGroup } = findAlignedGroups(panel, allPanels, axis);
+    const startSizes = new Map();
+    allPanels.forEach(p => {
+      const r = p.getBoundingClientRect();
+      startSizes.set(p, isWidth ? r.width : r.height);
+    });
+
+    // How far the boundary can move in either direction before some panel
+    // in either group would go under the minimum size.
+    const maxGrow = afterGroup.length
+      ? Math.min(...afterGroup.map(p => startSizes.get(p) - minSize))
+      : Infinity;
+    const maxShrink = Math.min(...beforeGroup.map(p => startSizes.get(p) - minSize));
+
+    document.body.classList.add(resizingClass);
+    handle.classList.add("active");
+
+    function moveTo(currentPos){
+      const rawDelta = currentPos - startPos;
+      const delta = Math.max(-maxShrink, Math.min(maxGrow, rawDelta));
+
+      beforeGroup.forEach(p => {
+        const size = startSizes.get(p) + delta;
+        if(isWidth){ p.style.flex = `0 0 ${size}px`; p.style.width = size + "px"; }
+        else{ p.style.height = size + "px"; }
+        store[p.id] = Math.round(size);
+      });
+      afterGroup.forEach(p => {
+        const size = startSizes.get(p) - delta;
+        if(isWidth){ p.style.flex = `0 0 ${size}px`; p.style.width = size + "px"; }
+        else{ p.style.height = size + "px"; }
+        store[p.id] = Math.round(size);
+      });
+    }
+
+    function onMouseMove(ev){ moveTo(isWidth ? ev.clientX : ev.clientY); }
+    function onTouchMove(ev){
+      if(ev.touches[0]){ moveTo(isWidth ? ev.touches[0].clientX : ev.touches[0].clientY); ev.preventDefault(); }
+    }
+    function stop(){
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", stop);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", stop);
+      document.body.classList.remove(resizingClass);
+      handle.classList.remove("active");
+      if(isWidth) savePanelWidths(); else savePanelHeights();
+    }
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", stop);
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", stop);
+  }
+
+  function initPanelResizeHandles(){
+    const grid = document.getElementById("unifiedWorkspaceGrid");
+    if(!grid) return;
+
+    grid.querySelectorAll(":scope > .panel").forEach(panel => {
+      if(!panel.querySelector(":scope > .panel-resize-handle")){
+        const hHandle = document.createElement("span");
+        hHandle.className = "panel-resize-handle";
+        hHandle.title = "Drag to resize width";
+        hHandle.setAttribute("aria-hidden", "true");
+        hHandle.setAttribute("draggable", "false");
+        panel.appendChild(hHandle);
+        hHandle.addEventListener("mousedown", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          startPanelResize(grid, panel, hHandle, "w", e.clientX);
+        });
+        hHandle.addEventListener("touchstart", (e) => {
+          if(e.touches[0]){ e.stopPropagation(); startPanelResize(grid, panel, hHandle, "w", e.touches[0].clientX); }
+        }, { passive: true });
+      }
+
+      if(!panel.querySelector(":scope > .panel-resize-handle-v")){
+        const vHandle = document.createElement("span");
+        vHandle.className = "panel-resize-handle-v";
+        vHandle.title = "Drag to resize height";
+        vHandle.setAttribute("aria-hidden", "true");
+        vHandle.setAttribute("draggable", "false");
+        panel.appendChild(vHandle);
+        vHandle.addEventListener("mousedown", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          startPanelResize(grid, panel, vHandle, "h", e.clientY);
+        });
+        vHandle.addEventListener("touchstart", (e) => {
+          if(e.touches[0]){ e.stopPropagation(); startPanelResize(grid, panel, vHandle, "h", e.touches[0].clientY); }
+        }, { passive: true });
+      }
+    });
+  }
+
+  function initWorkspaceResizing(){
+    if(!document.getElementById("unifiedWorkspaceGrid")) return;
+    loadPanelWidths();
+    loadPanelHeights();
+    initPanelResizeHandles();
+    applyPanelWidths();
+    applyPanelHeights();
+    window.addEventListener("resize", () => {
+      // A real viewport resize can make saved pixel widths stop making
+      // sense (e.g. shrinking below what 3 saved widths need) — recompute
+      // defaults for any panel whose saved width no longer fits at all,
+      // while leaving panels the user deliberately sized alone otherwise.
+      applyPanelWidths();
+      applyPanelHeights();
+    });
+  }
+
   applyLanguage();
   connect();
+  initUnifiedWorkspaceDragDrop();
+  initWorkspaceResizing();
 
 })();
 </script>
