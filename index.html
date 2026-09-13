@@ -106,12 +106,30 @@
   .drag-handle{
     display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:5px;
     color: var(--muted); cursor:grab; flex-shrink:0; transition: background .15s ease, color .15s ease;
+    touch-action: none; /* let our own pointermove drive dragging, not the browser's scroll gesture */
   }
   .drag-handle:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
-  .panel-head[draggable="true"]{ cursor:grab; }
-  .panel.drag-over-before{ box-shadow: inset 0 3px 0 var(--accent); }
-  .panel.drag-over-after{ box-shadow: inset 0 -3px 0 var(--accent); }
-  .panel.dragging{ opacity:0.4; }
+  .drag-handle:active{ cursor:grabbing; }
+  body.custom-panel-dragging{ cursor:grabbing !important; user-select:none; }
+  body.custom-panel-dragging *{ cursor:grabbing !important; }
+
+  /* The dragged panel itself — lifted and slightly faded so it clearly
+     reads as "in motion" without disappearing. */
+  .panel.custom-dragging{
+    opacity:0.65; transform: scale(0.98); box-shadow: 0 16px 34px rgba(0,0,0,0.55);
+    z-index:120; transition: none;
+  }
+  /* The magnetic snap indicator — whichever panel/edge the dragged one
+     would land at glows and gets a solid accent line right on that edge,
+     so the drop target is obvious and feels like it "pulls" the panel in. */
+  .panel.magnet-before{
+    box-shadow: inset 3px 0 0 var(--accent), 0 0 18px rgba(76,158,255,0.55);
+    transition: box-shadow .1s ease;
+  }
+  .panel.magnet-after{
+    box-shadow: inset -3px 0 0 var(--accent), 0 0 18px rgba(76,158,255,0.55);
+    transition: box-shadow .1s ease;
+  }
 
   /* Reliable fallback for reordering panels — a straight click always
      works, unlike drag-and-drop which can be fiddly (small panels, touch
@@ -132,10 +150,9 @@
   }
 
   /* Border-drag resize handles on each panel's edges — dragging the right
-     edge resizes width, the bottom edge resizes height. Either one moves
-     every other panel that shares that same boundary line, across every
-     row/column it runs through, not just the one panel next to it — that's
-     the "Day Dash" style tiled resize. Kept fully inside the panel's own
+     edge resizes width, the bottom edge resizes height. Each panel resizes
+     completely independently: no shared boundary with neighbors, nothing
+     else grows or shrinks to compensate. Kept fully inside the panel's own
      box (not straddling the border) because .panel has overflow:hidden for
      its rounded corners — a child sitting partly outside that box would
      get clipped and silently stop being clickable in the clipped area. */
@@ -160,6 +177,12 @@
   body.panel-resizing-v{ cursor: row-resize !important; user-select: none; }
   body.panel-resizing-v *{ cursor: row-resize !important; }
   .view-mobile .panel-resize-handle, .view-mobile .panel-resize-handle-v{ display:none; }
+  /* Panels the user removed via the "Add" picker (or never added) — hidden
+     everywhere, desktop or mobile, regardless of what the view-mode rules
+     above would otherwise show. */
+  #unifiedWorkspaceGrid .panel.panel-hidden-by-user,
+  .view-desktop #unifiedWorkspaceGrid .panel.panel-hidden-by-user,
+  .view-mobile #unifiedWorkspaceGrid .panel.panel-hidden-by-user{ display:none !important; }
 
   /* Panel header content wraps instead of overflowing when a column
      gets dragged narrow. */
@@ -259,6 +282,10 @@
     border-radius: 2px;
     box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
     flex-shrink: 0;
+  }
+  .sym-flag{
+    display: inline-block; vertical-align: middle; margin-left: 6px; border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.1); flex-shrink: 0;
   }
   .card-preview-row-toplist .cp-news-indicator{
     font-size: 11px;
@@ -466,6 +493,55 @@
   .notif-toggle-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
   .notif-toggle-btn.enabled{ background: rgba(110,219,143,0.12); color: var(--up); border-color: rgba(110,219,143,0.35); }
   .notif-toggle-btn.denied{ background: rgba(255,68,104,0.1); color: var(--down); border-color: rgba(255,68,104,0.3); cursor:not-allowed; }
+
+  /* "Add" panel picker — button + its dropdown menu of every available
+     table/alert, styled like a compact dark sidebar list (checkmark next
+     to whichever ones are already showing). */
+  .panel-picker-wrap{ position:relative; }
+  .panel-picker-btn{
+    display:flex; align-items:center; gap:6px; background: rgba(255,255,255,0.04); border:1px solid var(--border);
+    color: var(--header-text); font-family:inherit; font-size:11.5px; font-weight:700; padding:6px 12px;
+    border-radius:20px; cursor:pointer; transition: all .15s ease;
+  }
+  .panel-picker-btn:hover{ background: var(--accent-dim); border-color: rgba(76,158,255,0.4); color: var(--accent); }
+  .panel-picker-menu{
+    position:absolute; top:calc(100% + 6px); left:0; z-index:60; width:260px; max-height:360px; overflow-y:auto;
+    background: #10161f; border:1px solid var(--border); border-radius:10px; box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    padding:6px;
+  }
+  .panel-picker-menu.hidden{ display:none; }
+  .panel-picker-item{
+    display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:7px; cursor:pointer;
+    font-size:12.5px; color: var(--text); transition: background .1s ease;
+  }
+  .panel-picker-item:hover{ background: rgba(255,255,255,0.06); }
+  .panel-picker-item .pp-check{
+    width:15px; height:15px; border-radius:4px; border:1px solid var(--border); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:10px; color:transparent;
+  }
+  .panel-picker-item.added .pp-check{ background: var(--accent); border-color: var(--accent); color:#06111f; }
+  .panel-picker-item.added{ color: var(--header-text); font-weight:600; }
+
+  .workspace-save-btn{
+    display:flex; align-items:center; gap:6px; background: rgba(255,255,255,0.04); border:1px solid var(--border);
+    color: var(--muted); font-family:inherit; font-size:11.5px; font-weight:700; padding:6px 12px;
+    border-radius:20px; cursor:pointer; transition: all .15s ease;
+  }
+  .workspace-save-btn:hover{ background: rgba(255,255,255,0.08); color: var(--header-text); }
+  .workspace-save-btn.saved{ background: rgba(110,219,143,0.14); color: var(--up); border-color: rgba(110,219,143,0.4); }
+
+  .workspace-empty-note{
+    text-align:center; color: var(--muted); font-size:13px; padding:36px 20px; border:1px dashed var(--border);
+    border-radius:12px; margin-bottom:16px; background: rgba(255,255,255,0.02);
+  }
+  .workspace-empty-note.hidden{ display:none; }
+
+  .panel-close-x{
+    display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:5px;
+    color: var(--muted); background:transparent; border:none; cursor:pointer; flex-shrink:0;
+    transition: background .15s ease, color .15s ease;
+  }
+  .panel-close-x:hover{ background: rgba(255,68,104,0.15); color: var(--down); }
 
   .workspace-fullscreen-btn{
     display:flex; align-items:center; justify-content:center; width:30px; height:30px;
@@ -1330,6 +1406,17 @@
   <div class="section-heading main-section-heading">
     <h3 data-i18n="workspace" id="workspaceSectionTitle" title="Click to expand Workspace to fullscreen" style="cursor:pointer;">Workspace</h3>
     <div class="header-live-status">
+      <div class="panel-picker-wrap">
+        <button class="panel-picker-btn" id="panelPickerBtn" title="Add a table or alert to the workspace">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span data-i18n="addPanel">Add</span>
+        </button>
+        <div class="panel-picker-menu hidden" id="panelPickerMenu"></div>
+      </div>
+      <button class="workspace-save-btn" id="workspaceSaveBtn" title="Save the current workspace layout (which panels are shown, their order and sizes)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span data-i18n="saveLayout">Save Layout</span>
+      </button>
       <button class="workspace-fullscreen-btn" id="workspaceFullscreenBtn" title="Expand Workspace to fullscreen">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
       </button>
@@ -1346,10 +1433,13 @@
     </div>
   </div>
   <div id="topListsTabBar" class="toplist-tab-bar" style="display:none;"></div>
+  <div class="workspace-empty-note hidden" id="workspaceEmptyNote">
+    <span data-i18n="workspaceEmptyNote">Workspace is empty — click "Add" above to bring in a table or alert.</span>
+  </div>
   <div id="unifiedWorkspaceGrid">
   <!-- ===== Section 1: Top Gainers ===== -->
   <div class="panel tl-panel" id="panel-table1">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
@@ -1366,7 +1456,7 @@
 
   <!-- ===== Section 2: Most Active ===== -->
   <div class="panel tl-panel" id="panel-table2">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-blue">
@@ -1383,7 +1473,7 @@
 
   <!-- ===== Section 5: Low Float Top Gainers ===== -->
   <div class="panel tl-panel" id="panel-table5">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-blue">
@@ -1400,7 +1490,7 @@
 
   <!-- ===== Section 3: After Market ===== -->
   <div class="panel tl-panel" id="panel-table3">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-green">
@@ -1417,7 +1507,7 @@
 
   <!-- ===== Section 4: Top 15-Min Gainers ===== -->
   <div class="panel tl-panel" id="panel-table4">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-green">
@@ -1434,7 +1524,7 @@
 
   <!-- ===== Section 6: Split ===== -->
   <div class="panel tl-panel" id="panel-table6">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
@@ -1451,7 +1541,7 @@
 
   <!-- ===== Section: 🟩 Small Cap - High of Day Momentum ===== -->
   <div class="panel alert-panel" id="panel-hodmomo">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-green">
@@ -1471,7 +1561,7 @@
 
   <!-- ===== Section: 🥇 RUNNING UP ===== -->
   <div class="panel alert-panel" id="panel-runningup">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
@@ -1491,7 +1581,7 @@
 
   <!-- ===== Section: 🌅 Pre-Market Bounce ===== -->
   <div class="panel alert-panel" id="panel-premarketbounce">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-orange">
@@ -1511,7 +1601,7 @@
 
   <!-- ===== Section: Halt ===== -->
   <div class="panel alert-panel" id="panel-halts">
-    <div class="panel-head" draggable="true">
+    <div class="panel-head">
       <div class="panel-head-left">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
         <span class="panel-head-icon icon-red">
@@ -1754,9 +1844,14 @@
     { display: "15 Min Chg",                 render: "change-tier" },
     { display: "Float",                      render: "float-tier" },
     { display: "Relative Daily Volume (%)",  render: "rvol-tier" },
-    { display: "Country",                    render: "country-flag" },
     { display: "5 min trade count",          render: "trade-count-tier" }
   ];
+
+  // Country is no longer its own column in the main tables — the flag now
+  // sits inline next to the symbol instead, found this way (independent of
+  // the mapping list above) since it's the same trick used elsewhere for
+  // metrics the table doesn't need its own header for (see TRADE_COUNT_5M_HINTS).
+  const COUNTRY_HINTS = ["country", "countryinfo"];
 
   const SPLIT_COLUMNS = [
     ...STANDARD_COLUMNS,
@@ -1806,6 +1901,10 @@
       marketPulse: "Market Pulse",
       topLists: "Top Lists",
       workspace: "Workspace",
+      addPanel: "Add",
+      saveLayout: "Save Layout",
+      layoutSaved: "Saved ✓",
+      workspaceEmptyNote: "Workspace is empty — click \"Add\" above to bring in a table or alert.",
       alerts: "Alerts",
       general: "General",
       education: "Education",
@@ -1868,6 +1967,10 @@
       marketPulse: "نبض السوق",
       topLists: "القوائم الأكثر حركة",
       workspace: "مساحة العمل",
+      addPanel: "إضافة",
+      saveLayout: "حفظ التخطيط",
+      layoutSaved: "تم الحفظ ✓",
+      workspaceEmptyNote: "مساحة العمل فارغة — اضغط \"إضافة\" بالأعلى لإضافة جدول أو تنبيه.",
       alerts: "التنبيهات",
       general: "عام",
       education: "التعليم",
@@ -1938,6 +2041,28 @@
   let panelHeights = {};
   const PANEL_MIN_HEIGHT = 160;
 
+  // The full catalog of every table/alert the dashboard can show, used by
+  // the "Add" panel picker menu. Names here are the same ones already used
+  // for their headings elsewhere — kept as a flat list (not derived from
+  // TABLES/ALERT_CONFIGS) so it's safe to declare this early, before those
+  // arrays exist yet.
+  const WORKSPACE_PANEL_CATALOG = [
+    { id: "panel-table1", i18nKey: "topGainers" },
+    { id: "panel-table2", i18nKey: "mostActive" },
+    { id: "panel-table5", i18nKey: "lowFloatTopGainers" },
+    { id: "panel-table3", i18nKey: "afterMarket" },
+    { id: "panel-table4", i18nKey: "top15MinGainers" },
+    { id: "panel-table6", i18nKey: "split" },
+    { id: "panel-hodmomo", i18nKey: "smallCapHodMomentum" },
+    { id: "panel-runningup", i18nKey: "runningUp" },
+    { id: "panel-premarketbounce", i18nKey: "preMarketBounce" },
+    { id: "panel-halts", i18nKey: "haltsResumptions" }
+  ];
+  const WORKSPACE_VISIBLE_PANELS_KEY = "workspaceVisiblePanels";
+  // null = "haven't loaded/decided yet". Once loaded, an array — including
+  // an empty one, which deliberately means "user wants the workspace blank".
+  let visiblePanelIds = null;
+
   function tr(key){
     return (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage][key]) || TRANSLATIONS.en[key] || key;
   }
@@ -1963,6 +2088,7 @@
     if(typeof buildMobileTabBar === "function" && viewMode === "mobile") buildMobileTabBar();
     if(typeof recomputeMarketPulse === "function") recomputeMarketPulse();
     if(typeof updateMarketStatusBar === "function") updateMarketStatusBar();
+    if(typeof renderPanelPickerMenu === "function") renderPanelPickerMenu();
 
     // Trending News is an external, English-only third-party page we
     // don't control and can't fetch/translate ourselves (confirmed
@@ -2362,6 +2488,19 @@
     if(!countryCode || !/^[A-Za-z]{2}$/.test(String(countryCode).trim())) return "";
     const cc = String(countryCode).trim().toLowerCase();
     return `<img class="cp-flag" src="https://flagcdn.com/16x12/${cc}.png" width="13" height="10" alt="${escapeHtml(countryCode)}" onerror="this.remove()" />`;
+  }
+
+  // Same idea as previewFlagImg, sized for the main tables' symbol cell
+  // instead of the compact preview cards.
+  function symbolFlagImg(countryCode){
+    if(!countryCode || !/^[A-Za-z]{2}$/.test(String(countryCode).trim())) return "";
+    const cc = String(countryCode).trim().toLowerCase();
+    return `<img class="sym-flag" src="https://flagcdn.com/20x15/${cc}.png" width="15" height="11" alt="${escapeHtml(countryCode)}" onerror="this.remove()" />`;
+  }
+
+  function symbolFlagHtml(colMap){
+    const key = Object.keys(colMap).find(k => metricKeyMatches(k, COUNTRY_HINTS));
+    return key ? symbolFlagImg(colMap[key]) : "";
   }
 
   function previewFloatBadge(value){
@@ -3106,7 +3245,7 @@
       html += "<tr>";
       mapping.forEach((m, idx) => {
         if(m.render === "symbol"){
-          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${trendDotHtml(colMap)}</td>`;
+          html += `<td><span class="sym sym-link" data-symbol="${escapeHtml(row.symbol || "")}">${escapeHtml(row.symbol || "—")}</span>${symbolFlagHtml(colMap)}${trendDotHtml(colMap)}</td>`;
           return;
         }
         if(!m.matchedKey){
@@ -3882,7 +4021,7 @@
     "Daily Volume":                   { hints: ["dailyvolume", "dvolume", "volume", "vol", "absvolumefilterday1"] },
     "Strategy":                        { hints: ["strategyname", "strategy"] }
   };
-  const SCREENING_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Daily Volume", "Float", "Relative Daily Volume (%)", "Country", "5 min trade count", "Strategy"];
+  const SCREENING_DISPLAY_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Daily Volume", "Float", "Relative Daily Volume (%)", "5 min trade count", "Strategy"];
   const SCREENING_MATCH_ORDER = ["Time", "Symbol", "Price ($)", "News Icon", "% Change", "Float", "Country", "5 min trade count", "Relative Daily Volume (%)", "Daily Volume", "Strategy"];
 
   function timeSortKey(raw){
@@ -4050,7 +4189,7 @@
         const val = row[label];
         if(label === "Symbol"){
           html += val
-            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span></td>`
+            ? `<td><span class="sym sym-link" data-symbol="${escapeHtml(val)}">${escapeHtml(val)}</span>${symbolFlagImg(row["Country"])}</td>`
             : `<td class="na">—</td>`;
         } else if(label === "Price ($)"){
           html += renderPriceCell(val, row["Symbol"]);
@@ -5639,6 +5778,127 @@
     refreshMoveButtonStates();
   }
 
+  // ===================== PANEL PICKER (add/remove) + explicit save =====================
+  // The workspace starts empty on a brand-new visit — nothing is added
+  // until the user deliberately brings a table/alert in via the "Add" menu,
+  // or a previously-saved layout is found and restored.
+  function loadVisiblePanels(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(WORKSPACE_VISIBLE_PANELS_KEY) || "null");
+      visiblePanelIds = Array.isArray(saved) ? saved : [];
+    }catch(err){
+      visiblePanelIds = [];
+    }
+  }
+
+  function isPanelVisible(id){
+    return Array.isArray(visiblePanelIds) && visiblePanelIds.includes(id);
+  }
+
+  function applyPanelVisibility(){
+    const grid = document.getElementById("unifiedWorkspaceGrid");
+    const emptyNote = document.getElementById("workspaceEmptyNote");
+    if(!grid) return;
+    let anyVisible = false;
+    WORKSPACE_PANEL_CATALOG.forEach(entry => {
+      const panel = document.getElementById(entry.id);
+      if(!panel) return;
+      const visible = isPanelVisible(entry.id);
+      panel.classList.toggle("panel-hidden-by-user", !visible);
+      if(visible) anyVisible = true;
+    });
+    if(emptyNote) emptyNote.classList.toggle("hidden", anyVisible);
+    if(typeof applyPanelWidths === "function") applyPanelWidths();
+    if(typeof applyPanelHeights === "function") applyPanelHeights();
+    if(typeof initPanelResizeHandles === "function") initPanelResizeHandles();
+    if(typeof refreshMoveButtonStates === "function") refreshMoveButtonStates();
+  }
+
+  function togglePanelVisibility(id){
+    if(!Array.isArray(visiblePanelIds)) visiblePanelIds = [];
+    const idx = visiblePanelIds.indexOf(id);
+    if(idx === -1) visiblePanelIds.push(id); else visiblePanelIds.splice(idx, 1);
+    applyPanelVisibility();
+    renderPanelPickerMenu();
+  }
+
+  function renderPanelPickerMenu(){
+    const menu = document.getElementById("panelPickerMenu");
+    if(!menu) return;
+    menu.innerHTML = WORKSPACE_PANEL_CATALOG.map(entry => {
+      const added = isPanelVisible(entry.id);
+      return `<div class="panel-picker-item${added ? " added" : ""}" data-panel-id="${entry.id}">
+        <span class="pp-check">${added ? "✓" : ""}</span>
+        <span>${escapeHtml(tr(entry.i18nKey))}</span>
+      </div>`;
+    }).join("");
+  }
+
+  function addPanelCloseButtons(){
+    WORKSPACE_PANEL_CATALOG.forEach(entry => {
+      const panel = document.getElementById(entry.id);
+      if(!panel) return;
+      const head = panel.querySelector(":scope > .panel-head");
+      if(!head || head.querySelector(":scope > .panel-close-x")) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "panel-close-x";
+      btn.title = "Remove from workspace";
+      btn.setAttribute("aria-label", "Remove panel from workspace");
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+      btn.addEventListener("click", (e) => { e.stopPropagation(); togglePanelVisibility(entry.id); });
+      head.appendChild(btn);
+    });
+  }
+
+  function initPanelPicker(){
+    loadVisiblePanels();
+    addPanelCloseButtons();
+    applyPanelVisibility();
+    renderPanelPickerMenu();
+
+    const btn = document.getElementById("panelPickerBtn");
+    const menu = document.getElementById("panelPickerMenu");
+    if(btn && menu){
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        menu.classList.toggle("hidden");
+      });
+      menu.addEventListener("click", (e) => {
+        // Stop this from bubbling to the document-level "click outside
+        // closes the menu" listener below — without this, the moment
+        // togglePanelVisibility() re-renders the menu's innerHTML, e.target
+        // becomes a detached node, menu.contains(e.target) reads false,
+        // and the outside-click handler closes the menu after every single
+        // selection instead of letting you pick several in a row.
+        e.stopPropagation();
+        const item = e.target.closest(".panel-picker-item");
+        if(item) togglePanelVisibility(item.getAttribute("data-panel-id"));
+      });
+      document.addEventListener("click", (e) => {
+        if(!menu.classList.contains("hidden") && !menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+          menu.classList.add("hidden");
+        }
+      });
+    }
+
+    const saveBtn = document.getElementById("workspaceSaveBtn");
+    if(saveBtn){
+      saveBtn.addEventListener("click", () => {
+        try{ localStorage.setItem(WORKSPACE_VISIBLE_PANELS_KEY, JSON.stringify(visiblePanelIds || [])); }catch(err){}
+        if(typeof saveWorkspaceOrder === "function") saveWorkspaceOrder();
+        saveBtn.classList.add("saved");
+        const label = saveBtn.querySelector("span");
+        const originalText = label ? label.textContent : "";
+        if(label) label.textContent = tr("layoutSaved");
+        setTimeout(() => {
+          saveBtn.classList.remove("saved");
+          if(label) label.textContent = originalText || tr("saveLayout");
+        }, 1800);
+      });
+    }
+  }
+
   function initUnifiedWorkspaceDragDrop(){
     const grid = document.getElementById("unifiedWorkspaceGrid");
     if(!grid) return;
@@ -5658,64 +5918,95 @@
       // Corrupt/old localStorage value — just keep the default order.
     }
 
-    function saveOrder(){ saveWorkspaceOrder(); }
-
+    // ---- Custom pointer-based drag, with magnetic snapping ----
+    // Native HTML5 drag-and-drop (dragstart/dragover/drop) turned out
+    // unreliable in practice — inconsistent across trackpads/browsers, and
+    // easy to accidentally trigger a click instead of a drag. This tracks
+    // the pointer directly instead: press the handle, drag anywhere over
+    // the grid, and whichever panel edge you're closest to lights up and
+    // "pulls" your panel into that exact slot on release — the actual
+    // reorder only happens once, on drop, so nothing jumps around while
+    // you're still deciding where to drop it.
     let draggedPanel = null;
+    let snapTarget = null;
+    let snapBefore = true;
 
-    grid.addEventListener("dragstart", (e) => {
-      const head = e.target.closest(".panel-head[draggable='true']");
-      const panel = head ? head.closest(".panel") : null;
-      if(!panel || panel.parentElement !== grid){ e.preventDefault(); return; }
-      draggedPanel = panel;
-      panel.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      try{ e.dataTransfer.setData("text/plain", panel.id); }catch(err){}
-    });
+    function clearSnapIndicators(){
+      grid.querySelectorAll(".panel.magnet-before, .panel.magnet-after").forEach(p => {
+        p.classList.remove("magnet-before", "magnet-after");
+      });
+    }
 
-    grid.addEventListener("dragover", (e) => {
+    function onPointerMove(e){
       if(!draggedPanel) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      const target = e.target.closest(".panel");
-      document.querySelectorAll("#unifiedWorkspaceGrid .panel.drag-over-before, #unifiedWorkspaceGrid .panel.drag-over-after")
-        .forEach(p => p.classList.remove("drag-over-before", "drag-over-after"));
-      if(!target || target === draggedPanel || target.parentElement !== grid) return;
-      const rect = target.getBoundingClientRect();
-      const before = e.clientY < rect.top + rect.height / 2;
-      target.classList.add(before ? "drag-over-before" : "drag-over-after");
-    });
-
-    grid.addEventListener("drop", (e) => {
-      if(!draggedPanel) return;
-      e.preventDefault();
-      const target = e.target.closest(".panel");
-      document.querySelectorAll("#unifiedWorkspaceGrid .panel.drag-over-before, #unifiedWorkspaceGrid .panel.drag-over-after")
-        .forEach(p => p.classList.remove("drag-over-before", "drag-over-after"));
-      if(target && target !== draggedPanel && target.parentElement === grid){
-        const rect = target.getBoundingClientRect();
-        const before = e.clientY < rect.top + rect.height / 2;
-        grid.insertBefore(draggedPanel, before ? target : target.nextSibling);
+      const panels = Array.from(grid.children).filter(el => el.classList.contains("panel") && el !== draggedPanel);
+      let target = null;
+      for(const p of panels){
+        const r = p.getBoundingClientRect();
+        if(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom){
+          target = p;
+          break;
+        }
       }
-    });
+      clearSnapIndicators();
+      if(target){
+        const r = target.getBoundingClientRect();
+        // Snap by whichever axis actually varies between rows/columns at
+        // this spot — horizontal midpoint when side-by-side, vertical
+        // midpoint when stacked — so the magnet feels right either way.
+        const before = e.clientX < r.left + r.width / 2;
+        target.classList.add(before ? "magnet-before" : "magnet-after");
+        snapTarget = target;
+        snapBefore = before;
+      } else {
+        snapTarget = null;
+      }
+    }
 
-    grid.addEventListener("dragend", () => {
-      if(draggedPanel) draggedPanel.classList.remove("dragging");
-      document.querySelectorAll("#unifiedWorkspaceGrid .panel.drag-over-before, #unifiedWorkspaceGrid .panel.drag-over-after")
-        .forEach(p => p.classList.remove("drag-over-before", "drag-over-after"));
+    function onPointerUp(){
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.body.classList.remove("custom-panel-dragging");
+      if(draggedPanel) draggedPanel.classList.remove("custom-dragging");
+      clearSnapIndicators();
+
+      if(snapTarget && snapTarget !== draggedPanel){
+        grid.insertBefore(draggedPanel, snapBefore ? snapTarget : snapTarget.nextSibling);
+        saveWorkspaceOrder();
+        refreshMoveButtonStates();
+        if(typeof applyPanelWidths === "function") applyPanelWidths();
+      }
       draggedPanel = null;
-      saveOrder();
-      refreshMoveButtonStates();
-      if(typeof applyPanelWidths === "function") applyPanelWidths();
+      snapTarget = null;
+    }
+
+    grid.addEventListener("pointerdown", (e) => {
+      if(!resizingActive()) return; // desktop-only, same scope as reorder always had
+      const handle = e.target.closest(".drag-handle");
+      if(!handle) return;
+      const panel = handle.closest(".panel");
+      if(!panel || panel.parentElement !== grid) return;
+      e.preventDefault();
+
+      draggedPanel = panel;
+      snapTarget = null;
+      document.body.classList.add("custom-panel-dragging");
+      panel.classList.add("custom-dragging");
+
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
     });
   }
 
-  // ===================== BORDER-DRAG RESIZE (SHARED BOUNDARY, BOTH AXES) =====================
+  // ===================== BORDER-DRAG RESIZE (FULLY INDEPENDENT, BOTH AXES) =====================
   // Each panel gets a handle on its right edge (width) and bottom edge
-  // (height). Dragging either moves that boundary line — every panel
-  // whose edge lines up with it, across every row/column it runs
-  // through (not just the one panel next to it), grows or shrinks
-  // together, matching the "Day Dash" reference: one drag can resize a
-  // whole stack of panels at once, horizontally or vertically.
+  // (height). Dragging either resizes ONLY that one panel — no shared
+  // column/row boundary, no pushing or squeezing any other panel. If a
+  // panel grows past what fits in its row, flex-wrap naturally bumps
+  // whichever panel no longer fits down to the next line; nothing is
+  // force-resized to compensate. Each panel's table-scroll already
+  // manages its own horizontal overflow/scrollbar independently based on
+  // its own width, so no extra work is needed there.
   // (panelWidths/panelHeights and their keys/minimums are declared near
   // the top of the script — see the comment there for why.)
 
@@ -5787,26 +6078,6 @@
     });
   }
 
-  function findAlignedGroups(panel, allPanels, axis){
-    // axis "w": boundary is this panel's right edge — panels sharing that
-    // same right edge grow with it, panels starting there shrink.
-    // axis "h": same idea using bottom/top edges instead, for height.
-    const rect = panel.getBoundingClientRect();
-    const boundary = axis === "w" ? Math.round(rect.right) : Math.round(rect.bottom);
-    const tolerance = 4;
-    const beforeGroup = []; // shares the boundary edge — grows with positive delta
-    const afterGroup = [];  // starts right at the boundary — shrinks with positive delta
-    allPanels.forEach(p => {
-      const r = p.getBoundingClientRect();
-      const edgeAtBoundary = axis === "w" ? Math.round(r.right) : Math.round(r.bottom);
-      const edgeAfterBoundary = axis === "w" ? Math.round(r.left) : Math.round(r.top);
-      if(Math.abs(edgeAtBoundary - boundary) <= tolerance) beforeGroup.push(p);
-      else if(Math.abs(edgeAfterBoundary - boundary) <= tolerance) afterGroup.push(p);
-    });
-    if(!beforeGroup.includes(panel)) beforeGroup.push(panel);
-    return { beforeGroup, afterGroup };
-  }
-
   function startPanelResize(grid, panel, handle, axis, startPos){
     if(!resizingActive()) return;
     const isWidth = axis === "w";
@@ -5814,40 +6085,22 @@
     const store = isWidth ? panelWidths : panelHeights;
     const resizingClass = isWidth ? "panel-resizing" : "panel-resizing-v";
 
-    const allPanels = Array.from(grid.children).filter(el => el.classList.contains("panel"));
-    const { beforeGroup, afterGroup } = findAlignedGroups(panel, allPanels, axis);
-    const startSizes = new Map();
-    allPanels.forEach(p => {
-      const r = p.getBoundingClientRect();
-      startSizes.set(p, isWidth ? r.width : r.height);
-    });
-
-    // How far the boundary can move in either direction before some panel
-    // in either group would go under the minimum size.
-    const maxGrow = afterGroup.length
-      ? Math.min(...afterGroup.map(p => startSizes.get(p) - minSize))
-      : Infinity;
-    const maxShrink = Math.min(...beforeGroup.map(p => startSizes.get(p) - minSize));
+    // Fully independent — resizing this panel never touches any other
+    // panel's size. If it grows past what fits in the row, flex-wrap just
+    // pushes whichever panel no longer fits down to the next line; nothing
+    // gets squeezed to compensate.
+    const rect = panel.getBoundingClientRect();
+    const startSize = isWidth ? rect.width : rect.height;
 
     document.body.classList.add(resizingClass);
     handle.classList.add("active");
 
     function moveTo(currentPos){
-      const rawDelta = currentPos - startPos;
-      const delta = Math.max(-maxShrink, Math.min(maxGrow, rawDelta));
-
-      beforeGroup.forEach(p => {
-        const size = startSizes.get(p) + delta;
-        if(isWidth){ p.style.flex = `0 0 ${size}px`; p.style.width = size + "px"; }
-        else{ p.style.height = size + "px"; }
-        store[p.id] = Math.round(size);
-      });
-      afterGroup.forEach(p => {
-        const size = startSizes.get(p) - delta;
-        if(isWidth){ p.style.flex = `0 0 ${size}px`; p.style.width = size + "px"; }
-        else{ p.style.height = size + "px"; }
-        store[p.id] = Math.round(size);
-      });
+      const delta = currentPos - startPos;
+      const size = Math.max(minSize, startSize + delta);
+      if(isWidth){ panel.style.flex = `0 0 ${size}px`; panel.style.width = size + "px"; }
+      else{ panel.style.height = size + "px"; }
+      store[panel.id] = Math.round(size);
     }
 
     function onMouseMove(ev){ moveTo(isWidth ? ev.clientX : ev.clientY); }
@@ -5928,6 +6181,7 @@
 
   applyLanguage();
   connect();
+  initPanelPicker();
   initUnifiedWorkspaceDragDrop();
   initPanelMoveButtons();
   initWorkspaceResizing();
