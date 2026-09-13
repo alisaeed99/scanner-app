@@ -100,7 +100,15 @@
   }
   .view-desktop #unifiedWorkspaceGrid .panel-head{ position:static !important; padding-right:17px !important; }
   .view-desktop #unifiedWorkspaceGrid .table-scroll{
-    display:block !important; flex:1 1 auto; min-height:0; overflow:auto;
+    display:block !important; flex:1 1 auto; min-height:0; overflow:auto; pointer-events:auto;
+    /* Reserves a dedicated strip below AND to the right of the scrollable
+       area for the height/width resize handles (see .panel-resize-handle
+       and .panel-resize-handle-v) so neither handle's hit area ever
+       overlaps this element's own scrollbar tracks — vertical scrollbar
+       on the right, horizontal on the bottom. Each handle gets its own
+       separate zone, never stacked on top of a scrollbar. */
+    margin-bottom: 9px;
+    margin-right: 9px;
   }
 
   .drag-handle{
@@ -156,17 +164,23 @@
      box (not straddling the border) because .panel has overflow:hidden for
      its rounded corners — a child sitting partly outside that box would
      get clipped and silently stop being clickable in the clipped area. */
+  /* Confined to exactly the margin-right reserved on .table-scroll above —
+     never wider than that gap, so it can't creep left over the vertical
+     scrollbar track and steal its clicks/drags. */
   .panel-resize-handle{
-    position:absolute; top:0; right:0; width:10px; height:100%; cursor:col-resize; z-index:6;
-    display:flex; align-items:center; justify-content:center;
+    position:absolute; top:0; right:0; width:9px; height:100%; cursor:col-resize; z-index:6;
+    display:flex; align-items:center; justify-content:center; pointer-events:auto;
   }
   .panel-resize-handle::after{
     content:""; width:2px; height:100%; background: var(--border); transition: background .15s ease, width .15s ease;
   }
   .panel-resize-handle:hover::after, .panel-resize-handle.active::after{ background: var(--accent); width:3px; }
+  /* Confined to exactly the margin-bottom reserved on .table-scroll above —
+     never taller than that gap, so it can't creep up over the horizontal
+     scrollbar track and steal its clicks/drags. */
   .panel-resize-handle-v{
-    position:absolute; left:0; bottom:0; height:10px; width:100%; cursor:row-resize; z-index:6;
-    display:flex; align-items:center; justify-content:center;
+    position:absolute; left:0; bottom:0; height:9px; width:100%; cursor:row-resize; z-index:6;
+    display:flex; align-items:center; justify-content:center; pointer-events:auto;
   }
   .panel-resize-handle-v::after{
     content:""; height:2px; width:100%; background: var(--border); transition: background .15s ease, height .15s ease;
