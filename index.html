@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- NABD-DIRECT-SHIM:BEGIN (delete everything down to NABD-DIRECT-SHIM:END to get the server version back) -->
 <script>
 /* =====================================================================
    NABD "DIRECT MODE" SHIM  (static hosting: GitHub Pages / Cloudflare)
@@ -19,9 +20,11 @@
    * Your ChartsWatcher User ID + API key are NOT stored in this file.
      The page asks for them once and keeps them in THIS browser only
      (localStorage). To re-enter them, open the page with ?reset=1
-   * Not available in this mode (they need a server): Support/Resistance
-     levels (Yahoo Finance blocks browsers), login/accounts/billing, and
-     saving the layout to an account (it stays in this browser instead).
+   * Support/Resistance levels come from a small Cloudflare Worker
+     (nabd-yahoo). If it isn't deployed, only that panel shows an error.
+   * Not available in this mode (they need a server): login/accounts/
+     billing, and saving the layout to an account (it stays in this
+     browser instead).
    * Keep ONE tab open: every open tab is its own ChartsWatcher connection.
    * If you add a table/alert in the dashboard later, add its config ID to
      the two lists below too (the same rule as server.js had).
@@ -32,6 +35,16 @@
   var TOPLISTS = ["6a1c66d57518438c9c7190c1", "69af3449174bfc7ca6ffc56d", "6a1c66d57518438c9c7190c2", "69a986c3433cbf6f690c212b", "69bad1395930dbb934d4de6a", "69ae338c433cbf6f69e76619", "69a986c3433cbf6f690c212e", "69a986c3433cbf6f690c212a", "69a986c3433cbf6f690c212c"];
   var ALERTS = ["6a1c66d57518438c9c719050", "69a986c3433cbf6f690c210a", "69a99eca433cbf6f6922e40f", "69b1b25780ca4d8e3b6e3245"];
   var STORE_KEY = "nabd_cw_creds";
+  // Support/Resistance data comes from the nabd-yahoo Cloudflare Worker.
+  // To point at a different Worker once, open the page with ?yahoo=https://...
+  var YAHOO_DEFAULT = "https://nabd-yahoo.a-acm96.workers.dev";
+  var yahooBase = (function(){
+    try{
+      var m = /[?&]yahoo=([^&]+)/.exec(location.search);
+      if(m) localStorage.setItem("nabd_yahoo_proxy", decodeURIComponent(m[1]).replace(/\/+$/, ""));
+      return localStorage.getItem("nabd_yahoo_proxy") || YAHOO_DEFAULT;
+    }catch(e){ return YAHOO_DEFAULT; }
+  })();
   var memo = null, declined = false;
 
   try{ if(/[?&]reset=1\b/.test(location.search)) localStorage.removeItem(STORE_KEY); }catch(e){}
@@ -77,8 +90,10 @@
       if(p === "/api/ws-ticket")      return json({ ticket: "direct" });
       if(p === "/api/auth/logout")    return json({ ok: true });
       if(p === "/api/workspace-layout") return method === "POST" ? json({ ok: true }) : json({ layout: null });
-      if(p === "/api/daily-closes" || p === "/api/intraday-structure")
-        return json({ error: "Not available in direct mode (needs the server)" }, 501);
+      if(p === "/api/daily-closes" || p === "/api/intraday-structure"){
+        var sym = q.get("symbol") || "";
+        return realFetch(yahooBase + p.replace("/api", "") + "?symbol=" + encodeURIComponent(sym));
+      }
       if(p === "/api/symbols")    target = cwUrl("/data/v1/symbols");
       else if(p === "/api/lastalerts") target = cwUrl("/data/v1/lastalerts", { config_id: q.get("config_id") || "" });
       else if(p === "/api/lastnews")   target = cwUrl("/data/v1/lastnews", { symbol: q.get("symbol") || "" });
@@ -152,6 +167,7 @@
   (document.head || document.documentElement).appendChild(st);
 })();
 </script>
+<!-- NABD-DIRECT-SHIM:END -->
 <script>
   // Optional, fully self-disabling if SENTRY_DSN isn't set on the server —
   // see the "Sentry integration" section of README.md. Loaded as early as
